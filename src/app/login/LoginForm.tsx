@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { Button } from './Button'
 import { Input } from './Input'
 import { Dialog, DialogTitle } from '@/components/ui/dialog'
+import { supabaseServer } from '@/lib/supabase/api/server'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -16,7 +16,7 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    const { error } = await supabaseServer.auth.signInWithOtp({ email })
 
     if (error) setMessage('Error sending magic link')
     else {
@@ -29,7 +29,7 @@ export function LoginForm() {
 
   const handleResend = async () => {
     setResendLoading(true)
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    const { error } = await supabaseServer.auth.signInWithOtp({ email })
     if (error) setMessage('Error resending magic link')
     else setMessage('Verification email resent!')
     setResendLoading(false)

@@ -8,7 +8,7 @@ import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { OTPDialog } from "@/components/otp-dialog"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
+import { supabaseServer } from "@/lib/supabase/api/server"
 
 export function SignupForm({
   className,
@@ -37,7 +37,7 @@ export function SignupForm({
       return;
     }
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabaseServer.auth.signUp({
         email,
         password,
         options: { data: { name } }
@@ -60,7 +60,7 @@ export function SignupForm({
 
   const handleVerifyOtp = async (otp: string) => {
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { error } = await supabaseServer.auth.verifyOtp({
         email: emailForOtp,
         token: otp,
         type: 'email'
