@@ -25,7 +25,6 @@ export async function createJob(jobData: CreateJobInput) {
   // Map jobData to DB schema
   const {
     jobTitle,
-    schoolName,
     location,
     experience,
     employmentType,

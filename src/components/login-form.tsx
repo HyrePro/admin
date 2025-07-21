@@ -68,9 +68,10 @@ export function LoginForm({
       }
       toast.success("Login successful! Redirecting...")
       router.push("/dashboard")
-    } catch (err) {
-      setError("Login failed. Please try again.");
-      toast.error("Login failed. Please try again.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed. Please try again.";
+      setError(message);
+      toast.error(message);
     }
   }
 
@@ -84,6 +85,9 @@ export function LoginForm({
       if (error) {
         toast.error("Invalid or expired code. Please try again.")
         return
+      }
+      else{
+        console.log("TODO ",data)
       }
       toast.success("Email verified! Redirecting...")
       setOtpDialogOpen(false)

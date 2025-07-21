@@ -1,8 +1,7 @@
 import React from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  Eye,
   MapPin,
   Clock,
   GraduationCap,
@@ -10,13 +9,7 @@ import {
   Target,
   Video,
   Users,
-  Sparkles,
-  CheckCircle,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { createJob } from "@/lib/supabase/api/create-job"
 
 // Types for interview questions and job data
 interface InterviewQuestion {

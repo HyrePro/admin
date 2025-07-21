@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from "react"
+import React from "react"
 import {
   Card, CardHeader, CardTitle, CardContent,
 } from "@/components/ui/card"
@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Formik, Form, Field, ErrorMessage, FormikProps } from "formik"
-import * as Yup from "yup"
+import { Field, FormikProps } from "formik"
+import { Textarea } from "@/components/ui/textarea"
 
 const subjects = [
   "Mathematics", "Science", "English", "Social Studies", "Hindi",
@@ -57,7 +57,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
     <Card className="shadow-sm border-none">
       <CardHeader>
         <CardTitle className="text-xl font-semibold text-gray-800">Basic Job Information</CardTitle>
-        <p className="text-sm text-gray-500">Let's get started with a few job details.</p>
+        <p className="text-sm text-gray-500">Don&apos;t have an account?</p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Job Title */}
@@ -83,7 +83,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
           <Label htmlFor="description">Description</Label>
           <div className="mt-2">
             <Field
-              as={require("@/components/ui/textarea").Textarea}
+              as={Textarea}
               id="description"
               name="description"
               placeholder="Describe the job role, expectations, or any other details (optional)"
@@ -183,7 +183,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
             </Label>
             <div className="mt-2">
               <Field name="employmentType">
-                {({ field }: any) => (
+                {({ field }: { field: { value: string } }) => (
                   <Select
                     value={field.value}
                     onValueChange={(val) => setFieldValue("employmentType", val)}
@@ -210,7 +210,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
             <Label>Required Experience</Label>
             <div className="mt-2">
               <Field name="experience">
-                {({ field }: any) => (
+                {({ field }: { field: { value: string } }) => (
                   <Select
                     value={field.value}
                     onValueChange={(val) => setFieldValue("experience", val)}

@@ -229,8 +229,12 @@ export default function CreateJobApplicationPage() {
                         setDialogOpen(false)
                         router.push(`/create-job-post/success?jobId=${data.id}`)
                       }, 1200)
-                    } catch (e: any) {
-                      setError(e?.message || 'Something went wrong. Please try again.')
+                    } catch (e: unknown) {
+                      let errorMessage = 'Something went wrong. Please try again.';
+                      if (typeof e === 'object' && e !== null && 'message' in e && typeof (e as { message?: unknown }).message === 'string') {
+                        errorMessage = (e as { message: string }).message;
+                      }
+                      setError(errorMessage)
                       setDialogType('error')
                       setLoading(false)
                     }

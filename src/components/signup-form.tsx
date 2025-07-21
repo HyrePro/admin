@@ -17,7 +17,6 @@ export function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [otpDialogOpen, setOtpDialogOpen] = useState(false)
   const [emailForOtp, setEmailForOtp] = useState("")
-  const [passwordForOtp, setPasswordForOtp] = useState("")
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,19 +48,19 @@ export function SignupForm({
         return
       }
       setEmailForOtp(email)
-      setPasswordForOtp(password)
       setOtpDialogOpen(true)
       toast.success("Signup successful! Please check your email for the verification code.")
       form.reset();
-    } catch (err) {
-      setError("Signup failed. Please try again.");
-      toast.error("Signup failed. Please try again.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Signup failed. Please try again.";
+      setError(message);
+      toast.error(message);
     }
   }
 
   const handleVerifyOtp = async (otp: string) => {
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         email: emailForOtp,
         token: otp,
         type: 'email'
@@ -73,8 +72,9 @@ export function SignupForm({
       toast.success("Email verified! Redirecting...")
       setOtpDialogOpen(false)
       router.push("/dashboard")
-    } catch (err) {
-      toast.error("Verification failed. Please try again.")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Verification failed. Please try again.";
+      toast.error(message);
     }
   }
 
