@@ -1,3 +1,4 @@
+import { supabase } from "./client"
 import { supabaseServer } from "./server"
 
 export interface CreateJobInput {
@@ -61,7 +62,7 @@ export async function createJob(jobData: CreateJobInput) {
   };
 
   // Insert into jobs table
-  const { data, error } = await supabaseServer.from("jobs").insert([
+  const { data, error } = await supabase.from("jobs").insert([
     {
       title: jobTitle,
       job_type: employmentType,
