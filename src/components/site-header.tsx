@@ -17,15 +17,15 @@ export function SiteHeader() {
         <h1 className="text-base font-medium">Documents</h1>
         <div className="ml-auto flex items-center gap-2">
           <Link href="/create-job-post" passHref>
-            <Button asChild variant="default" size="sm" className="hidden sm:flex">
+            <Button asChild variant="default" size="sm" className="sm:flex">
               <span>+ Create Job Post</span>
             </Button>
           </Link>
-          <Button variant="outline" size="icon" className="hidden sm:flex" title="Inbox">
+          <Button variant="outline" size="icon" className="sm:flex" title="Inbox">
             <IconMail />
             <span className="sr-only">Inbox</span>
           </Button>
-          <Button variant="outline" size="icon" className="hidden sm:flex" title="Notifications">
+          <Button variant="outline" size="icon" className="sm:flex" title="Notifications">
             <IconBell />
             <span className="sr-only">Notifications</span>
           </Button>

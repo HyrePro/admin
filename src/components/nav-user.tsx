@@ -28,6 +28,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase/api/client"
 
 export function NavUser({
   user,
@@ -39,6 +43,18 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    toast.info("Signing out...")
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      toast.error("Error signing out: " + error.message)
+    } else {
+      toast.success("Signed out!")
+      router.push("/login")
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -98,13 +114,14 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <IconLogout />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <ToastContainer position="top-center" autoClose={3000} />
     </SidebarMenu>
   )
 }

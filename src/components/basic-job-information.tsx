@@ -54,203 +54,197 @@ type BasicJobInformationProps = FormikProps<FormValues>
 export function BasicJobInformation(props: BasicJobInformationProps) {
   const { values, errors, touched, setFieldValue } = props
   return (
-    <Card className="shadow-sm border-none">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold text-gray-800">Basic Job Information</CardTitle>
-        <p className="text-sm text-gray-500">Don&apos;t have an account?</p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Job Title */}
-        <div>
-          <Label htmlFor="jobTitle">
-            Job Title
+    <div className="space-y-6">
+      {/* Job Title */}
+      <div>
+        <Label htmlFor="jobTitle">
+          Job Title
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
+        <div className="mt-2">
+          <Field
+            as={Input}
+            id="jobTitle"
+            name="jobTitle"
+            placeholder="e.g. Mathematics Teacher"
+          />
+        </div>
+        {touched.jobTitle && !values.jobTitle && errors.jobTitle && (
+          <div className="text-xs text-red-500 mt-1">{errors.jobTitle}</div>
+        )}
+      </div>
+      {/* Description (optional) */}
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <div className="mt-2">
+          <Field
+            as={Textarea}
+            id="description"
+            name="description"
+            placeholder="Describe the job role, expectations, or any other details (optional)"
+            rows={4}
+          />
+        </div>
+      </div>
+      {/* Subjects */}
+      <div>
+        <Label>
+          Subjects to Teach
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-48 overflow-y-auto">
+          {subjects.map((subj) => (
+            <label
+              key={subj}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
+                (values.subjects as string[]).includes(subj)
+                  ? "bg-purple-50 border-purple-300 text-purple-800"
+                  : "hover:bg-gray-50 border-gray-200"
+              }`}
+            >
+              <Checkbox
+                checked={(values.subjects as string[]).includes(subj)}
+                onCheckedChange={() => {
+                  if ((values.subjects as string[]).includes(subj)) {
+                    setFieldValue(
+                      "subjects",
+                      (values.subjects as string[]).filter((v) => v !== subj)
+                    )
+                  } else {
+                    setFieldValue("subjects", [...(values.subjects as string[]), subj])
+                  }
+                }}
+              />
+              <span className="text-sm">{subj}</span>
+            </label>
+          ))}
+        </div>
+        {touched.subjects && Array.isArray(values.subjects) && values.subjects.length === 0 && errors.subjects && (
+          <div className="text-xs text-red-500 mt-1">{errors.subjects as string}</div>
+        )}
+        {(values.subjects as string[]).length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {(values.subjects as string[]).map((subject) => (
+              <Badge key={subject} className="bg-purple-100 text-purple-700">
+                {subject}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Grade Levels */}
+      <div>
+        <Label>
+          Grade Levels
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          {gradeLevels.map((grade) => (
+            <label
+              key={grade}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
+                (values.gradeLevel as string[]).includes(grade)
+                  ? "bg-purple-50 border-purple-300 text-purple-800"
+                  : "hover:bg-gray-50 border-gray-200"
+              }`}
+            >
+              <Checkbox
+                checked={(values.gradeLevel as string[]).includes(grade)}
+                onCheckedChange={() => {
+                  if ((values.gradeLevel as string[]).includes(grade)) {
+                    setFieldValue(
+                      "gradeLevel",
+                      (values.gradeLevel as string[]).filter((v) => v !== grade)
+                    )
+                  } else {
+                    setFieldValue("gradeLevel", [...(values.gradeLevel as string[]), grade])
+                  }
+                }}
+              />
+              <span className="text-sm">{grade}</span>
+            </label>
+          ))}
+        </div>
+        {touched.gradeLevel && Array.isArray(values.gradeLevel) && values.gradeLevel.length === 0 && errors.gradeLevel && (
+          <div className="text-xs text-red-500 mt-1">{errors.gradeLevel as string}</div>
+        )}
+      </div>
+      {/* Employment & Experience */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="flex flex-col w-full">
+          <Label>
+            Employment Type
             <span className="text-red-500 ml-0.5">*</span>
           </Label>
           <div className="mt-2">
-            <Field
-              as={Input}
-              id="jobTitle"
-              name="jobTitle"
-              placeholder="e.g. Mathematics Teacher"
-            />
+            <Field name="employmentType">
+              {({ field }: { field: { value: string } }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(val) => setFieldValue("employmentType", val)}
+                >
+                  <SelectTrigger className="w-full" >
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employmentTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
           </div>
-          {touched.jobTitle && !values.jobTitle && errors.jobTitle && (
-            <div className="text-xs text-red-500 mt-1">{errors.jobTitle}</div>
+          {touched.employmentType && !values.employmentType && errors.employmentType && (
+            <div className="text-xs text-red-500 mt-1">{errors.employmentType}</div>
           )}
         </div>
-        {/* Description (optional) */}
-        <div>
-          <Label htmlFor="description">Description</Label>
+        <div className="flex flex-col w-full">
+          <Label>Required Experience</Label>
           <div className="mt-2">
-            <Field
-              as={Textarea}
-              id="description"
-              name="description"
-              placeholder="Describe the job role, expectations, or any other details (optional)"
-              rows={4}
-            />
+            <Field name="experience">
+              {({ field }: { field: { value: string } }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(val) => setFieldValue("experience", val)}
+                >
+                  <SelectTrigger className="w-full" >
+                    <SelectValue placeholder="Select experience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {experienceOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
           </div>
         </div>
-        {/* Subjects */}
-        <div>
-          <Label>
-            Subjects to Teach
-            <span className="text-red-500 ml-0.5">*</span>
-          </Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-48 overflow-y-auto">
-            {subjects.map((subj) => (
-              <label
-                key={subj}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
-                  (values.subjects as string[]).includes(subj)
-                    ? "bg-purple-50 border-purple-300 text-purple-800"
-                    : "hover:bg-gray-50 border-gray-200"
-                }`}
-              >
-                <Checkbox
-                  checked={(values.subjects as string[]).includes(subj)}
-                  onCheckedChange={() => {
-                    if ((values.subjects as string[]).includes(subj)) {
-                      setFieldValue(
-                        "subjects",
-                        (values.subjects as string[]).filter((v) => v !== subj)
-                      )
-                    } else {
-                      setFieldValue("subjects", [...(values.subjects as string[]), subj])
-                    }
-                  }}
-                />
-                <span className="text-sm">{subj}</span>
-              </label>
-            ))}
-          </div>
-          {touched.subjects && Array.isArray(values.subjects) && values.subjects.length === 0 && errors.subjects && (
-            <div className="text-xs text-red-500 mt-1">{errors.subjects as string}</div>
-          )}
-          {(values.subjects as string[]).length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {(values.subjects as string[]).map((subject) => (
-                <Badge key={subject} className="bg-purple-100 text-purple-700">
-                  {subject}
-                </Badge>
-              ))}
-            </div>
-          )}
+      </div>
+      {/* Salary Range */}
+      <div>
+        <Label>Salary Range (Annual)</Label>
+        <div className="grid grid-cols-2 gap-4 mt-1">
+          <Field
+            as={Input}
+            name="salaryMin"
+            placeholder="Min (₹)"
+            type="number"
+          />
+          <Field
+            as={Input}
+            name="salaryMax"
+            placeholder="Max (₹)"
+            type="number"
+          />
         </div>
-        {/* Grade Levels */}
-        <div>
-          <Label>
-            Grade Levels
-            <span className="text-red-500 ml-0.5">*</span>
-          </Label>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {gradeLevels.map((grade) => (
-              <label
-                key={grade}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
-                  (values.gradeLevel as string[]).includes(grade)
-                    ? "bg-purple-50 border-purple-300 text-purple-800"
-                    : "hover:bg-gray-50 border-gray-200"
-                }`}
-              >
-                <Checkbox
-                  checked={(values.gradeLevel as string[]).includes(grade)}
-                  onCheckedChange={() => {
-                    if ((values.gradeLevel as string[]).includes(grade)) {
-                      setFieldValue(
-                        "gradeLevel",
-                        (values.gradeLevel as string[]).filter((v) => v !== grade)
-                      )
-                    } else {
-                      setFieldValue("gradeLevel", [...(values.gradeLevel as string[]), grade])
-                    }
-                  }}
-                />
-                <span className="text-sm">{grade}</span>
-              </label>
-            ))}
-          </div>
-          {touched.gradeLevel && Array.isArray(values.gradeLevel) && values.gradeLevel.length === 0 && errors.gradeLevel && (
-            <div className="text-xs text-red-500 mt-1">{errors.gradeLevel as string}</div>
-          )}
-        </div>
-        {/* Employment & Experience */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="flex flex-col w-full">
-            <Label>
-              Employment Type
-              <span className="text-red-500 ml-0.5">*</span>
-            </Label>
-            <div className="mt-2">
-              <Field name="employmentType">
-                {({ field }: { field: { value: string } }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(val) => setFieldValue("employmentType", val)}
-                  >
-                    <SelectTrigger className="w-full" >
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employmentTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </Field>
-            </div>
-            {touched.employmentType && !values.employmentType && errors.employmentType && (
-              <div className="text-xs text-red-500 mt-1">{errors.employmentType}</div>
-            )}
-          </div>
-          <div className="flex flex-col w-full">
-            <Label>Required Experience</Label>
-            <div className="mt-2">
-              <Field name="experience">
-                {({ field }: { field: { value: string } }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(val) => setFieldValue("experience", val)}
-                  >
-                    <SelectTrigger className="w-full" >
-                      <SelectValue placeholder="Select experience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {experienceOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </Field>
-            </div>
-          </div>
-        </div>
-        {/* Salary Range */}
-        <div>
-          <Label>Salary Range (Annual)</Label>
-          <div className="grid grid-cols-2 gap-4 mt-1">
-            <Field
-              as={Input}
-              name="salaryMin"
-              placeholder="Min (₹)"
-              type="number"
-            />
-            <Field
-              as={Input}
-              name="salaryMax"
-              placeholder="Max (₹)"
-              type="number"
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Leave blank if you prefer not to disclose.</p>
-        </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs text-gray-500 mt-1">Leave blank if you prefer not to disclose.</p>
+      </div>
+    </div>
   )
 }

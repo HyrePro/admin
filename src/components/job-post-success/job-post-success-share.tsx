@@ -4,16 +4,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Share2, Copy, MessageSquare, Linkedin } from "lucide-react"
 
-export default function JobPostSuccessShare() {
+export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
   const [jobLink, setJobLink] = useState("")
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    // Generate job link (in real app, this would come from the API response)
-    const jobId = "sample-job-" + Date.now()
-    const link = `${window.location.origin}/apply/${jobId}`
+    if (!jobId) return;
+    const link = `${'hyrepro.in'}/apply/${jobId}`
     setJobLink(link)
-  }, [])
+  }, [jobId])
 
   const copyToClipboard = async () => {
     try {

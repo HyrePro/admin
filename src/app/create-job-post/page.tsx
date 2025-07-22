@@ -1,7 +1,6 @@
 'use client'
 
 import { NewJobHeader } from '@/components/new-job-header'
-import { CreateJobBreadcrumb } from '@/components/create-job-breadcrumb'
 import { BasicJobInformation } from '@/components/basic-job-information'
 import { ScreeningSettings } from '@/components/screening-settings'
 import { ReviewAndPublish } from "@/components/review-and-publish"
@@ -12,6 +11,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createJob } from '@/lib/supabase/api/create-job'
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { JobPostDialog } from '@/components/job-post-dialog'
 
 const validationSchema = Yup.object({
   jobTitle: Yup.string().required('Job title is required'),
@@ -46,6 +48,21 @@ const initialValues: FormValues = {
   salaryMax: '',
 }
 
+const steps = [
+  {
+    title: "Basic Job Information",
+    description: "Fill out the form below to create a job post."
+  },
+  {
+    title: "Screening & Assessment",
+    description: "Choose which screening steps to enable for this job application."
+  },
+  {
+    title: "Review & Publish",
+    description: "Review all details before publishing your job post."
+  }
+]
+
 export default function CreateJobApplicationPage() {
   const [jobInfo, setJobInfo] = useState<FormValues | null>(null)
   const [step, setStep] = useState(0)
@@ -60,7 +77,7 @@ export default function CreateJobApplicationPage() {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogType, setDialogType] = useState<'progress' | 'success' | 'error' | null>(null)
-  
+
   // Prevent body scrolling when this component mounts
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -68,9 +85,15 @@ export default function CreateJobApplicationPage() {
       document.body.style.overflow = 'unset'
     }
   }, [])
-  
+
   return (
     <div className="fixed inset-0 flex flex-col">
+      <JobPostDialog
+        open={dialogOpen}
+        type={dialogType}
+        error={error}
+        onClose={() => setDialogOpen(false)}
+      />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -80,206 +103,195 @@ export default function CreateJobApplicationPage() {
         {/* Fixed Header */}
         <div className="shrink-0">
           <NewJobHeader />
-          <CreateJobBreadcrumb currentStep={step} />
-          <div className="border-b border-gray-200" />
         </div>
-        {step === 0 ? (
-          <Formik
-            initialValues={jobInfo || initialValues}
-            validationSchema={validationSchema}
-            onSubmit={(values) => {
-              setJobInfo(values)
-              setStep(1)
-            }}
-            validateOnChange={false}
-            validateOnBlur={false}
-          >
-            {(formik) => (
-              <Form className="flex flex-col flex-1 min-h-0">
-                {/* Scrollable Main Content */}
-                <main className="flex-1 overflow-y-auto px-4 py-6 bg-muted">
-                  <div className="mx-auto max-w-4xl">
-                    <BasicJobInformation {...formik} />
-                  </div>
-                </main>
-                {/* Fixed Bottom Button */}
-                <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-4">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="submit"
-                      className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
-                    >
-                      Continue
-                    </button>
-                  </div>
+        <main className="flex-1 overflow-y-auto px-4 bg-muted pt-[64px] pb-16 flex justify-center mt-10">
+          <div className="w-full max-w-3xl">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="text-2xl font-semibold text-gray-800">{steps[step].title}</CardTitle>
+                  <Badge className="text-xs px-2 py-0.5 border border-gray-300 text-black bg-white rounded-full font-medium">Step {step + 1} of {steps.length}</Badge>
                 </div>
-              </Form>
-            )}
-          </Formik>
-        ) : step === 1 ? (
-          <div className="flex flex-col flex-1 min-h-0">
-            <main className="flex-1 overflow-y-auto px-4 py-6 bg-muted">
-              <div className="mx-auto max-w-4xl">
-                <ScreeningSettings
-                  values={screening}
-                  onChange={setScreening}
-                />
-              </div>
-            </main>
-            <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-4">
-              <div className="flex justify-between gap-2">
-                <button
-                  type="button"
-                  className="bg-muted text-gray-700 px-6 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
-                  onClick={() => setStep(0)}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
-                  onClick={() => setStep(2)}
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
+                <CardDescription>{steps[step].description}</CardDescription>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                  <div
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full"
+                    style={{ width: `${Math.round(((step + 1) / steps.length) * 100)}%` }}
+                  ></div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {step === 0 && (
+                  <Formik
+                    initialValues={jobInfo || initialValues}
+                    validationSchema={validationSchema}
+                    onSubmit={(values) => {
+                      setJobInfo(values)
+                      setStep(1)
+                    }}
+                    validateOnChange={false}
+                    validateOnBlur={false}
+                  >
+                    {(formik) => (
+                      <Form>
+                        <BasicJobInformation {...formik} />
+                        <div className="flex justify-end mt-6">
+                          <button
+                            type="button"
+                            className="px-6 py-2 rounded text-white font-semibold bg-gradient-to-r from-blue-600 to-purple-600 shadow-md hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={async () => {
+                              const errors = await formik.validateForm();
+                              if (Object.keys(errors).length > 0) {
+                                formik.setTouched({
+                                  jobTitle: true,
+                                  subjects: true,
+                                  gradeLevel: true,
+                                  employmentType: true,
+                                });
+                                return;
+                              }
+                              formik.handleSubmit();
+                            }}
+                          >
+                            Continue
+                          </button>
+                        </div>
+                      </Form>
+                    )}
+                  </Formik>
+                )}
+                {step === 1 && (
+                  <ScreeningSettings
+                    values={screening}
+                    onChange={setScreening}
+                  />
+                )}
+                {step === 2 && (
+                  <ReviewAndPublish
+                    jobData={{
+                      jobTitle: jobInfo?.jobTitle ?? "",
+                      experience: jobInfo?.experience ?? "any",
+                      employmentType: jobInfo?.employmentType ?? "full-time",
+                      subjects: jobInfo?.subjects ?? [],
+                      gradeLevel: jobInfo?.gradeLevel ?? [],
+                      salaryMin: jobInfo?.salaryMin ?? "",
+                      salaryMax: jobInfo?.salaryMax ?? "",
+                      schoolName: "Dayanand Public School",
+                      location: "Mumbai",
+                      jobDescription: jobInfo?.description ?? "Job description here...",
+                      requirements: ["Requirement 1", "Requirement 2"],
+                      includeSubjectTest: screening.assessment,
+                      subjectTestDuration: screening.assessment ? 30 : undefined,
+                      demoVideoDuration: screening.demoVideo ? 10 : undefined,
+                      includeInterview: screening.interviewScheduling,
+                      interviewFormat: screening.interviewScheduling ? "panel" : undefined,
+                      interviewDuration: screening.interviewScheduling ? 20 : undefined,
+                      interviewQuestions: screening.interviewScheduling ? [
+                        { id: 1, question: "Why do you want this job?" },
+                        { id: 2, question: "Describe your teaching style." }
+                      ] : []
+                    }}
+                  />
+                )}
+              </CardContent>
+              <CardFooter className="flex justify-between gap-2 bg-white border-t border-gray-200">
+                {step === 0 && (
+                  // No buttons here for step 0; Continue button is inside the Formik form above
+                  null
+                )}
+                {step === 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="bg-muted text-gray-700 px-6 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
+                      onClick={() => setStep(0)}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      className="px-6 py-2 rounded text-white font-semibold bg-gradient-to-r from-blue-600 to-purple-600 shadow-md hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => setStep(2)}
+                    >
+                      Next
+                    </button>
+                  </>
+                )}
+                {step === 2 && (
+                  <>
+                    <button
+                      type="button"
+                      className="bg-muted text-gray-700 px-6 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
+                      onClick={() => setStep(1)}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      className="px-6 py-2 rounded text-white font-semibold bg-gradient-to-r from-blue-600 to-purple-600 shadow-md hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={async () => {
+                        setError(null)
+                        setLoading(true)
+                        setDialogType('progress')
+                        setDialogOpen(true)
+                        try {
+                          const jobPayload = {
+                            jobTitle: jobInfo?.jobTitle ?? "",
+                            experience: jobInfo?.experience ?? "any",
+                            employmentType: jobInfo?.employmentType ?? "full-time",
+                            subjects: jobInfo?.subjects ?? [],
+                            gradeLevel: jobInfo?.gradeLevel ?? [],
+                            salaryMin: jobInfo?.salaryMin ?? "",
+                            salaryMax: jobInfo?.salaryMax ?? "",
+                            schoolName: "Dayanand Public School",
+                            location: "Mumbai",
+                            jobDescription: jobInfo?.description ?? "Job description here...",
+                            requirements: ["Requirement 1", "Requirement 2"],
+                            includeSubjectTest: screening.assessment,
+                            subjectTestDuration: screening.assessment ? 30 : undefined,
+                            demoVideoDuration: screening.demoVideo ? 10 : undefined,
+                            includeInterview: screening.interviewScheduling,
+                            interviewFormat: screening.interviewScheduling ? "panel" : undefined,
+                            interviewDuration: screening.interviewScheduling ? 20 : undefined,
+                            interviewQuestions: screening.interviewScheduling ? [
+                              { id: 1, question: "Why do you want this job?" },
+                              { id: 2, question: "Describe your teaching style." }
+                            ] : []
+                          }
+                          const { data, error } = await createJob(jobPayload)
+                          if (error || !data?.id) {
+                            setError(error?.message || 'Failed to create job. Please try again.')
+                            setDialogType('error')
+                            setLoading(false)
+                            return
+                          }
+                          setDialogType('success')
+                          setTimeout(() => {
+                            setDialogOpen(false)
+                            setTimeout(() => {
+                              router.push(`/create-job-post/success?jobId=${data.id}`)
+                            }, 100) // small delay to allow dialog to close visually
+                          }, 1000)
+                        } catch (e: unknown) {
+                          let errorMessage = 'Something went wrong. Please try again.';
+                          if (typeof e === 'object' && e !== null && 'message' in e && typeof (e as { message?: unknown }).message === 'string') {
+                            errorMessage = (e as { message: string }).message;
+                          }
+                          setError(errorMessage)
+                          setDialogType('error')
+                          setLoading(false)
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? 'Publishing...' : 'Publish'}
+                    </button>
+                  </>
+                )}
+              </CardFooter>
+            </Card>
           </div>
-        ) : (
-          <div className="flex flex-col flex-1 min-h-0">
-            <main className="flex-1 overflow-y-auto px-4 py-6 bg-muted">
-              <div className="mx-auto max-w-4xl">
-                <ReviewAndPublish
-                  jobData={{
-                    jobTitle: jobInfo?.jobTitle ?? "",
-                    experience: jobInfo?.experience ?? "any",
-                    employmentType: jobInfo?.employmentType ?? "full-time",
-                    subjects: jobInfo?.subjects ?? [],
-                    gradeLevel: jobInfo?.gradeLevel ?? [],
-                    salaryMin: jobInfo?.salaryMin ?? "",
-                    salaryMax: jobInfo?.salaryMax ?? "",
-                    schoolName: "Dayanand Public School",
-                    location: "Mumbai",
-                    jobDescription: jobInfo?.description ?? "Job description here...",
-                    requirements: ["Requirement 1", "Requirement 2"],
-                    includeSubjectTest: screening.assessment,
-                    subjectTestDuration: screening.assessment ? 30 : undefined,
-                    demoVideoDuration: screening.demoVideo ? 10 : undefined,
-                    includeInterview: screening.interviewScheduling,
-                    interviewFormat: screening.interviewScheduling ? "panel" : undefined,
-                    interviewDuration: screening.interviewScheduling ? 20 : undefined,
-                    interviewQuestions: screening.interviewScheduling ? [
-                      { id: 1, question: "Why do you want this job?" },
-                      { id: 2, question: "Describe your teaching style." }
-                    ] : []
-                  }}
-                />
-              </div>
-            </main>
-            <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-4">
-              <div className="flex justify-between gap-2">
-                <button
-                  type="button"
-                  className="bg-muted text-gray-700 px-6 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
-                  onClick={() => setStep(1)}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className="bg-primary text-white px-6 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
-                  onClick={async () => {
-                    setError(null)
-                    setLoading(true)
-                    setDialogType('progress')
-                    setDialogOpen(true)
-                    try {
-                      const jobPayload = {
-                        jobTitle: jobInfo?.jobTitle ?? "",
-                        experience: jobInfo?.experience ?? "any",
-                        employmentType: jobInfo?.employmentType ?? "full-time",
-                        subjects: jobInfo?.subjects ?? [],
-                        gradeLevel: jobInfo?.gradeLevel ?? [],
-                        salaryMin: jobInfo?.salaryMin ?? "",
-                        salaryMax: jobInfo?.salaryMax ?? "",
-                        schoolName: "Dayanand Public School",
-                        location: "Mumbai",
-                        jobDescription: jobInfo?.description ?? "Job description here...",
-                        requirements: ["Requirement 1", "Requirement 2"],
-                        includeSubjectTest: screening.assessment,
-                        subjectTestDuration: screening.assessment ? 30 : undefined,
-                        demoVideoDuration: screening.demoVideo ? 10 : undefined,
-                        includeInterview: screening.interviewScheduling,
-                        interviewFormat: screening.interviewScheduling ? "panel" : undefined,
-                        interviewDuration: screening.interviewScheduling ? 20 : undefined,
-                        interviewQuestions: screening.interviewScheduling ? [
-                          { id: 1, question: "Why do you want this job?" },
-                          { id: 2, question: "Describe your teaching style." }
-                        ] : []
-                      }
-                      const { data, error } = await createJob(jobPayload)
-                      if (error || !data?.id) {
-                        setError(error?.message || 'Failed to create job. Please try again.')
-                        setDialogType('error')
-                        setLoading(false)
-                        return
-                      }
-                      setDialogType('success')
-                      setTimeout(() => {
-                        setDialogOpen(false)
-                        router.push(`/create-job-post/success?jobId=${data.id}`)
-                      }, 1200)
-                    } catch (e: unknown) {
-                      let errorMessage = 'Something went wrong. Please try again.';
-                      if (typeof e === 'object' && e !== null && 'message' in e && typeof (e as { message?: unknown }).message === 'string') {
-                        errorMessage = (e as { message: string }).message;
-                      }
-                      setError(errorMessage)
-                      setDialogType('error')
-                      setLoading(false)
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? 'Publishing...' : 'Publish'}
-                </button>
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  {dialogType === 'progress' && (
-                    <div className="flex flex-col items-center justify-center">
-                      <DialogTitle>Publishing Job...</DialogTitle>
-                      <DialogDescription>
-                        Please wait while we publish your job post.
-                      </DialogDescription>
-                      <div className="mt-4 animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
-                    </div>
-                  )}
-                  {dialogType === 'success' && (
-                    <div className="flex flex-col items-center justify-center">
-                      <DialogTitle>Success!</DialogTitle>
-                      <DialogDescription>
-                        Your job post has been published.
-                      </DialogDescription>
-                    </div>
-                  )}
-                  {dialogType === 'error' && (
-                    <div className="flex flex-col items-center justify-center">
-                      <DialogTitle>Something went wrong</DialogTitle>
-                      <DialogDescription>
-                        {error}
-                      </DialogDescription>
-                      <button
-                        className="mt-4 bg-primary text-white px-4 py-2 rounded-md"
-                        onClick={() => setDialogOpen(false)}
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-                </Dialog>
-              </div>
-            </div>
-          </div>
-        )}
+        </main>
       </motion.div>
     </div>
   )

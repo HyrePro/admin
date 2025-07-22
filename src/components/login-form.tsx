@@ -3,41 +3,21 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { OTPDialog } from "@/components/otp-dialog"
 import { useRouter } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase/api/server"
+import { ForgotPasswordDialog } from "./forgot-password-dialog"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [error, setError] = useState<string | null>(null)
-  const [otpDialogOpen, setOtpDialogOpen] = useState(false)
-  const [emailForOtp, setEmailForOtp] = useState("")
-  const [otpRequested, setOtpRequested] = useState(false)
   const router = useRouter()
-
-  // When OTP dialog opens, send OTP if not already requested
-  useEffect(() => {
-    if (otpDialogOpen && emailForOtp && !otpRequested) {
-      (async () => {
-        const { error } = await supabaseServer.auth.resend({
-          type: 'signup',
-          email: emailForOtp
-        })
-        if (error) {
-          toast.error("Failed to send verification code. Please try again.")
-        } else {
-          toast.info("Verification code sent to your email.")
-          setOtpRequested(true)
-        }
-      })()
-    }
-    if (!otpDialogOpen) setOtpRequested(false)
-  }, [otpDialogOpen, emailForOtp, otpRequested])
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [emailValue, setEmailValue] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,12 +40,6 @@ export function LoginForm({
         toast.error(signInError.message)
         return
       }
-      if (data.user && !data.user.email_confirmed_at) {
-        setEmailForOtp(email)
-        setOtpDialogOpen(true)
-        toast.info("Please verify your email to continue.")
-        return
-      }
       toast.success("Login successful! Redirecting...")
       router.push("/dashboard")
     } catch (error) {
@@ -75,36 +49,10 @@ export function LoginForm({
     }
   }
 
-  const handleVerifyOtp = async (otp: string) => {
-    try {
-      const { data, error } = await supabaseServer.auth.verifyOtp({
-        email: emailForOtp,
-        token: otp,
-        type: 'email'
-      })
-      if (error) {
-        toast.error("Invalid or expired code. Please try again.")
-        return
-      }
-      else{
-        console.log("TODO ",data)
-      }
-      toast.success("Email verified! Redirecting...")
-      setOtpDialogOpen(false)
-      router.push("/dashboard")
-    } catch (err) {
-      toast.error("Verification failed. Please try again.")
-    }
-  }
-
   return (
     <div className={cn("flex flex-col items-center justify-center gap-6 w-full", className)} {...props}>
       <ToastContainer position="top-center" autoClose={3000} />
-      <OTPDialog
-        open={otpDialogOpen}
-        onClose={() => setOtpDialogOpen(false)}
-        onVerify={handleVerifyOtp}
-      />
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} initialEmail={emailValue} />
       {error && (
         <div className="w-full max-w-xs text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">
           {error}
@@ -124,17 +72,19 @@ export function LoginForm({
               type="email"
               placeholder="m@example.com"
               required
+              onChange={e => setEmailValue(e.target.value)}
             />
           </div>
           <div className="grid gap-3">
             <div className="flex items-center">
               <Label htmlFor="password">Password</Label>
-              <a
-                href="#"
-                className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+              <button
+                type="button"
+                className="ml-auto inline-block text-sm underline-offset-4 hover:underline text-blue-600 bg-transparent border-0 p-0 cursor-pointer"
+                onClick={() => setForgotOpen(true)}
               >
                 Forgot your password?
-              </a>
+              </button>
             </div>
             <Input id="password" name="password" type="password" required />
           </div>
