@@ -1,5 +1,4 @@
 import { supabase } from "./client"
-import { supabaseServer } from "./server"
 
 export interface CreateJobInput {
   jobTitle: string

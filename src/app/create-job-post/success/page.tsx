@@ -1,5 +1,5 @@
-"use client"
-
+'use client';
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation"
 import JobPostSuccessHeader from "@/components/job-post-success/job-post-success-header"
 import JobPostSuccessMessage from "@/components/job-post-success/job-post-success-message"
@@ -8,7 +8,8 @@ import JobPostSuccessNextSteps from "@/components/job-post-success/job-post-succ
 import JobPostSuccessWhatNext from "@/components/job-post-success/job-post-success-what-next"
 import JobPostSuccessActions from "@/components/job-post-success/job-post-success-actions"
 
-export default function JobPostSuccess() {
+
+function JobPostSuccessContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId") || "";
 
@@ -24,4 +25,12 @@ export default function JobPostSuccess() {
       </div>
     </div>
   )
+}
+
+export default function JobPostSuccess() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <JobPostSuccessContent />
+    </Suspense>
+  );
 } 
