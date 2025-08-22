@@ -3,25 +3,42 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { useRouter } from "next/navigation"
-import { supabaseServer } from "@/lib/supabase/api/server"
+import { useRouter, useSearchParams } from "next/navigation"
+import { supabase } from "@/lib/supabase/api/client"
 import { ForgotPasswordDialog } from "./forgot-password-dialog"
 
-export function LoginForm({
+function LoginFormContent({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [forgotOpen, setForgotOpen] = useState(false)
   const [emailValue, setEmailValue] = useState("")
+
+  // Handle query parameters for verification messages
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    const messageParam = searchParams.get('message')
+    
+    if (errorParam === 'verification_failed') {
+      setError("Email verification failed. Please try again or contact support.")
+      toast.error("Email verification failed. Please try again or contact support.")
+    } else if (messageParam === 'verification_incomplete') {
+      setMessage("Email verification process incomplete. Please try logging in or contact support.")
+      toast.info("Email verification process incomplete. Please try logging in or contact support.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setMessage(null);
     const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
     const password = (form.elements.namedItem('password') as HTMLInputElement)?.value;
@@ -31,18 +48,36 @@ export function LoginForm({
       return;
     }
     try {
-      const { data, error: signInError } = await supabaseServer.auth.signInWithPassword({
+      console.log("Attempting login for:", email);
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
       })
+      
       if (signInError) {
+        console.error("Login error:", signInError);
         setError(signInError.message)
         toast.error(signInError.message)
         return
       }
-      toast.success("Login successful! Redirecting...")
-      router.push("/dashboard")
+      
+      if (data.user) {
+        console.log("Login successful, user:", data.user.email);
+        console.log("User session:", data.session);
+        toast.success("Login successful! Redirecting...")
+        
+        // Wait a moment for the session to be properly set
+        setTimeout(() => {
+          // Use window.location for more reliable redirect
+          window.location.href = "/dashboard"
+        }, 1000);
+      } else {
+        console.error("No user data received");
+        setError("Login failed: No user data received")
+        toast.error("Login failed: No user data received")
+      }
     } catch (error) {
+      console.error("Unexpected login error:", error)
       const message = error instanceof Error ? error.message : "Login failed. Please try again.";
       setError(message);
       toast.error(message);
@@ -56,6 +91,11 @@ export function LoginForm({
       {error && (
         <div className="w-full max-w-xs text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">
           {error}
+        </div>
+      )}
+      {message && (
+        <div className="w-full max-w-xs text-center text-sm text-green-600 bg-green-50 border border-green-200 rounded p-2 mb-2">
+          {message}
         </div>
       )}
       <form className="w-full flex flex-col gap-6 max-w-xs" onSubmit={handleSubmit}>
@@ -106,4 +146,12 @@ export function LoginForm({
       </form>
     </div>
   )
+} 
+
+export function LoginForm() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginFormContent />
+    </Suspense>
+  );
 } 

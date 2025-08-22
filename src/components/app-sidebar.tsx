@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import {
   IconCamera,
   IconChartBar,
@@ -32,6 +33,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { supabase } from "@/lib/supabase/api/client"
 
 const data = {
   user: {
@@ -151,6 +153,73 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = useState({
+    name: "Loading...",
+    email: "Loading...",
+    avatar: "",
+  })
+
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const userData = session.user
+          setUser({
+            name: userData.user_metadata?.full_name || 
+                  userData.user_metadata?.name || 
+                  userData.email?.split('@')[0] || 
+                  "User",
+            email: userData.email || "No email",
+            avatar: userData.user_metadata?.avatar_url || "",
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error)
+        setUser({
+          name: "Error",
+          email: "Failed to load user",
+          avatar: "",
+        })
+      }
+    }
+
+    getUser()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state change:", event, session?.user?.email)
+        
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log("User signed out, clearing user state")
+          setUser({
+            name: "Not signed in",
+            email: "Please sign in",
+            avatar: "",
+          })
+          
+          // Force redirect to login if user is on protected pages
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+            window.location.href = "/login"
+          }
+        } else if (session?.user) {
+          const userData = session.user
+          setUser({
+            name: userData.user_metadata?.full_name || 
+                  userData.user_metadata?.name || 
+                  userData.email?.split('@')[0] || 
+                  "User",
+            email: userData.email || "No email",
+            avatar: userData.user_metadata?.avatar_url || "",
+          })
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -162,7 +231,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">HyrePro</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -174,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -2,18 +2,24 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseServer } from '@/lib/supabase/api/server';
+import { supabase } from '@/lib/supabase/api/client';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabaseServer.auth.getSession();
-      if (session) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log("User authenticated, redirecting to dashboard");
+          // Only redirect authenticated users to dashboard
+          window.location.href = '/dashboard';
+        } else {
+          console.log("No authenticated user found");
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
       }
     };
     checkAuth();
@@ -21,7 +27,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex items-center justify-center text-2xl font-bold">
-      Authencating...
+      Welcome to HyrePro Admin
     </main>
   );
 }

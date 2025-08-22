@@ -45,14 +45,50 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const router = useRouter()
 
+  // Generate initials from user name
+  const getInitials = (name: string) => {
+    if (!name || name === "Loading..." || name === "Error" || name === "Not signed in") {
+      return "U"
+    }
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
   const handleLogout = async () => {
-    toast.info("Signing out...")
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      toast.error("Error signing out: " + error.message)
-    } else {
-      toast.success("Signed out!")
-      router.push("/login")
+    try {
+      toast.info("Signing out...")
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error("Logout error:", error)
+        toast.error("Error signing out: " + error.message)
+        return
+      }
+      
+      // Clear any local state or cookies if needed
+      localStorage.removeItem('supabase.auth.token')
+      sessionStorage.clear()
+      
+      // Clear any cached user data
+      await supabase.auth.refreshSession()
+      
+      // Show success message
+      toast.success("Signed out successfully!")
+      
+      // Force redirect to login page
+      window.location.href = "/login"
+      
+    } catch (error) {
+      console.error("Unexpected logout error:", error)
+      toast.error("Unexpected error during logout")
+      // Force redirect anyway
+      window.location.href = "/login"
     }
   }
 
@@ -67,7 +103,7 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -88,7 +124,7 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
