@@ -203,7 +203,7 @@ export default function JobsPage() {
           <span>Showing {filteredJobs.length} of {jobs.length} jobs</span>
           {search && (
             <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-              Search: "{search}"
+              Search: &apos;{search}&apos;
             </Badge>
           )}
           {status !== "ALL" && (

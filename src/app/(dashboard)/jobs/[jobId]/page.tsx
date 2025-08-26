@@ -12,11 +12,14 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/api/client";
+import { JobOverview } from "@/components/job-overview";
+import { JobCandidates } from "@/components/job-candidates";
+import { JobAnalytics } from "@/components/job-analytics";
 
 interface JobDetailsPageProps {
-  params: {
+  params: Promise<{
     jobId: string;
-  };
+  }>;
 }
 
 type Job = {
@@ -25,6 +28,30 @@ type Job = {
   status: string;
   subjects: string[];
   grade_levels: string[];
+  job_type?: string;
+  location?: string;
+  mode?: string;
+  board?: string;
+  openings?: number;
+  salary_range?: string;
+  job_description?: string;
+  responsibilities?: string;
+  requirements?: string;
+  created_at?: string;
+  school_id?: string;
+  number_of_questions?: number;
+  assessment_difficulty?: {
+    interviewFormat?: string;
+    includeInterview?: boolean;
+    demoVideoDuration?: number;
+    interviewDuration?: number;
+    includeSubjectTest?: boolean;
+    subjectTestDuration?: number;
+    interviewQuestions?: Array<{
+      id: number;
+      question: string;
+    }>;
+  };
   application_analytics: {
     total_applications: number;
     assessment: number;
@@ -43,7 +70,7 @@ const STAGES = [
 
 export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   const router = useRouter();
-  const { jobId } = params;
+  const { jobId } = React.use(params);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -381,136 +408,15 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           {/* Tab Content */}
           <div className="mt-6">
             {activeTab === "overview" && (
-              <div className="space-y-6">
-                {/* Job ID */}
-                <div className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-700">Job ID:</span>
-                  </div>
-                  <code className="text-sm font-mono text-gray-900 bg-white px-3 py-2 rounded border block break-all">
-                    {job.id}
-                  </code>
-                </div>
-
-                {/* Applications Analytics */}
-                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-gray-500" />
-                      <span className="text-lg font-semibold text-gray-700">Application Analytics</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {job.application_analytics.total_applications || 0}
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <TooltipProvider>
-                    <div className="space-y-3">
-                      <div className="flex w-full h-3 rounded-full overflow-hidden bg-gray-200">
-                        {STAGES.map(({ key, label, color }) => {
-                          const value = job.application_analytics[key as keyof typeof job.application_analytics] || 0;
-                          const width = total > 0 ? (value / total) * 100 : 0;
-                          const displayWidth = value > 0 ? width : 0;
-                          return (
-                            <Tooltip key={key}>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={cn(color, "h-full transition-all duration-300", value === 0 && "opacity-30")}
-                                  style={{ width: `${Math.max(displayWidth, value === 0 && total > 0 ? 2 : 0)}%` }}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p className="font-medium">{label}: {value}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Stage Summary - Grid Layout */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="bg-white rounded-lg p-3 text-center border">
-                          <div className="font-semibold text-gray-900">{job.application_analytics.assessment || 0}</div>
-                          <div className="text-gray-600">Assessment</div>
-                        </div>
-                        <div className="bg-white rounded-lg p-3 text-center border">
-                          <div className="font-semibold text-gray-900">{job.application_analytics.demo || 0}</div>
-                          <div className="text-gray-600">Demo</div>
-                        </div>
-                        <div className="bg-white rounded-lg p-3 text-center border">
-                          <div className="font-semibold text-gray-900">{job.application_analytics.interviews || 0}</div>
-                          <div className="text-gray-600">Interviews</div>
-                        </div>
-                        <div className="bg-white rounded-lg p-3 text-center border">
-                          <div className="font-semibold text-gray-900">{job.application_analytics.offered || 0}</div>
-                          <div className="text-gray-600">Offered</div>
-                        </div>
-                      </div>
-                    </div>
-                  </TooltipProvider>
-                </div>
-              </div>
+              <JobOverview job={job} />
             )}
 
             {activeTab === "candidates" && (
-              <div>
-                {/* Candidates Content */}
-                <div className="bg-gray-50 rounded-lg p-6 text-center">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Candidate Management</h3>
-                  <p className="text-gray-600 mb-4">
-                    Detailed candidate tracking, application reviews, and interview scheduling will be available here
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-2xl font-bold text-blue-600">{job.application_analytics.total_applications || 0}</div>
-                      <div className="text-sm text-gray-600">Total Applications</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-2xl font-bold text-green-600">{job.application_analytics.interviews || 0}</div>
-                      <div className="text-sm text-gray-600">Interviews Scheduled</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-2xl font-bold text-purple-600">{job.application_analytics.offered || 0}</div>
-                      <div className="text-sm text-gray-600">Offers Extended</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <JobCandidates job_id={jobId} />
             )}
 
             {activeTab === "analytics" && (
-              <div>
-                {/* Analytics Content */}
-                <div className="bg-gray-50 rounded-lg p-6 text-center">
-                  <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <div className="h-6 w-6 bg-blue-600 rounded"></div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Advanced Analytics</h3>
-                  <p className="text-gray-600 mb-4">
-                    Detailed analytics, conversion rates, and performance metrics will be displayed here
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-xl font-bold text-blue-600">{job.application_analytics.assessment || 0}</div>
-                      <div className="text-sm text-gray-600">Assessment Stage</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-xl font-bold text-yellow-600">{job.application_analytics.demo || 0}</div>
-                      <div className="text-sm text-gray-600">Demo Stage</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-xl font-bold text-purple-600">{job.application_analytics.interviews || 0}</div>
-                      <div className="text-sm text-gray-600">Interview Stage</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border">
-                      <div className="text-xl font-bold text-green-600">{job.application_analytics.offered || 0}</div>
-                      <div className="text-sm text-gray-600">Offers Made</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <JobAnalytics jobId={jobId} />
             )}
           </div>
         </div>

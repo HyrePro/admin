@@ -69,6 +69,8 @@ export default function CreateJobApplicationPage() {
   // Remove difficulty state, add screening state
   const [screening, setScreening] = useState({
     assessment: false,
+    assessmentDifficulty: undefined as string | undefined,
+    numberOfQuestions: undefined as number | undefined,
     demoVideo: false,
     interviewScheduling: false,
   })
@@ -164,7 +166,15 @@ export default function CreateJobApplicationPage() {
                   {step === 1 && (
                     <ScreeningSettings
                       values={screening}
-                      onChange={setScreening}
+                      onChange={(values) => {
+                        setScreening({
+                          assessment: values.assessment,
+                          assessmentDifficulty: values.assessmentDifficulty,
+                          numberOfQuestions: values.numberOfQuestions,
+                          demoVideo: values.demoVideo,
+                          interviewScheduling: values.interviewScheduling,
+                        });
+                      }}
                     />
                   )}
                   {step === 2 && (
@@ -190,7 +200,9 @@ export default function CreateJobApplicationPage() {
                         interviewQuestions: screening.interviewScheduling ? [
                           { id: 1, question: "Why do you want this job?" },
                           { id: 2, question: "Describe your teaching style." }
-                        ] : []
+                        ] : [],
+                        assessmentDifficulty: screening.assessment ? screening.assessmentDifficulty : undefined,
+                        numberOfQuestions: screening.assessment ? screening.numberOfQuestions : undefined
                       }}
                     />
                   )}
@@ -257,7 +269,9 @@ export default function CreateJobApplicationPage() {
                               interviewQuestions: screening.interviewScheduling ? [
                                 { id: 1, question: "Why do you want this job?" },
                                 { id: 2, question: "Describe your teaching style." }
-                              ] : []
+                              ] : [],
+                              assessmentDifficulty: screening.assessment ? screening.assessmentDifficulty : undefined,
+                              numberOfQuestions: screening.assessment ? screening.numberOfQuestions : undefined
                             }
                             const { data, error } = await createJob(jobPayload)
                             if (error || !data?.id) {

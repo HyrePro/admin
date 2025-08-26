@@ -19,6 +19,8 @@ export interface CreateJobInput {
   interviewFormat?: string
   interviewDuration?: number
   interviewQuestions: { id: string | number; question: string }[]
+  assessmentDifficulty?: string
+  numberOfQuestions?: number
 }
 
 export async function createJob(jobData: CreateJobInput) {
@@ -41,6 +43,8 @@ export async function createJob(jobData: CreateJobInput) {
     interviewFormat,
     interviewDuration,
     interviewQuestions,
+    assessmentDifficulty,
+    numberOfQuestions,
   } = jobData;
 
   // Compose salary range string
@@ -51,13 +55,17 @@ export async function createJob(jobData: CreateJobInput) {
 
   // Compose assessment_difficulty JSON
   const assessment_difficulty = {
+    subjectScreening: includeSubjectTest || false,
+    includeVideoAssessment: !!demoVideoDuration,
+    includeInterview: includeInterview || false,
     includeSubjectTest,
     subjectTestDuration,
     demoVideoDuration,
-    includeInterview,
     interviewFormat,
     interviewDuration,
     interviewQuestions,
+    assessmentDifficulty: includeSubjectTest ? assessmentDifficulty : undefined,
+    numberOfQuestions: includeSubjectTest ? numberOfQuestions : undefined,
   };
 
   // Insert into jobs table
@@ -76,6 +84,7 @@ export async function createJob(jobData: CreateJobInput) {
       requirements: requirements.join("\n"),
       assessment_difficulty,
       created_at: new Date().toISOString(),
+      number_of_questions: includeSubjectTest ? numberOfQuestions : 10,
     },
   ]).select("id").single();
 

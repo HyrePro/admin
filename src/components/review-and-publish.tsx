@@ -36,6 +36,8 @@ interface ReviewAndPublishProps {
     interviewFormat?: string
     interviewDuration?: number
     interviewQuestions: InterviewQuestion[]
+    assessmentDifficulty?: string
+    numberOfQuestions?: number
   }
 }
 
@@ -109,9 +111,25 @@ export function ReviewAndPublish({ jobData }: ReviewAndPublishProps) {
           {jobData.includeSubjectTest && (
             <div className="flex items-center p-3 bg-purple-50 rounded-lg">
               <Target className="w-5 h-5 text-purple-600 mr-3" />
-              <span className="text-gray-700">
-                Assesment test
-              </span>
+              <div className="flex-1">
+                <span className="text-gray-700">
+                  Subject Assessment Test
+                </span>
+                {jobData.assessmentDifficulty && (
+                  <span className="ml-2">
+                    <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
+                      {jobData.assessmentDifficulty.charAt(0).toUpperCase() + jobData.assessmentDifficulty.slice(1)}
+                    </Badge>
+                  </span>
+                )}
+                {jobData.numberOfQuestions && (
+                  <span className="ml-2">
+                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                      {jobData.numberOfQuestions} Questions
+                    </Badge>
+                  </span>
+                )}
+              </div>
             </div>
           )}
           {jobData.demoVideoDuration && (
