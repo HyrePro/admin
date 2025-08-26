@@ -27,6 +27,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useAuth } from '@/context/auth-context';
 
@@ -59,6 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <Image src="/icon.png" alt="HyrePro logo" width={24} height={24} className="rounded-md" />
           <span className="font-semibold group-data-[collapsible=icon]:hidden">HyrePro</span>
         </Link>
+            {/* <SidebarTrigger className="-ml-1" /> */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

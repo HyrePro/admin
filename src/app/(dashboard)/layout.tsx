@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -9,6 +9,8 @@ import {
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -20,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Bell, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/api/client";
 
 export default function DashboardShellLayout({
   children,
@@ -28,22 +31,95 @@ export default function DashboardShellLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-
   const pathname = usePathname();
+  const [jobTitle, setJobTitle] = useState<string | null>(null);
+  const [loadingJobTitle, setLoadingJobTitle] = useState(false);
 
-  // Title based on top-level path (e.g., "/applied-jobs", "/assessments").
-  const pageTitle = useMemo(() => {
-    if (!pathname || pathname === "/") return "Dashboard";
-    const segs = pathname.split("/").filter(Boolean);
-    const first = segs[0];
-    const mapping: Record<string, string> = {
-      "jobs": "Jobs",
-      "profile": "My Profile",
-      "help": "Help & Support",
-      "settings": "Settings",
-    };
-    return mapping[first] ?? first.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  // Extract job ID from pathname if we're on a job details page
+  const jobId = useMemo(() => {
+    const jobsMatch = pathname.match(/^\/jobs\/([^/]+)$/);
+    return jobsMatch ? jobsMatch[1] : null;
   }, [pathname]);
+
+  // Fetch job title when we have a job ID
+  useEffect(() => {
+    if (!jobId) {
+      setJobTitle(null);
+      return;
+    }
+
+    const fetchJobTitle = async () => {
+      setLoadingJobTitle(true);
+      try {
+        const { data, error } = await supabase.rpc("get_jobs_with_analytics", {
+          p_school_id: '2317e986-3ebe-415e-b402-849d80f714a0',
+          p_start_index: 0,
+          p_end_index: 100,
+          p_status: 'ALL',
+        });
+
+        if (error) {
+          console.error("Error fetching job data:", error);
+          setJobTitle("Job Details");
+        } else {
+          const job = data?.find((j: any) => j.id === jobId);
+          setJobTitle(job?.title || "Job Details");
+        }
+      } catch (err) {
+        console.error("Error fetching job title:", err);
+        setJobTitle("Job Details");
+      } finally {
+        setLoadingJobTitle(false);
+      }
+    };
+
+    fetchJobTitle();
+  }, [jobId]);
+
+  // Generate breadcrumb items based on pathname
+  const breadcrumbItems = useMemo(() => {
+    if (!pathname || pathname === "/") {
+      return [{ label: "Dashboard", href: "/", isCurrentPage: true }];
+    }
+
+    const segments = pathname.split("/").filter(Boolean);
+    const items = [];
+
+    if (segments[0] === "jobs") {
+      // Add Jobs page
+      items.push({ 
+        label: "Jobs", 
+        href: "/jobs", 
+        isCurrentPage: segments.length === 1 
+      });
+
+      // If we have a job ID, add the job title
+      if (segments.length === 2 && jobId) {
+        items.push({
+          label: loadingJobTitle ? "Loading..." : (jobTitle || "Job Details"),
+          href: `/jobs/${jobId}`,
+          isCurrentPage: true
+        });
+      }
+    } else {
+      // Handle other pages
+      const mapping: Record<string, string> = {
+        "profile": "My Profile",
+        "help": "Help & Support",
+        "settings": "Settings",
+        "create-job-post": "Create Job Post",
+      };
+      
+      const label = mapping[segments[0]] ?? segments[0].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      items.push({ 
+        label, 
+        href: `/${segments[0]}`, 
+        isCurrentPage: true 
+      });
+    }
+
+    return items;
+  }, [pathname, jobId, jobTitle, loadingJobTitle]);
 
   useEffect(() => {
     if (loading) return;
@@ -62,13 +138,26 @@ export default function DashboardShellLayout({
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
-                </BreadcrumbItem>
+                {breadcrumbItems.map((item, index) => (
+                  <React.Fragment key={item.href}>
+                    <BreadcrumbItem>
+                      {item.isCurrentPage ? (
+                        <BreadcrumbPage className="font-medium text-gray-900">
+                          {item.label}
+                        </BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink href={item.href} className="text-gray-600 hover:text-gray-900 transition-colors">
+                          {item.label}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                    {index < breadcrumbItems.length - 1 && (
+                      <BreadcrumbSeparator className="text-gray-400" />
+                    )}
+                  </React.Fragment>
+                ))}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
