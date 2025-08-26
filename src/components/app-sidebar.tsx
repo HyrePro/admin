@@ -1,250 +1,118 @@
 "use client"
 
 import * as React from "react"
-import { useEffect, useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
 import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-} from "@tabler/icons-react"
+  LayoutDashboard,
+  FileText,
+  AlertCircle,
+  User as UserIcon,
+  ClipboardList,
+  LifeBuoy,
+  Settings,
+} from "lucide-react"
 
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarRail,
 } from "@/components/ui/sidebar"
-import { supabase } from "@/lib/supabase/api/client"
+import { useAuth } from '@/context/auth-context';
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
-}
+
+
+const mainLinks = [
+  { title: "Dashboard", href: "/", Icon: LayoutDashboard },
+  { title: "Jobs", href: "/jobs", Icon: FileText },
+  { title: "My Profile", href: "/profile", Icon: UserIcon },
+]
+
+const bottomLinks = [
+  { title: "Help & Support", href: "/help", Icon: LifeBuoy },
+  { title: "Settings", href: "/settings", Icon: Settings },
+]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = useState({
-    name: "Loading...",
-    email: "Loading...",
-    avatar: "",
-  })
+  const { user } = useAuth();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          const userData = session.user
-          setUser({
-            name: userData.user_metadata?.full_name || 
-                  userData.user_metadata?.name || 
-                  userData.email?.split('@')[0] || 
-                  "User",
-            email: userData.email || "No email",
-            avatar: userData.user_metadata?.avatar_url || "",
-          })
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error)
-        setUser({
-          name: "Error",
-          email: "Failed to load user",
-          avatar: "",
-        })
-      }
-    }
-
-    getUser()
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state change:", event, session?.user?.email)
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          console.log("User signed out, clearing user state")
-          setUser({
-            name: "Not signed in",
-            email: "Please sign in",
-            avatar: "",
-          })
-          
-          // Force redirect to login if user is on protected pages
-          if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-            window.location.href = "/login"
-          }
-        } else if (session?.user) {
-          const userData = session.user
-          setUser({
-            name: userData.user_metadata?.full_name || 
-                  userData.user_metadata?.name || 
-                  userData.email?.split('@')[0] || 
-                  "User",
-            email: userData.email || "No email",
-            avatar: userData.user_metadata?.avatar_url || "",
-          })
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/"; // only exact match for home
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">HyrePro</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <Link href="/" className="flex items-center gap-2 px-2 py-1.5">
+          <Image src="/icon.png" alt="HyrePro logo" width={24} height={24} className="rounded-md" />
+          <span className="font-semibold group-data-[collapsible=icon]:hidden">HyrePro</span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarMenu>
+            {mainLinks.map(({ title, href, Icon }) => {
+              const active = isActive(href);
+              return (
+                <SidebarMenuItem key={title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={active}
+                    className={active ? "text-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10" : undefined}
+                  >
+                    <Link href={href}>
+                      <Icon />
+                      <span>{title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <SidebarMenu>
+          {bottomLinks.map(({ title, href, Icon }) => {
+            const active = isActive(href);
+            return (
+              <SidebarMenuItem key={title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  className={active ? "text-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10" : undefined}
+                >
+                  <Link href={href}>
+                    <Icon />
+                    <span>{title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+        {user && user.email ? (
+          <NavUser user={{
+            name: user.user_metadata?.name || user.email.split('@')[0] || 'User',
+            email: user.email,
+            avatar: user.user_metadata?.avatar_url || '',
+          }} />
+        ) : null}
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

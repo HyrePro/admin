@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
@@ -18,12 +19,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Bell, MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardShellLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   const pathname = usePathname();
@@ -34,7 +37,7 @@ export default function DashboardShellLayout({
     const segs = pathname.split("/").filter(Boolean);
     const first = segs[0];
     const mapping: Record<string, string> = {
-      "applied-jobs": "Applied Jobs",
+      "jobs": "Jobs",
       "profile": "My Profile",
       "help": "Help & Support",
       "settings": "Settings",
@@ -42,6 +45,16 @@ export default function DashboardShellLayout({
     return mapping[first] ?? first.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }, [pathname]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      router.replace("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return <div className="p-8">Authenticating...</div>;
+  }
 
   return (
     <SidebarProvider>
@@ -59,7 +72,12 @@ export default function DashboardShellLayout({
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto flex items-center gap-1 px-4">
+          <div className="ml-auto flex items-center gap-2 px-4">
+            <Link href="/create-job-post" passHref>
+            <Button asChild variant="default" size="sm" className="sm:flex bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <span>+ Create Job Post</span>
+            </Button>
+          </Link>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Messages">
