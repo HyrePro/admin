@@ -14,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const next = requestUrl.searchParams.get('next') ?? '/'
 
   if (code) {
     try {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         // Check if email is confirmed
         if (data.user?.email_confirmed_at) {
           // Email confirmed, redirect to dashboard
-          return NextResponse.redirect(`${requestUrl.origin}${next}`)
+          return NextResponse.redirect(`${requestUrl.origin}${next}/(dashboard)`)
         } else {
           // This shouldn't happen normally, but handle it gracefully
           return NextResponse.redirect(`${requestUrl.origin}/login?message=verification_incomplete`)

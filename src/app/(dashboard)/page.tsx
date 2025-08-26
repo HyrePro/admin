@@ -7,11 +7,9 @@ import {
 
 import data from "./data.json"
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { AuthGuard } from "@/components/auth-guard"
-import { JobsTable } from '@/components/data-table'
 
 export default function Page() {
   return (
@@ -34,7 +32,6 @@ export default function Page() {
                 {/* <div className="px-4 lg:px-6">
                   <ChartAreaInteractive />
                 </div> */}
-                <JobsTable/>
               </div>
             </div>
           </div>

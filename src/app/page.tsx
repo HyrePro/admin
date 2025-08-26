@@ -14,9 +14,10 @@ export default function Home() {
         if (session?.user) {
           console.log("User authenticated, redirecting to dashboard");
           // Only redirect authenticated users to dashboard
-          window.location.href = '/dashboard';
+          window.location.href = '/(dashboard)';
         } else {
           console.log("No authenticated user found");
+          window.location.href='/login'
         }
       } catch (error) {
         console.error("Error checking authentication:", error);

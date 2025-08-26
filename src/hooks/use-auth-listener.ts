@@ -17,7 +17,7 @@ export function useAuthListener() {
           if (session.user.email_confirmed_at) {
             console.log('Email confirmed, redirecting to dashboard')
             toast.success("Email confirmed! Redirecting to dashboard...")
-            router.push("/dashboard")
+            router.push("/")
           }
         }
         
@@ -25,7 +25,7 @@ export function useAuthListener() {
         if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at) {
           console.log('Email confirmed on token refresh, redirecting to dashboard')
           toast.success("Email confirmed! Redirecting to dashboard...")
-          router.push("/dashboard")
+          router.push("/")
         }
       }
     )
@@ -36,7 +36,7 @@ export function useAuthListener() {
         const { data: { session } } = await supabaseServer.auth.getSession()
         if (session?.user?.email_confirmed_at) {
           console.log('Current session has confirmed email, redirecting to dashboard')
-          router.push("/dashboard")
+          router.push("/")
         }
       } catch (error) {
         console.error('Error checking current session:', error)
