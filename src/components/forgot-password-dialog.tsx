@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { supabaseServer } from "@/lib/supabase/api/server";
+import { supabase } from "@/lib/supabase/api/client";
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -20,7 +20,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, initialEmail = "" }: 
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabaseServer.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) {
         toast.error(error.message);
       } else {

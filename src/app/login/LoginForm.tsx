@@ -363,7 +363,7 @@ export function LoginForm() {
             We sent a login link to <strong>{email}</strong>
           </p>
           <p className="text-muted-foreground text-center mb-6 text-sm">
-            Didn't receive the email? Check your spam folder or try resending.
+            Didn&apos;t receive the email? Check your spam folder or try resending.
           </p>
           <div className="space-y-3">
             <Button 

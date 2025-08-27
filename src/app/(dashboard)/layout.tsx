@@ -25,6 +25,12 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 
+// Minimal interface for job data from RPC response
+interface JobData {
+  id: string;
+  title: string;
+}
+
 export default function DashboardShellLayout({
   children,
 }: {
@@ -79,7 +85,7 @@ export default function DashboardShellLayout({
           console.error("Error fetching job data:", error);
           setJobTitle("Job Details");
         } else {
-          const job = data?.find((j: any) => j.id === jobId);
+          const job = data?.find((j: JobData) => j.id === jobId);
           setJobTitle(job?.title || "Job Details");
         }
       } catch (err) {

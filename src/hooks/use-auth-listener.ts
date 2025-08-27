@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabaseServer } from '@/lib/supabase/api/server'
+import { supabase } from '@/lib/supabase/api/client'
 import { toast } from 'react-toastify'
 
 export function useAuthListener() {
@@ -8,7 +8,7 @@ export function useAuthListener() {
 
   useEffect(() => {
     // Listen for authentication state changes
-    const { data: { subscription } } = supabaseServer.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email)
         
@@ -33,7 +33,7 @@ export function useAuthListener() {
     // Check current session on mount
     const checkCurrentSession = async () => {
       try {
-        const { data: { session } } = await supabaseServer.auth.getSession()
+        const { data: { session } } = await supabase.auth.getSession()
         if (session?.user?.email_confirmed_at) {
           console.log('Current session has confirmed email, redirecting to dashboard')
           router.push("/")
@@ -73,7 +73,7 @@ export function useAuthListener() {
   // Function to manually check auth status
   const checkAuthStatus = async () => {
     try {
-      const { data: { session } } = await supabaseServer.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
       return session
     } catch (error) {
       console.error('Error checking auth status:', error)

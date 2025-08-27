@@ -182,7 +182,7 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
               </div>
               <div className="flex-1">
                 <div className="font-medium text-gray-900">Demo Video Submission</div>
-                <div className="text-sm text-gray-600">Click to view the candidate's video response</div>
+                <div className="text-sm text-gray-600">Click to view the candidate&apos;s video response</div>
               </div>
               <a 
                 href={applicationStage.video_url} 

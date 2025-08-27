@@ -3,6 +3,7 @@
 import { LoginForm } from "./LoginForm"
 import Link from "next/link"
 import Image from "next/image"
+import { Suspense } from "react"
 
 export default function LoginPage() {
   return (
@@ -22,7 +23,9 @@ export default function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-sm">
-            <LoginForm />
+            <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
+              <LoginForm />
+            </Suspense>
           </div>
         </div>
       </div>
