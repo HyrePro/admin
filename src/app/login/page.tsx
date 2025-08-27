@@ -1,6 +1,6 @@
 'use client'
 
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from "./LoginForm"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -21,17 +21,22 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-sm">
             <LoginForm />
           </div>
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        {/* <img
-          src="/placeholder.svg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        /> */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center space-y-4 p-8">
+            <h2 className="text-2xl font-bold text-muted-foreground">
+              Welcome to HyrePro Admin
+            </h2>
+            <p className="text-muted-foreground max-w-md">
+              Manage your job postings, review applications, and streamline your hiring process with our comprehensive admin dashboard.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

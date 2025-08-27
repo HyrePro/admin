@@ -23,6 +23,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Bell, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/api/client";
+import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 
 export default function DashboardShellLayout({
   children,
@@ -33,12 +34,28 @@ export default function DashboardShellLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [jobTitle, setJobTitle] = useState<string | null>(null);
+  const [candidateName, setCandidateName] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
+  const [loadingCandidateName, setLoadingCandidateName] = useState(false);
 
-  // Extract job ID from pathname if we're on a job details page
-  const jobId = useMemo(() => {
+  // Extract job ID and application ID from pathname
+  const { jobId, applicationId } = useMemo(() => {
     const jobsMatch = pathname.match(/^\/jobs\/([^/]+)$/);
-    return jobsMatch ? jobsMatch[1] : null;
+    const applicationMatch = pathname.match(/^\/jobs\/([^/]+)\/([^/]+)$/);
+    
+    if (applicationMatch) {
+      return { 
+        jobId: applicationMatch[1], 
+        applicationId: applicationMatch[2] 
+      };
+    } else if (jobsMatch) {
+      return { 
+        jobId: jobsMatch[1], 
+        applicationId: null 
+      };
+    }
+    
+    return { jobId: null, applicationId: null };
   }, [pathname]);
 
   // Fetch job title when we have a job ID
@@ -76,6 +93,38 @@ export default function DashboardShellLayout({
     fetchJobTitle();
   }, [jobId]);
 
+  // Fetch candidate name when we have an application ID
+  useEffect(() => {
+    if (!applicationId) {
+      setCandidateName(null);
+      return;
+    }
+
+    const fetchCandidateName = async () => {
+      setLoadingCandidateName(true);
+      try {
+        const result = await getJobApplication(applicationId);
+        
+        if (result.error) {
+          console.error("Error fetching candidate data:", result.error);
+          setCandidateName("Candidate Details");
+        } else if (result.candidateInfo) {
+          const fullName = `${result.candidateInfo.first_name} ${result.candidateInfo.last_name}`;
+          setCandidateName(fullName);
+        } else {
+          setCandidateName("Candidate Details");
+        }
+      } catch (err) {
+        console.error("Error fetching candidate name:", err);
+        setCandidateName("Candidate Details");
+      } finally {
+        setLoadingCandidateName(false);
+      }
+    };
+
+    fetchCandidateName();
+  }, [applicationId]);
+
   // Generate breadcrumb items based on pathname
   const breadcrumbItems = useMemo(() => {
     if (!pathname || pathname === "/") {
@@ -94,10 +143,19 @@ export default function DashboardShellLayout({
       });
 
       // If we have a job ID, add the job title
-      if (segments.length === 2 && jobId) {
+      if (segments.length >= 2 && jobId) {
         items.push({
           label: loadingJobTitle ? "Loading..." : (jobTitle || "Job Details"),
           href: `/jobs/${jobId}`,
+          isCurrentPage: segments.length === 2
+        });
+      }
+
+      // If we have an application ID, add the candidate name
+      if (segments.length === 3 && applicationId) {
+        items.push({
+          label: loadingCandidateName ? "Loading..." : (candidateName || "Candidate Details"),
+          href: `/jobs/${jobId}/${applicationId}`,
           isCurrentPage: true
         });
       }
@@ -119,7 +177,7 @@ export default function DashboardShellLayout({
     }
 
     return items;
-  }, [pathname, jobId, jobTitle, loadingJobTitle]);
+  }, [pathname, jobId, applicationId, jobTitle, candidateName, loadingJobTitle, loadingCandidateName]);
 
   useEffect(() => {
     if (loading) return;

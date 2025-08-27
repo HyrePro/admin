@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ interface JobCandidatesProps {
 }
 
 export function JobCandidates({ job_id }: JobCandidatesProps) {
+  const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -240,8 +242,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
                             size="sm"
                             className="h-8 w-8 p-0"
                             onClick={() => {
-                              // TODO: Navigate to candidate details page
-                              console.log("View candidate:", application.application_id);
+                              router.push(`/jobs/${job_id}/${application.application_id}`);
                             }}
                           >
                             <ChevronRight className="h-4 w-4" />
