@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+interface AdminUserInsertData {
+  first_name: string
+  last_name: string
+  email: string
+  phone_no: string
+  school_id: null
+  id?: string
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -14,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { first_name, last_name, email, phone_no } = body
+    const { first_name, last_name, email, phone_no, user_id } = body
 
     // Validate required fields
     if (!first_name || !last_name || !email || !phone_no) {
@@ -25,17 +34,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert data into admin_user_info table
+    const insertData: AdminUserInsertData = {
+      first_name,
+      last_name,
+      email,
+      phone_no: phone_no,
+      school_id: null // Set to null initially as per requirements
+    }
+
+    // If user_id is provided, use it as the id (for linking with auth.users)
+    if (user_id) {
+      insertData.id = user_id
+    }
+
     const { data, error } = await supabase
       .from('admin_user_info')
-      .insert([
-        {
-          first_name,
-          last_name,
-          email,
-          phone_no,
-          // avatar and school_id are left empty as requested
-        }
-      ])
+      .insert([insertData])
       .select()
 
     if (error) {

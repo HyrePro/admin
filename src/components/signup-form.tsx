@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase/api/client"
 import { Separator } from "./ui/separator"
 import Image from "next/image"
 import { SignupProgressDialog } from "./signup-progress-dialog"
+import { Eye, EyeOff } from "lucide-react"
 
 export function SignupForm({
   className,
@@ -20,6 +21,7 @@ export function SignupForm({
   const [message, setMessage] = useState<string | null>(null)
   const [isSignupDialogOpen, setIsSignupDialogOpen] = useState(false)
   const [signupEmail, setSignupEmail] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,11 +47,9 @@ export function SignupForm({
     }
     
     try {
-      console.log('Starting signup process...');
       // Show signup progress dialog
       setSignupEmail(email)
       setIsSignupDialogOpen(true)
-      console.log('Dialog opened, isSignupDialogOpen:', true);
       
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -58,40 +58,50 @@ export function SignupForm({
           data: { 
             first_name: firstName,
             last_name: lastName,
-            contact_number: contactNumber
-          }
-          // Remove custom emailRedirectTo to use Supabase's default flow
+            contact_number: contactNumber,
+            user_type: 'admin',
+            school_id: null
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/select-organization`
         }
       })
       
-      console.log('Signup response:', { data, error: signUpError });
-      
       if (signUpError) {
-        console.error('Signup error:', signUpError);
         setIsSignupDialogOpen(false)
         setError(signUpError.message)
         toast.error(signUpError.message)
         return
       }
 
-      // Check if email confirmation is required
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('User created, email confirmation required');
-        console.log('User data:', data.user);
-        console.log('Email confirmed at:', data.user.email_confirmed_at);
-        
-        // Check if verification email was sent
-        if (data.session) {
-          console.log('Session created, user might be auto-confirmed');
-        } else {
-          console.log('No session, verification email should be sent');
+      // If signup successful, create admin user record
+      if (data.user) {
+        try {
+          const adminUserResponse = await fetch('/api/admin-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              first_name: firstName,
+              last_name: lastName,
+              email: email,
+              phone_no: contactNumber,
+              user_id: data.user.id
+            }),
+          })
+
+          if (!adminUserResponse.ok) {
+            console.error('Failed to create admin user record')
+            // Don't fail the signup process if admin record creation fails
+            // The user can still proceed with email verification
+          }
+        } catch (adminError) {
+          console.error('Error creating admin user record:', adminError)
+          // Don't fail the signup process
         }
-      } else if (data.user && data.user.email_confirmed_at) {
-        console.log('User created and email already confirmed');
       }
 
       // Signup successful - keep dialog open and show success message
-      console.log('Signup successful, keeping dialog open');
       toast.success("Signup successful! Please check your email to confirm your account.")
       
       // Keep the dialog open to show verification progress
@@ -101,7 +111,6 @@ export function SignupForm({
       setMessage("Account created successfully! Please check your email and click the verification link to activate your account.")
       
     } catch (error) {
-      console.error('Unexpected error during signup:', error);
       setIsSignupDialogOpen(false)
       const message = error instanceof Error ? error.message : "Signup failed. Please try again.";
       setError(message);
@@ -147,23 +156,7 @@ export function SignupForm({
         </div>
       )}
       
-      {/* Debug info */}
-      <div className="text-xs text-gray-500">
-        Debug: Dialog open: {isSignupDialogOpen.toString()}, Email: {signupEmail}
-      </div>
-      
-      {/* Test button for debugging */}
-      <button
-        type="button"
-        onClick={() => {
-          console.log('Test button clicked');
-          setSignupEmail('test@example.com');
-          setIsSignupDialogOpen(true);
-        }}
-        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
-      >
-        Test Dialog
-      </button>
+
       
       <form className="w-full flex flex-col gap-6 max-w-md" onSubmit={handleSubmit}>
         <div className="space-y-2 mb-4">
@@ -215,7 +208,26 @@ export function SignupForm({
           </div>
           <div className="grid gap-3">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
+            <div className="relative">
+              <Input 
+                id="password" 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                className="pr-10"
+                required 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-3">
             <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white ">
@@ -235,10 +247,14 @@ export function SignupForm({
           </div>
         </div>
 
-        <div className="mt-4 text-center text-sm">
-          Already have an account?{' '}
-          <a href="/login" className="underline underline-offset-4">
-            Login
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          By continuing, you agree to our{' '}
+          <a href="/terms" className="text-primary hover:underline font-medium">
+            Terms of Service
+          </a>
+          {' '}and{' '}
+          <a href="/privacy" className="text-primary hover:underline font-medium">
+            Privacy Policy
           </a>
         </div>
       </form>

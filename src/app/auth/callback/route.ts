@@ -1,11 +1,23 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
+
+// Create service client for admin operations
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const next = requestUrl.searchParams.get('next') ?? '/'
   const cookieStore = await cookies()
 
   if (code) {
@@ -38,16 +50,43 @@ export async function GET(request: NextRequest) {
       }
 
       if (data.session && data.user) {
-        // Check if user email is confirmed
-        if (!data.user.email_confirmed_at) {
-          return NextResponse.redirect(
-            `${requestUrl.origin}/login?error=email_not_confirmed&message=${encodeURIComponent('Please check your email and confirm your account.')}`
-          )
+        // For password reset flows, we don't need email confirmation check
+        const isPasswordReset = next === '/auth/reset-password'
+        const isSelectOrganization = next === '/select-organization'
+        
+        if (!isPasswordReset && !isSelectOrganization) {
+          // Check if user email is confirmed for regular logins
+          if (!data.user.email_confirmed_at) {
+            return NextResponse.redirect(
+              `${requestUrl.origin}/login?error=email_not_confirmed&message=${encodeURIComponent('Please check your email and confirm your account.')}`
+            )
+          }
+        }
+
+        // For organization selection flow, verify this is a new user completing signup
+        if (isSelectOrganization) {
+          // Check if user has completed organization setup by checking admin_user_info
+          // If they have a school_id already set, redirect them to dashboard instead
+          try {
+            const { data: userInfo } = await supabase
+              .from('admin_user_info')
+              .select('school_id')
+              .eq('id', data.user.id)
+              .single()
+            
+            if (userInfo && userInfo.school_id) {
+              // User already has organization set up, redirect to dashboard
+              return NextResponse.redirect(`${requestUrl.origin}/`)
+            }
+          } catch (error) {
+            console.error('Error checking user organization status:', error)
+            // Continue with organization selection if we can't determine status
+          }
         }
 
         // Validate redirect URL to prevent open redirect attacks
-        const allowedRedirects = ['/dashboard', '/jobs', '/settings', '/help']
-        const redirectPath = allowedRedirects.includes(next) ? next : '/dashboard'
+        const allowedRedirects = ['/', '/jobs', '/settings', '/help', '/auth/reset-password', '/select-organization']
+        const redirectPath = allowedRedirects.includes(next) ? next : '/'
         
         // Successful authentication - redirect to requested page
         return NextResponse.redirect(`${requestUrl.origin}${redirectPath}`)

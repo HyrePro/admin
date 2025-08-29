@@ -16,7 +16,7 @@ export default function JobPostSuccessHeader() {
         />
         <h1 className="text-base font-medium">Job Post</h1>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="default" size="sm" className="hidden sm:flex" onClick={() => router.push('/dashboard/jobs')}>
+          <Button variant="default" size="sm" className="hidden sm:flex" onClick={() => router.push('/')}>
             Go to Dashboard
           </Button>
         </div>

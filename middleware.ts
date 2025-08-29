@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes that require authentication
-  const protectedPaths = ['/dashboard', '/jobs', '/settings', '/help', '/create-job-post']
+  const protectedPaths = ['/', '/jobs', '/settings', '/help', '/create-job-post']
   const isProtectedPath = protectedPaths.some(path => 
     request.nextUrl.pathname.startsWith(path)
   )
@@ -43,8 +43,14 @@ export async function middleware(request: NextRequest) {
   const authPaths = ['/login', '/signup']
   const isAuthPath = authPaths.includes(request.nextUrl.pathname)
 
+  // Public routes that don't require authentication
+  const publicPaths = ['/auth/callback', '/auth/reset-password']
+  const isPublicPath = publicPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  )
+
   // Redirect logic
-  if (isProtectedPath && !user) {
+  if (isProtectedPath && !user && !isPublicPath) {
     // User is not authenticated, redirect to login
     const redirectUrl = new URL('/login', request.url)
     redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
@@ -53,16 +59,7 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPath && user) {
     // User is already authenticated, redirect to dashboard
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  // Handle root path
-  if (request.nextUrl.pathname === '/') {
-    if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return supabaseResponse

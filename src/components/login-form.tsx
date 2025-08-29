@@ -113,11 +113,10 @@ function LoginFormContent({
         console.log("User session:", data.session);
         toast.success("Login successful! Redirecting...")
         
-        // Wait a moment for the session to be properly set
+        // Redirect to dashboard after successful login
         setTimeout(() => {
-          router.push("/dashboard")
-          router.refresh()
-        }, 1000);
+          window.location.href = "/"
+        }, 1000)
       } else {
         console.error("No user data received");
         setError("Login failed: No user data received")

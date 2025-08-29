@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react"
 export default function JobPostSuccessActions() {
   return (
     <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-      <Link href="/dashboard/jobs">
+      <Link href="/">
         <Button
           size="lg"
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"

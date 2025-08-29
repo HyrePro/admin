@@ -22,8 +22,7 @@ export function SignupProgressDialog({
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
 
-  // Debug logging
-  console.log('SignupProgressDialog render:', { isOpen, email, currentStep });
+
 
   useEffect(() => {
     if (currentStep === 'email-sent') {
@@ -42,7 +41,6 @@ export function SignupProgressDialog({
   }, [currentStep])
 
   useEffect(() => {
-    console.log('Dialog isOpen changed:', isOpen);
     if (isOpen) {
       // Reset to progress step when dialog opens
       setCurrentStep('progress')
@@ -51,12 +49,10 @@ export function SignupProgressDialog({
       
       // Simulate signup progress
       const progressTimer = setTimeout(() => {
-        console.log('Moving to success step');
         setCurrentStep('success')
       }, 2000)
 
       const successTimer = setTimeout(() => {
-        console.log('Moving to email-sent step');
         setCurrentStep('email-sent')
       }, 3000)
 
