@@ -35,11 +35,11 @@ export interface JobApplication {
     attempted: number;
     total_questions: number;
   }>;
-  overall: {
+  overall?: {
     score: number;
     attempted: number;
     total_questions: number;
-  };
+  } | null;
   video_url?: string | null;
 }
 
@@ -50,11 +50,37 @@ export async function getJobApplications(
   searchText: string = ""
 ) {
   try {
+    // Validate pagination parameters (finite integers, consistent bounds)
+    const MAX_INDEX = 10000;
+    const MAX_PAGE_SIZE = 100;
+
+    if (!Number.isFinite(startIndex) || !Number.isFinite(endIndex)) {
+      throw new Error('Invalid pagination: startIndex and endIndex must be finite numbers');
+    }
+    const validatedStartIndex = Math.max(0, Math.trunc(startIndex));
+    if (validatedStartIndex > MAX_INDEX) {
+      throw new Error(`Start index too large. Maximum allowed is ${MAX_INDEX}.`);
+    }
+    const requestedEndIndex = Math.max(validatedStartIndex + 1, Math.trunc(endIndex));
+    if (requestedEndIndex - validatedStartIndex > MAX_PAGE_SIZE) {
+      throw new Error(`Maximum page size is ${MAX_PAGE_SIZE} items`);
+    }
+    const validatedEndIndex = Math.min(requestedEndIndex, MAX_INDEX);
+    // Validate jobId format (basic UUID validation)
+    if (!jobId || typeof jobId !== 'string' || jobId.length < 36) {
+      throw new Error('Invalid job ID format')
+    }
+    
+    // Validate search text length
+    if (searchText && searchText.length > 100) {
+      throw new Error('Search text too long. Maximum 100 characters allowed.')
+    }
+
     const { data, error } = await supabase.rpc("get_job_applications", {
       p_job_id: jobId,
-      p_start_index: startIndex,
-      p_end_index: endIndex,
-      p_search: searchText,
+      p_start_index: validatedStartIndex,
+      p_end_index: validatedEndIndex,
+      p_search: searchText.trim(),
     });
 
     if (error) {

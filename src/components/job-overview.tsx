@@ -75,7 +75,7 @@ export function JobOverview({ job }: JobOverviewProps) {
         </div>
         {job.salary_range && (
         <div className="rounded-lg p-4 border">
-          <div className="text-sm font-medium text-gray-700 mb-2">Salary Range</div>
+          <div className="text-sm font-medium text-gray-700 mb-1">Salary Range</div>
           <div className="text-lg font-semibold text-gray-900">{job.salary_range}</div>
         </div>
       )}
@@ -87,14 +87,14 @@ export function JobOverview({ job }: JobOverviewProps) {
         <div className="space-y-4">
           {job.job_description && (
             <div className="rounded-lg p-4 border">
-              <div className="text-sm font-medium text-gray-700 mb-2">Job Description</div>
+              <div className="text-sm font-medium text-gray-700 mb-1">Job Description</div>
               <div className="text-gray-900 whitespace-pre-wrap">{job.job_description}</div>
             </div>
           )}
           
           {job.responsibilities && (
             <div className="rounded-lg p-4 border">
-              <div className="text-sm font-medium text-gray-700 mb-2">Responsibilities</div>
+              <div className="text-sm font-medium text-gray-700 mb-1">Responsibilities</div>
               <div className="text-gray-900 whitespace-pre-wrap">{job.responsibilities}</div>
             </div>
           )}
@@ -106,7 +106,7 @@ export function JobOverview({ job }: JobOverviewProps) {
       {/* Assessment Configuration */}
       {job.assessment_difficulty && (
         <div className="rounded-lg p-4 border">
-          <div className="text-sm font-medium text-gray-700 mb-3">Assessment Configuration</div>
+          <div className="text-sm font-medium text-gray-700 mb-1">Assessment Configuration</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {job.assessment_difficulty.includeSubjectTest && (
               <div className="rounded-lg p-3 border">

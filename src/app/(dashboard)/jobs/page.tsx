@@ -15,7 +15,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase/api/client";
+import { useAuth } from "@/context/auth-context";
 
 type Job = {
   id: string;
@@ -41,6 +41,7 @@ const STAGES = [
 
 export default function JobsPage() {
   const router = useRouter();
+  const { user, session, loading: authLoading } = useAuth();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [status, setStatus] = useState("ALL");
@@ -52,34 +53,84 @@ export default function JobsPage() {
     router.push(`/jobs/${jobId}`);
   };
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (signal?: AbortSignal) => {
+    if (!user || !session) {
+      setError("Please log in to view jobs");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
-      const { data, error } = await supabase.rpc("get_jobs_with_analytics", {
-        p_school_id: '2317e986-3ebe-415e-b402-849d80f714a0', // replace with real school_id
-        p_start_index: 0,
-        p_end_index: 20,
-        p_status: status,
+      const queryParams = new URLSearchParams({
+        status,
+        startIndex: '0',
+        endIndex: '20'
       });
 
-      if (error) {
-        throw new Error(error.message || "Failed to fetch jobs");
-      } else {
-        setJobs(data || []);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Authorization header if we have an access token
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch(`/api/jobs?${queryParams}`, {
+        method: 'GET',
+        headers,
+        credentials: 'include', // Include cookies for server-side auth
+        signal, // Add abort signal for cancellation
+      });
+
+      // Check if request was aborted
+      if (signal?.aborted) {
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch jobs');
+      }
+
+      const data = await response.json();
+      
+      // Only update state if component is still mounted (signal not aborted)
+      if (!signal?.aborted) {
+        setJobs(data.jobs || []);
       }
     } catch (err) {
+      // Don't update state if request was aborted
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
+      
       console.error("Error fetching jobs:", err);
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      if (!signal?.aborted) {
+        setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      }
     } finally {
-      setLoading(false);
+      // Only update loading state if component is still mounted
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchJobs();
-  }, [status]);
+    const abortController = new AbortController();
+
+    if (!authLoading && user && session) {
+      fetchJobs(abortController.signal);
+    }
+
+    return () => {
+      abortController.abort();
+    };
+  }, [status, user, session, authLoading]);
 
   // Filter jobs locally by title, subjects, or grades
   const filteredJobs = jobs.filter((job) => {
@@ -93,46 +144,77 @@ export default function JobsPage() {
   });
 
   // Error Component
-  const ErrorState = () => (
-    <div className="flex flex-col items-center justify-center py-12 px-4">
-      <div className="bg-red-50 rounded-full p-4 mb-4">
-        <AlertCircle className="h-8 w-8 text-red-500" />
+  const ErrorState = () => {
+    const handleRetry = () => {
+      const abortController = new AbortController();
+      fetchJobs(abortController.signal);
+    };
+
+    return (
+      <div className="flex flex-col items-center justify-center py-12 px-4">
+        <div className="bg-red-50 rounded-full p-4 mb-4">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load jobs</h3>
+        <p className="text-gray-600 text-center mb-6 max-w-md">
+          {error || "Something went wrong while fetching jobs. Please try again."}
+        </p>
+        <Button onClick={handleRetry} className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </Button>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load jobs</h3>
-      <p className="text-gray-600 text-center mb-6 max-w-md">
-        {error || "Something went wrong while fetching jobs. Please try again."}
-      </p>
-      <Button onClick={fetchJobs} className="flex items-center gap-2">
-        <RefreshCw className="h-4 w-4" />
-        Try Again
-      </Button>
+    );
+  };
+
+  // Empty State for No Jobs at All
+  const EmptyJobsState = () => (
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-center text-white w-full shadow-xl">
+        <div className="mb-6">
+          <div className="bg-white/20 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <Users className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-tight">
+            Get Started with Hiring
+          </h2>
+          <p className="text-lg md:text-xl text-white/90 leading-relaxed">
+            Create your first job posting and start finding the perfect candidates for your school
+          </p>
+        </div>
+        <Button 
+          onClick={() => router.push('/create-job-post')}
+          size="lg"
+          className="bg-white text-blue-600 hover:bg-gray-50 font-semibold py-4 px-8 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          Create Your First Job
+        </Button>
+      </div>
     </div>
   );
 
-  // No Results Component
+  // No Results Component for Search/Filter Results
   const NoResultsState = () => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       <div className="bg-gray-50 rounded-full p-4 mb-4">
         <FileX className="h-8 w-8 text-gray-400" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {search ? "No jobs match your search" : "No jobs found"}
+        No jobs match your search
       </h3>
       <p className="text-gray-600 text-center mb-6 max-w-md">
-        {search 
-          ? `We couldn't find any jobs matching "${search}". Try adjusting your search terms or filters.`
-          : "There are no jobs available at the moment. Check back later or create a new job posting."
-        }
+        We couldn&apos;t find any jobs matching &quot;{search}&quot; or the selected filters. Try adjusting your search terms or filters.
       </p>
-      {search && (
-        <Button 
-          variant="outline" 
-          onClick={() => setSearch("")} 
-          className="flex items-center gap-2"
-        >
-          Clear Search
-        </Button>
-      )}
+      <Button 
+        variant="outline" 
+        onClick={() => {
+          setSearch("");
+          setStatus("ALL");
+        }} 
+        className="flex items-center gap-2"
+      >
+        Clear Filters
+      </Button>
     </div>
   );
 
@@ -169,56 +251,61 @@ export default function JobsPage() {
         <p className="text-gray-600">Manage and monitor your job postings and applications</p>
       </div>
 
-      {/* Search and Filters Row */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search Bar - Takes remaining flex space */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search jobs by title, subject, or grade level..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-11 bg-white shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-        
-        {/* Status Filter */}
-        <Select value={status} onValueChange={(val) => setStatus(val)}>
-          <SelectTrigger className="w-full sm:w-[180px] h-11 bg-white shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            {["ALL", "OPEN", "IN_PROGRESS", "COMPLETED", "SUSPENDED", "PAUSED", "APPEALED"].map((opt) => (
-              <SelectItem key={opt} value={opt} className="capitalize">
-                {opt === "ALL" ? "All" : opt.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Search and Filters Row - Only show if jobs exist */}
+      {!loading && !authLoading && !error && jobs.length > 0 && (
+        <>
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search Bar - Takes remaining flex space */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search jobs by title, subject, or grade level..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-11 bg-white shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Status Filter */}
+            <Select value={status} onValueChange={(val) => setStatus(val)}>
+              <SelectTrigger className="w-full sm:w-[180px] h-11 bg-white shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                {["ALL", "OPEN", "IN_PROGRESS", "COMPLETED", "SUSPENDED", "PAUSED", "APPEALED"].map((opt) => (
+                  <SelectItem key={opt} value={opt} className="capitalize">
+                    {opt === "ALL" ? "All" : opt.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Results Summary */}
-      {!loading && !error && (
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>Showing {filteredJobs.length} of {jobs.length} jobs</span>
-          {search && (
-            <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-              Search: &apos;{search}&apos;
-            </Badge>
-          )}
-          {status !== "ALL" && (
-            <Badge variant="secondary" className="bg-green-50 text-green-700">
-              Status: {status === "ALL" ? "All" : status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-            </Badge>
-          )}
-        </div>
+          {/* Results Summary */}
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>Showing {filteredJobs.length} of {jobs.length} jobs</span>
+            {search && (
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                Search: &apos;{search}&apos;
+              </Badge>
+            )}
+            {status !== "ALL" && (
+              <Badge variant="secondary" className="bg-green-50 text-green-700">
+                Status: {status === "ALL" ? "All" : status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+              </Badge>
+            )}
+          </div>
+        </>
       )}
 
       {/* Content */}
-      {loading && <LoadingSkeleton />}
+      {(loading || authLoading) && <LoadingSkeleton />}
       {error && <ErrorState />}
-      {!loading && !error && filteredJobs.length === 0 && <NoResultsState />}
-      {!loading && !error && filteredJobs.length > 0 && (
+      {/* Show EmptyJobsState only when there are truly 0 jobs AND no active filters/search */}
+      {!loading && !authLoading && !error && jobs.length === 0 && status === "ALL" && !search.trim() && <EmptyJobsState />}
+      {/* Show NoResultsState when there are filters applied OR search active but no results */}
+      {!loading && !authLoading && !error && ((jobs.length === 0 && (status !== "ALL" || search.trim())) || (jobs.length > 0 && filteredJobs.length === 0)) && <NoResultsState />}
+      {!loading && !authLoading && !error && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredJobs.map((job) => {
             const total = job.application_analytics.total_applications || 1;
@@ -232,7 +319,7 @@ export default function JobsPage() {
             };
             
             return (
-              <Card key={job.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-gradient-to-br from-white to-gray-50/50">
+              <Card key={job.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-gradient-to-br from-white to-gray-50/50 border  rounded-lg">
                 <CardHeader className="">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -283,7 +370,7 @@ export default function JobsPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                    <div className="flex items-center gap-2 ml-4">
                       <Button 
                         variant="ghost" 
                         size="sm" 

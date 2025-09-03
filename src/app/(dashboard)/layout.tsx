@@ -74,19 +74,18 @@ export default function DashboardShellLayout({
     const fetchJobTitle = async () => {
       setLoadingJobTitle(true);
       try {
-        const { data, error } = await supabase.rpc("get_jobs_with_analytics", {
-          p_school_id: '2317e986-3ebe-415e-b402-849d80f714a0',
-          p_start_index: 0,
-          p_end_index: 100,
-          p_status: 'ALL',
-        });
+        // Query the jobs table directly by ID to get the title
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('title')
+          .eq('id', jobId)
+          .single();
 
         if (error) {
           console.error("Error fetching job data:", error);
           setJobTitle("Job Details");
         } else {
-          const job = data?.find((j: JobData) => j.id === jobId);
-          setJobTitle(job?.title || "Job Details");
+          setJobTitle(data?.title || "Job Details");
         }
       } catch (err) {
         console.error("Error fetching job title:", err);
@@ -113,16 +112,16 @@ export default function DashboardShellLayout({
         
         if (result.error) {
           console.error("Error fetching candidate data:", result.error);
-          setCandidateName("Candidate Details");
+          setCandidateName("Applicant Details");
         } else if (result.candidateInfo) {
           const fullName = `${result.candidateInfo.first_name} ${result.candidateInfo.last_name}`;
           setCandidateName(fullName);
         } else {
-          setCandidateName("Candidate Details");
+          setCandidateName("Applicant Details");
         }
       } catch (err) {
         console.error("Error fetching candidate name:", err);
-        setCandidateName("Candidate Details");
+        setCandidateName("Applicant Details");
       } finally {
         setLoadingCandidateName(false);
       }
@@ -157,10 +156,10 @@ export default function DashboardShellLayout({
         });
       }
 
-      // If we have an application ID, add the candidate name
+      // If we have an application ID, add the applicant name (first and last name)
       if (segments.length === 3 && applicationId) {
         items.push({
-          label: loadingCandidateName ? "Loading..." : (candidateName || "Candidate Details"),
+          label: loadingCandidateName ? "Loading..." : (candidateName || "Applicant Details"),
           href: `/jobs/${jobId}/${applicationId}`,
           isCurrentPage: true
         });

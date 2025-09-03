@@ -3,11 +3,25 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+if (!supabaseUrl) {
+  throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
+}
+
+// Ensure anon key is available for SSR auth
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+if (!supabaseAnonKey) {
+  throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required for SSR auth')
+}
+
+// Ensure service role key is available for admin operations
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations')
+}
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
 
 // Service client for admin operations
-const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
+const supabaseService = createClient(supabaseUrl as string, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -19,8 +33,8 @@ export async function POST(request: NextRequest) {
     // Get user from request cookies
     const cookieStore = await cookies()
     const supabase = createServerClient(
-      supabaseUrl,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl as string,
+      supabaseAnonKey as string,
       {
         cookies: {
           getAll() {

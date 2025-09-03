@@ -33,11 +33,11 @@ export interface ApplicationInfo {
     attempted: number;
     total_questions: number;
   }>;
-  overall: {
+  overall?: {
     score: number;
     attempted: number;
     total_questions: number;
-  };
+  } | null;
   video_url?: string | null;
   grade_levels?: string[];
   created_at?: string;
@@ -82,11 +82,11 @@ export interface ApplicationStage {
     attempted: number;
     total_questions: number;
   }>;
-  overall: {
+  overall?: {
     score: number;
     attempted: number;
     total_questions: number;
-  };
+  } | null;
   video_url?: string | null;
   created_at?: string;
   updated_at?: string;

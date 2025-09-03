@@ -4,12 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   ArrowLeft, 
   User,
   Calendar,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  MoreVertical,
+  MessageSquare,
+  Edit3,
+  FileText
 } from "lucide-react";
 import { 
   getJobApplication, 
@@ -39,6 +44,21 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const handleMessageCandidate = () => {
+    // TODO: Implement message candidate functionality
+    console.log("Message candidate:", candidateInfo?.first_name, candidateInfo?.last_name);
+  };
+
+  const handleChangeStatus = () => {
+    // TODO: Implement change status functionality
+    console.log("Change status for application:", applicationId);
+  };
+
+  const handleAddNote = () => {
+    // TODO: Implement add note functionality
+    console.log("Add note for application:", applicationId);
   };
 
   const fetchApplicationData = async () => {
@@ -129,7 +149,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Candidates
           </Button>
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-gray-500" />
@@ -152,7 +171,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Candidates
           </Button>
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-gray-500" />
@@ -175,7 +193,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Candidates
           </Button>
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-gray-500" />
@@ -200,46 +217,104 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Candidates
         </Button>
-        <div className="flex items-center gap-2">
-          <User className="h-5 w-5 text-gray-500" />
-          <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
-        </div>
       </div>
 
       {/* Application Title and Basic Info */}
       <div className="space-y-4">
-        <h2 className="text-3xl font-bold text-gray-900">
-          {candidateInfo?.first_name} {candidateInfo?.last_name}
-        </h2>
-        
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <div>Application ID: <strong>{applicationId}</strong></div>
-          <div>•</div>
-          <div>Job ID: <strong>{jobId}</strong></div>
-          <div>•</div>
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            Applied: {formatDate(applicationStage?.submitted_at)}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Avatar */}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold">
+              {(candidateInfo?.first_name?.[0] || '').toUpperCase()}
+              {(candidateInfo?.last_name?.[0] || '').toUpperCase() || 'U'}
+            </div>
+            
+            {/* Candidate Info */}
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {candidateInfo?.first_name} {candidateInfo?.last_name}
+              </h2>
+              <div className="flex items-center gap-4 text-base text-gray-600">
+                <span>{candidateInfo?.email}</span>
+                {candidateInfo?.city && candidateInfo?.state && (
+                  <>
+                    <span>|</span>
+                    <span>{candidateInfo.city}, {candidateInfo.state}</span>
+                  </>
+                )}
+                {candidateInfo?.phone && (
+                  <>
+                    <span>•</span>
+                    <span>{candidateInfo.phone}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Status Badge and Quick Actions */}
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={
+                applicationStage?.status === "demo_ready"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : applicationStage?.status === "demo_creation"
+                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                  : "bg-gray-50 text-gray-700 border-gray-200"
+              }
+            >
+              {applicationStage?.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+            </Badge>
+            
+            {/* Quick Actions Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  aria-label="Quick actions"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-0">
+                <div className="space-y-1 p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleMessageCandidate}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Message Candidate
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleChangeStatus}
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Change Status
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleAddNote}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
-        {/* Status Badge */}
-        <div>
-          <Badge
-            variant="outline"
-            className={
-              applicationStage?.status === "demo_ready"
-                ? "bg-green-50 text-green-700 border-green-200"
-                : applicationStage?.status === "demo_creation"
-                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                : "bg-gray-50 text-gray-700 border-gray-200"
-            }
-          >
-            {applicationStage?.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-          </Badge>
-        </div>
       </div>
 
       {/* Tab Navigation */}

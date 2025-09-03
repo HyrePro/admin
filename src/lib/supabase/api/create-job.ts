@@ -23,6 +23,11 @@ export interface CreateJobInput {
   numberOfQuestions?: number
 }
 
+/**
+ * @deprecated Use the server-side API endpoint /api/create-job instead.
+ * This function is kept for backward compatibility but should not be used
+ * as it doesn't include proper authentication and school_id from user metadata.
+ */
 export async function createJob(jobData: CreateJobInput) {
   // Map jobData to DB schema
   const {

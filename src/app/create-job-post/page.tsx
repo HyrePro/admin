@@ -9,7 +9,7 @@ import { Formik, Form } from 'formik'
 import * as Yup from 'yup'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createJob } from '@/lib/supabase/api/create-job'
+import { useAuth } from '@/context/auth-context'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { JobPostDialog } from '@/components/job-post-dialog'
@@ -79,6 +79,7 @@ export default function CreateJobApplicationPage() {
   const router = useRouter()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogType, setDialogType] = useState<'progress' | 'success' | 'error' | null>(null)
+  const { user, session } = useAuth()
 
   // Prevent body scrolling when this component mounts
   useEffect(() => {
@@ -248,6 +249,13 @@ export default function CreateJobApplicationPage() {
                           setDialogType('progress')
                           setDialogOpen(true)
                           try {
+                            // Check if user is authenticated
+                            if (!user || !session) {
+                              setError('Please log in to create a job post.')
+                              setDialogType('error')
+                              setLoading(false)
+                              return
+                            }
                             const jobPayload = {
                               jobTitle: jobInfo?.jobTitle ?? "",
                               experience: jobInfo?.experience ?? "any",
@@ -273,9 +281,33 @@ export default function CreateJobApplicationPage() {
                               assessmentDifficulty: screening.assessment ? screening.assessmentDifficulty : undefined,
                               numberOfQuestions: screening.assessment ? screening.numberOfQuestions : undefined
                             }
-                            const { data, error } = await createJob(jobPayload)
-                            if (error || !data?.id) {
-                              setError(error?.message || 'Failed to create job. Please try again.')
+                            // Call the API endpoint with authentication
+                            const headers = new Headers({
+                              'Content-Type': 'application/json',
+                              'Accept': 'application/json',
+                            })
+                            // Add Authorization header if we have an access token
+                            if (session?.access_token) {
+                              headers.set('Authorization', `Bearer ${session.access_token}`)
+                            }
+                            const response = await fetch('/api/create-job', {
+                              method: 'POST',
+                              headers,
+                              credentials: 'include', // Include cookies for server-side auth
+                              body: JSON.stringify(jobPayload),
+                            })
+
+                            if (!response.ok) {
+                              const errorData = await response.json()
+                              setError(errorData.error || 'Failed to create job. Please try again.')
+                              setDialogType('error')
+                              setLoading(false)
+                              return
+                            }
+
+                            const { data } = await response.json()
+                            if (!data?.id) {
+                              setError('Failed to create job. Please try again.')
                               setDialogType('error')
                               setLoading(false)
                               return

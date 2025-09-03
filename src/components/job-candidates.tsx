@@ -13,8 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ChevronRight, Users, RefreshCw, AlertCircle } from "lucide-react";
+import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download } from "lucide-react";
 import { getJobApplications, type JobApplication } from "@/lib/supabase/api/get-job-applications";
+import { downloadFile, forceDownload } from "@/lib/utils";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface JobCandidatesProps {
   job_id: string;
@@ -28,6 +31,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const [downloadingResumes, setDownloadingResumes] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
   const fetchApplications = async (search: string = "", page: number = 0) => {
@@ -49,10 +53,20 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         throw new Error(error);
       }
 
-      setApplications(data || []);
+      // Validate and clean the data
+      const validApplications = (data || []).filter((app) => {
+        // Basic validation to ensure we have essential fields
+        return app && 
+               typeof app.application_id === 'string' && 
+               app.application_id.length > 0;
+      });
+
+      setApplications(validApplications);
     } catch (err) {
       console.error("Error fetching applications:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch applications");
+      // Set empty array on error to prevent rendering issues
+      setApplications([]);
     } finally {
       setLoading(false);
     }
@@ -83,9 +97,33 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     setSearchText(e.target.value);
   };
 
-  const formatScore = (score: number, totalQuestions: number) => {
-    if (totalQuestions === 0) return "N/A";
-    return `${score}/${totalQuestions}`;
+  const formatScore = (score: number | null | undefined, totalQuestions: number | null | undefined) => {
+    // Handle null, undefined, or zero total questions
+    if (!totalQuestions || totalQuestions === 0) return "N/A";
+    
+    // Handle null or undefined score
+    const validScore = score ?? 0;
+    
+    return `${validScore}/${totalQuestions}`;
+  };
+
+  const handleResumeDownload = async (resumeUrl: string, applicationId: string, fileName?: string) => {
+    if (downloadingResumes.has(applicationId)) return;
+    
+    setDownloadingResumes(prev => new Set(prev).add(applicationId));
+    try {
+      // Use forceDownload for better reliability
+      forceDownload(resumeUrl, fileName || 'resume.pdf');
+    } finally {
+      // Reset loading state after a short delay
+      setTimeout(() => {
+        setDownloadingResumes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(applicationId);
+          return newSet;
+        });
+      }, 1000);
+    }
   };
 
   // Error Component
@@ -142,8 +180,122 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     </div>
   );
 
+  // Safe rendering function for application rows
+  const renderApplicationRow = (application: JobApplication) => {
+    try {
+      return (
+        <TableRow key={application.application_id} className="hover:bg-gray-50">
+          <TableCell>
+            <div className="space-y-1">
+              <div className="font-medium text-gray-900">
+                {application.first_name || "Unknown"} {application.last_name || ""}
+              </div>
+              <div className="text-sm text-gray-500">
+                {application.email || "No email provided"}
+              </div>
+              <div className="text-xs text-gray-400">
+                {application.city && application.state ? 
+                  `${application.city}, ${application.state}` : 
+                  "Location not provided"
+                }
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-wrap gap-1">
+              {Array.isArray(application.subjects) && application.subjects.length > 0 ? (
+                application.subjects.map((subject) => (
+                  <Badge
+                    key={subject}
+                    variant="secondary"
+                    className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
+                  >
+                    {subject}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500">No subjects</span>
+              )}
+            </div>
+          </TableCell>
+          <TableCell>
+            <div className="space-y-1">
+              <div className="font-medium">
+                {application.overall ? 
+                  formatScore(application.overall.score ?? 0, application.overall.total_questions ?? 0) : 
+                  "N/A"
+                }
+              </div>
+              <div className="text-xs text-gray-500">
+                {application.overall ? 
+                  `${application.overall.attempted ?? 0} attempted` : 
+                  "Not assessed"
+                }
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
+            <Badge
+              variant="outline"
+              className={
+                application.status === "demo_ready"
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : application.status === "demo_creation"
+                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                  : "bg-gray-50 text-gray-700 border-gray-200"
+              }
+            >
+              {application.status ? 
+                application.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) :
+                "Unknown"
+              }
+            </Badge>
+          </TableCell>
+          <TableCell>
+            {application.resume_url ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleResumeDownload(application.resume_url!, application.application_id, application.resume_file_name)}
+                disabled={downloadingResumes.has(application.application_id)}
+                className="h-8 w-8 p-0"
+                title={downloadingResumes.has(application.application_id) ? "Downloading..." : "Download Resume"}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            ) : (
+              <span className="text-xs text-gray-400">No resume</span>
+            )}
+          </TableCell>
+          <TableCell>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                router.push(`/jobs/${job_id}/${application.application_id}`);
+              }}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </TableCell>
+        </TableRow>
+      );
+    } catch (renderError) {
+      console.error('Error rendering application row:', renderError, application);
+      return (
+        <TableRow key={application.application_id || Math.random()} className="hover:bg-gray-50">
+          <TableCell colSpan={6} className="text-center py-4">
+            <div className="text-gray-500">Error displaying candidate data</div>
+          </TableCell>
+        </TableRow>
+      );
+    }
+  };
+
   return (
     <div>
+      <ToastContainer position="top-right" autoClose={3000} />
       {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
@@ -176,80 +328,16 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-1/3">Candidate</TableHead>
-                      <TableHead className="w-1/4">Subjects</TableHead>
+                      <TableHead className="w-1/4">Candidate</TableHead>
+                      <TableHead className="w-1/5">Subjects</TableHead>
                       <TableHead className="w-1/6">Score</TableHead>
                       <TableHead className="w-1/6">Status</TableHead>
+                      <TableHead className="w-1/12">Resume</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {applications.map((application) => (
-                      <TableRow key={application.application_id} className="hover:bg-gray-50">
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium text-gray-900">
-                              {application.first_name} {application.last_name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {application.email}
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {application.city}, {application.state}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {application.subjects.map((subject) => (
-                              <Badge
-                                key={subject}
-                                variant="secondary"
-                                className="bg-indigo-50 text-indigo-700 border-indigo-200 text-xs"
-                              >
-                                {subject}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium">
-                              {formatScore(application.overall.score, application.overall.total_questions)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {application.overall.attempted} attempted
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              application.status === "demo_ready"
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : application.status === "demo_creation"
-                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                : "bg-gray-50 text-gray-700 border-gray-200"
-                            }
-                          >
-                            {application.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              router.push(`/jobs/${job_id}/${application.application_id}`);
-                            }}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {applications.map(renderApplicationRow)}
                   </TableBody>
                 </Table>
               </div>
