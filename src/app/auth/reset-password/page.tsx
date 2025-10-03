@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase/api/client'
+import { createClient } from '@/lib/supabase/api/client'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -26,6 +26,9 @@ function ResetPasswordContent() {
   useEffect(() => {
     const verifySession = async () => {
       try {
+        // Create a Supabase client instance
+        const supabase = createClient();
+        
         // Check if we have a valid session
         const { data: { session }, error } = await supabase.auth.getSession()
         
@@ -87,6 +90,9 @@ function ResetPasswordContent() {
     setLoading(true)
 
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       const { error } = await supabase.auth.updateUser({
         password: password
       })

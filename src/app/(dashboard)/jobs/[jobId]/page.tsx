@@ -10,7 +10,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 
 import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase/api/client";
+import { createClient } from "@/lib/supabase/api/client";
 import { JobOverview } from "@/components/job-overview";
 import { JobCandidates } from "@/components/job-candidates";
 import { JobAnalytics } from "@/components/job-analytics";
@@ -103,6 +103,9 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
     setError(null);
     
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       const { data, error } = await supabase.rpc("get_job_with_analytics", {
         p_job_id: jobId,
       });
@@ -259,7 +262,12 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-</Button>
+          Back to Jobs
+        </Button>
+        <div className="flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-gray-500" />
+          <h1 className="text-2xl font-bold tracking-tight">Job Details</h1>
+        </div>
       </div>
 
       {/* Job Details - Plain Layout */}

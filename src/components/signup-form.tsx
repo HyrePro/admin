@@ -7,7 +7,7 @@ import { useState } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/api/client"
+import { createClient } from "@/lib/supabase/api/client"
 import { Separator } from "./ui/separator"
 import Image from "next/image"
 import { SignupProgressDialog } from "./signup-progress-dialog"
@@ -23,6 +23,9 @@ export function SignupForm({
   const [signupEmail, setSignupEmail] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  
+  // Create the supabase client instance
+  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +54,10 @@ export function SignupForm({
       setSignupEmail(email)
       setIsSignupDialogOpen(true)
       
+      // Create a properly encoded redirect URL to avoid double encoding issues
+      const redirectUrl = new URL('/auth/callback', window.location.origin);
+      redirectUrl.searchParams.set('next', '/select-organization');
+      
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -62,7 +69,7 @@ export function SignupForm({
             user_type: 'admin',
             school_id: null
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/select-organization`
+          emailRedirectTo: redirectUrl.toString()
         }
       })
       
@@ -267,4 +274,4 @@ export function SignupForm({
       />
     </div>
   )
-} 
+}

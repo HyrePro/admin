@@ -73,12 +73,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={active}
-                    className={active ? "text-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10" : undefined}
+                    className={active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined}
                   >
                     <Link href={href}>
-                      <Icon />
-                      <span>{title}</span>
-                    </Link>
+                        <Icon className={active ? "text-white" : undefined} />
+                        <span className={active ? "text-white" : undefined}>
+                          {title}
+                        </span>
+                      </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );

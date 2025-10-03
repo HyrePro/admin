@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { supabase } from "@/lib/supabase/api/client";
+import { createClient } from "@/lib/supabase/api/client";
 import { Mail, Loader2 } from "lucide-react";
 
 interface ForgotPasswordDialogProps {
@@ -18,6 +18,9 @@ export function ForgotPasswordDialog({ open, onOpenChange, initialEmail = "" }: 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  
+  // Create the supabase client instance
+  const supabase = createClient();
 
   // Update email when initialEmail changes or dialog opens
   useEffect(() => {

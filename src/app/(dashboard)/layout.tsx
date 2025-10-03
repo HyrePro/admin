@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Bell, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/api/client";
+import { createClient } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 
 // Minimal interface for job data from RPC response
@@ -74,6 +74,8 @@ export default function DashboardShellLayout({
     const fetchJobTitle = async () => {
       setLoadingJobTitle(true);
       try {
+        // Create a Supabase client instance
+        const supabase = createClient();
         // Query the jobs table directly by ID to get the title
         const { data, error } = await supabase
           .from('jobs')
@@ -199,7 +201,7 @@ export default function DashboardShellLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2 px-4">
             <Breadcrumb>
               <BreadcrumbList>
@@ -207,7 +209,7 @@ export default function DashboardShellLayout({
                   <React.Fragment key={item.href}>
                     <BreadcrumbItem>
                       {item.isCurrentPage ? (
-                        <BreadcrumbPage className="font-medium text-gray-900">
+                        <BreadcrumbPage className="font-bold text-gray-900 text-lg">
                           {item.label}
                         </BreadcrumbPage>
                       ) : (
@@ -286,4 +288,3 @@ export default function DashboardShellLayout({
     </SidebarProvider>
   );
 }
-

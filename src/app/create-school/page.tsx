@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ArrowLeft, School, Upload, MapPin, Users, GraduationCap, Globe, ImageIcon, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase/api/client'
+import { createClient } from '@/lib/supabase/api/client'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Image from 'next/image'
@@ -103,6 +103,9 @@ export default function CreateSchoolPage() {
     setProgressError('')
 
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {

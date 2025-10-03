@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react"
-import { supabase } from "@/lib/supabase/api/client"
+import { createClient } from "@/lib/supabase/api/client"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -38,6 +38,9 @@ export function SectionCards() {
 
   useEffect(() => {
     const fetchStats = async () => {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       const now = new Date()
       const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -126,16 +129,16 @@ export function SectionCards() {
           <CardTitle className="text-2xl font-semibold tabular-nums">
             {stat.total}
           </CardTitle>
-          <CardAction>
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5 text-sm">
+          <div className="flex items-center gap-2">
             <Badge variant="outline" className="flex items-center gap-1">
               {isUp ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
               {stat.percentChange.toFixed(1)}%
             </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="font-medium">
-            This month: {stat.thisMonth} | Last month: {stat.lastMonth}
+            <div>
+              This month: {stat.thisMonth} | Last month: {stat.lastMonth}
+            </div>
           </div>
         </CardFooter>
       </Card>

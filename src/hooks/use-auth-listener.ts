@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase/api/client'
+import { createClient } from '@/lib/supabase/api/client'
 import { toast } from 'react-toastify'
 
 export function useAuthListener() {
   const router = useRouter()
 
   useEffect(() => {
+    // Create a Supabase client instance
+    const supabase = createClient();
+    
     // Listen for authentication state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -73,6 +76,8 @@ export function useAuthListener() {
   // Function to manually check auth status
   const checkAuthStatus = async () => {
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession()
       return session
     } catch (error) {

@@ -4,13 +4,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabase/api/client"
+import { createClient } from "@/lib/supabase/api/client"
 import { Alert, AlertDescription } from "../../components/ui/alert"
 import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/auth-context"
 
 export function LoginForm({
   className,
@@ -24,6 +25,79 @@ export function LoginForm({
   const [error, setError] = useState("")
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false)
   const router = useRouter()
+  const { user, loading } = useAuth()
+  
+  // Create the supabase client instance
+  const supabase = createClient()
+
+  // Redirect user if they're already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      console.log('User already logged in, checking school info')
+      // Check if user has school info and redirect accordingly
+      checkUserSchoolInfo()
+    }
+  }, [user, loading, router])
+
+  const checkUserSchoolInfo = async () => {
+    if (!user) return
+    
+    try {
+      const supabase = createClient()
+      console.log('Checking school info for user', user.id)
+      
+      const { data, error } = await supabase
+        .from('admin_user_info')
+        .select('school_id')
+        .eq('id', user.id)
+        .single()
+
+      console.log('Admin user info data:', data)
+      console.log('Admin user info error:', error)
+
+      if (error) {
+        console.error('Error fetching school info:', error)
+        // If there's an error, redirect to create-school as a fallback
+        console.log('Redirecting to create-school due to error')
+        router.replace('/create-school')
+        return
+      }
+
+      const fetchedSchoolId = data?.school_id || null
+      console.log('Fetched school ID:', fetchedSchoolId)
+
+      // Check if user is verified
+      const isVerified = user.email_confirmed_at !== null
+      console.log('User verification status:', isVerified)
+
+      // If user is verified but school_id is missing, redirect to create-school
+      if (isVerified && !fetchedSchoolId) {
+        console.log('Redirecting to create-school because school_id is null')
+        router.replace('/create-school')
+        return
+      }
+
+      // If user is logged in and school_id exists, redirect to dashboard
+      if (isVerified && fetchedSchoolId) {
+        console.log('Redirecting to dashboard because school_id exists')
+        router.replace('/')
+        return
+      }
+      
+      // If user is not verified, stay on current page
+      if (!isVerified) {
+        console.log('User not verified, should verify email first')
+      }
+    } catch (error) {
+      console.error('Error in checkUserSchoolInfo:', error)
+      // Even if there's an error, if the user is verified, redirect to create-school as a fallback
+      const isVerified = user?.email_confirmed_at !== null
+      if (isVerified) {
+        console.log('Redirecting to create-school due to error but user is verified')
+        router.replace('/create-school')
+      }
+    }
+  }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,10 +124,14 @@ export function LoginForm({
         setError(errorMessage)
       } else if (data.user && data.session) {
         console.log('Login successful, user:', data.user.email)
-        // Redirect to dashboard after successful login with delay to show success message
+        console.log('User email confirmed at:', data.user.email_confirmed_at)
+        
+        // After successful login, check user's school info and redirect
+        console.log('Checking school info after successful login')
+        // Wait a bit for the auth state to update
         setTimeout(() => {
-          window.location.href = '/'
-        }, 1000)
+          checkUserSchoolInfo()
+        }, 100)
       } else {
         setError('Login failed: No user data received')
       }
@@ -231,4 +309,4 @@ export function LoginForm({
       />
     </>
   )
-} 
+}

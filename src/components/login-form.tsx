@@ -7,7 +7,7 @@ import { useState, useEffect, Suspense } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useRouter, useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase/api/client"
+import { createClient } from "@/lib/supabase/api/client"
 import { ForgotPasswordDialog } from "./forgot-password-dialog"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 
@@ -86,6 +86,9 @@ function LoginFormContent({
     }
 
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       console.log("Attempting login for:", email);
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -138,6 +141,9 @@ function LoginFormContent({
     setMessage(null)
 
     try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

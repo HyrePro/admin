@@ -31,7 +31,7 @@ import {
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/api/client"
+import { createClient } from "@/lib/supabase/api/client"
 
 export function NavUser({
   user,
@@ -62,6 +62,8 @@ export function NavUser({
     try {
       toast.info("Signing out...")
       
+      // Create a Supabase client instance
+      const supabase = createClient();
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut()
       

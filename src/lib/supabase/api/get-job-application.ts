@@ -1,4 +1,4 @@
-import { supabase } from "./client";
+import { createClient } from "./client";
 
 export interface ApplicationInfo {
   application_id: string;
@@ -94,6 +94,8 @@ export interface ApplicationStage {
 
 export async function getJobApplication(applicationId: string) {
   try {
+    // Create a Supabase client instance
+    const supabase = createClient();
     const { data, error } = await supabase.rpc("get_job_application", {
       p_application_id: applicationId,
     });
