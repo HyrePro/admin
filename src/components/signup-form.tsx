@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useRouter } from "next/navigation"
@@ -22,6 +22,7 @@ export function SignupForm({
   const [isSignupDialogOpen, setIsSignupDialogOpen] = useState(false)
   const [signupEmail, setSignupEmail] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
   const router = useRouter()
   
   // Create the supabase client instance
@@ -144,9 +145,48 @@ export function SignupForm({
 
   const handleCloseDialog = () => {
     setIsSignupDialogOpen(false)
-    // Optionally redirect to login or dashboard
-    // router.push("/login")
+    // If email is confirmed, redirect to the next step
+    if (isEmailConfirmed) {
+      router.push("/select-organization")
+    }
   }
+
+  // Check if user's email is confirmed
+  const checkEmailConfirmation = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email_confirmed_at) {
+        setIsEmailConfirmed(true)
+        // Close dialog and redirect to select organization
+        setIsSignupDialogOpen(false)
+        router.push("/select-organization")
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error("Error checking email confirmation:", error)
+      return false
+    }
+  }
+
+  // Poll for email confirmation
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null
+    
+    if (isSignupDialogOpen && !isEmailConfirmed) {
+      // Check every 3 seconds if email is confirmed
+      intervalId = setInterval(async () => {
+        const confirmed = await checkEmailConfirmation()
+        if (confirmed) {
+          if (intervalId) clearInterval(intervalId)
+        }
+      }, 3000)
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [isSignupDialogOpen, isEmailConfirmed])
 
   return (
     <div className={cn("flex flex-col items-center justify-center gap-6 w-full", className)} {...props}>

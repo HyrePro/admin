@@ -4,6 +4,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Mail, Clock, AlertCircle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createClient } from "@/lib/supabase/api/client"
+import { useRouter } from 'next/navigation'
 
 interface SignupProgressDialogProps {
   isOpen: boolean
@@ -21,8 +23,9 @@ export function SignupProgressDialog({
   const [currentStep, setCurrentStep] = useState<'progress' | 'success' | 'email-sent'>('progress')
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
-
-
+  const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
     if (currentStep === 'email-sent') {
@@ -46,6 +49,7 @@ export function SignupProgressDialog({
       setCurrentStep('progress')
       setCountdown(60)
       setCanResend(false)
+      setIsEmailConfirmed(false)
       
       // Simulate signup progress
       const progressTimer = setTimeout(() => {
@@ -62,6 +66,43 @@ export function SignupProgressDialog({
       }
     }
   }, [isOpen])
+
+  // Check if user's email is confirmed
+  const checkEmailConfirmation = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email_confirmed_at) {
+        setIsEmailConfirmed(true)
+        // Close dialog and redirect to select organization
+        onClose()
+        router.push("/select-organization")
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error("Error checking email confirmation:", error)
+      return false
+    }
+  }
+
+  // Poll for email confirmation
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null
+    
+    if (isOpen && currentStep === 'email-sent' && !isEmailConfirmed) {
+      // Check every 3 seconds if email is confirmed
+      intervalId = setInterval(async () => {
+        const confirmed = await checkEmailConfirmation()
+        if (confirmed) {
+          if (intervalId) clearInterval(intervalId)
+        }
+      }, 3000)
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [isOpen, currentStep, isEmailConfirmed, onClose])
 
   const handleResendEmail = () => {
     onResendEmail()
