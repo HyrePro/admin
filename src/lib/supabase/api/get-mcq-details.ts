@@ -1,4 +1,40 @@
-import { supabase } from "./client";
+import { createClient } from "./client"
+import { type SupabaseClient } from '@supabase/supabase-js'
+
+export interface MCQDetail {
+  id: string;
+  job_id: string;
+  question_text: string;
+  options: string[];
+  correct_answer: string;
+  subject: string;
+  difficulty_level: string;
+  created_at: string;
+}
+
+export async function getMCQDetailsByJobId(jobId: string) {
+  // Create the supabase client instance
+  const supabase: SupabaseClient = createClient()
+  
+  try {
+    const { data, error } = await supabase
+      .from("mcq_questions")
+      .select("*")
+      .eq("job_id", jobId);
+
+    if (error) {
+      throw new Error(error.message || "Failed to fetch MCQ details");
+    }
+
+    return { data: data as MCQDetail[], error: null };
+  } catch (err) {
+    console.error("Error fetching MCQ details:", err);
+    return {
+      data: null,
+      error: err instanceof Error ? err.message : "An unexpected error occurred",
+    };
+  }
+}
 
 export interface MCQQuestion {
   category: string;
@@ -13,7 +49,10 @@ export interface MCQQuestion {
   actualCategory?: string; // Actual category from questions_json
 }
 
-export async function getMCQDetails(applicationId: string) {
+export async function getMCQDetailsByApplicationId(applicationId: string) {
+  // Create the supabase client instance
+  const supabase: SupabaseClient = createClient()
+  
   try {
     // Fetch detailed results from job_applications
     const { data: applicationData, error: appError } = await supabase

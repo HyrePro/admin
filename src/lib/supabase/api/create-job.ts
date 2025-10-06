@@ -1,4 +1,5 @@
-import { supabase } from "./client"
+import { createClient } from "./client"
+import { type SupabaseClient } from '@supabase/supabase-js'
 
 export interface CreateJobInput {
   jobTitle: string
@@ -29,6 +30,9 @@ export interface CreateJobInput {
  * as it doesn't include proper authentication and school_id from user metadata.
  */
 export async function createJob(jobData: CreateJobInput) {
+  // Create the supabase client instance
+  const supabase: SupabaseClient = createClient()
+
   // Map jobData to DB schema
   const {
     jobTitle,
@@ -94,4 +98,4 @@ export async function createJob(jobData: CreateJobInput) {
   ]).select("id").single();
 
   return { data, error };
-} 
+}

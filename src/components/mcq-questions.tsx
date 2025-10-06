@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { type ApplicationStage } from "@/lib/supabase/api/get-job-application";
-import { getMCQDetails, type MCQQuestion } from "@/lib/supabase/api/get-mcq-details";
+import { getMCQDetailsByApplicationId, type MCQQuestion } from "@/lib/supabase/api/get-mcq-details";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,7 @@ export function MCQQuestions({ applicationStage }: MCQQuestionsProps) {
       try {
         setLoading(true);
         setError(null);
-        const { questions: mcqQuestions, error: mcqError } = await getMCQDetails(
+        const { questions: mcqQuestions, error: mcqError } = await getMCQDetailsByApplicationId(
           applicationStage.application_id
         );
         if (!active) return;

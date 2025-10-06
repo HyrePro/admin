@@ -59,7 +59,7 @@ export default function Page() {
               <CardContent>
                 {schoolId && (
                   <div className="text-sm text-muted-foreground">
-                    <p>This is your organization's unique identifier in our system.</p>
+                    <p>This is your organization&apos;s unique identifier in our system.</p>
                   </div>
                 )}
               </CardContent>

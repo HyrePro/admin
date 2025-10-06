@@ -3,22 +3,22 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Plus, Users, School, UserPlus } from 'lucide-react'
+import { Building2, Plus, Users, School, UserPlus, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/api/client'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Image from 'next/image'
+import { useAuth } from '@/context/auth-context'
 
 export default function SelectOrganizationPage() {
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
+    const { user } = useAuth()
 
     const handleCreateNewSchool = async () => {
         setIsLoading(true)
         try {
-            // For now, we'll just navigate to a create school page
-            // This will be implemented in the next step as mentioned
             router.push('/create-school')
         } catch (error) {
             console.error('Error:', error)
@@ -31,8 +31,6 @@ export default function SelectOrganizationPage() {
     const handleJoinSchool = async () => {
         setIsLoading(true)
         try {
-            // For now, we'll just navigate to a join school page
-            // This will be implemented in the next step as mentioned
             router.push('/join-school')
         } catch (error) {
             console.error('Error:', error)
@@ -42,109 +40,159 @@ export default function SelectOrganizationPage() {
         }
     }
 
+    // Get user's name from user metadata or email
+    const getUserName = () => {
+        if (!user) return ''
+
+        // Try to get first name from user metadata
+        const firstName = user.user_metadata?.first_name
+        if (firstName) return firstName
+
+        // Fallback to email username
+        if (user.email) {
+            return user.email.split('@')[0]
+        }
+
+        // Fallback to user ID
+        return user.id
+    }
+
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
             <ToastContainer position="top-center" autoClose={3000} />
-            
-            {/* Header with HyrePro Logo */}
-            <div className="bg-white">
-                <div className="px-6 py-4">
-                    <div className="flex justify-start gap-2">
-                        <Image src="/icon.png" alt="HyrePro logo" width={30} height={30} className="rounded-md" />
-                        <span className="text-lg font-bold text-foreground cursor-pointer">HyrePro</span>
+
+            {/* Header */}
+            <div className="bg-white border-b border-slate-200 shadow-sm">
+                <div className="max-w-7xl mx-auto py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Image src="/icon.png" alt="HyrePro logo" width={32} height={32} className="rounded-lg" />
+                        <span className="text-xl font-semibold text-slate-900">HyrePro</span>
                     </div>
+                    {user && (
+                        <p className="text-base md:text-lg ">
+                            Welcome, <span className="font-bold">{getUserName()}</span>!
+                        </p>
+                    )}
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex items-center justify-center p-6 pt-12 h-full"> 
-                <div className="w-full max-w-4xl justify-center items-center">
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl md:text-6xl font-bold text-gray-900 mb-2 leading-tight">
-                            Welcome to HyrePro Admin!
-                        </h1>
-                        <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                            To get started, please choose how you&apos;d like to set up your organization
+            <div className="flex items-center justify-center px-4 h-[calc(100vh-73px)]">
+                <div className="w-full max-w-6xl">
+                    {/* Header Section */}
+                    <div className="text-center mb-4">
+                        
+                        <p className="text-base md:text-lg text-slate-700 font-semibold max-w-2xl mx-auto">
+                            Choose how you&apos;d like to set up your organization and start streamlining your hiring process
                         </p>
+
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4 max-w-5xl mx-auto">
-                        {/* Create New School Organization */}
-                        <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group">
-                            <CardHeader className="text-center pb-6">
-                                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors group-hover:scale-110 duration-300">
-                                    <School className="w-10 h-10 text-blue-600" />
+                    {/* Cards Grid */}
+                    <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto mb-6">
+                        {/* Create New School Card */}
+                        <Card className="relative overflow-hidden border-2 border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-300 group bg-white">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full -mr-16 -mt-16 opacity-5 group-hover:opacity-10 transition-opacity" />
+
+                            <CardHeader className="text-center pt-6 pb-4 px-5">
+                                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                    <School className="w-7 h-7 text-white" />
                                 </div>
-                                <CardTitle className="text-2xl font-semibold mb-2">Create New School</CardTitle>
-                                <CardDescription className="text-base text-gray-600">
-                                    Set up a new school organization and start managing your hiring process
+                                <CardTitle className="text-xl font-bold mb-2 text-slate-900">
+                                    Create New School
+                                </CardTitle>
+                                <CardDescription className="text-sm text-slate-600">
+                                    Set up a new school organization from scratch with full administrative control
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-0">
-                                <ul className="space-y-3 text-sm text-gray-600 mb-8">
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Create your own school profile
-                                    </li>
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Customize hiring workflows
-                                    </li>
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Invite team members
-                                    </li>
-                                </ul>
+
+                            <CardContent className="px-5 pb-6">
+                                <div className="space-y-3 mb-6 bg-slate-50 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Create and customize your school profile
+                                        </span>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Design custom hiring workflows and processes
+                                        </span>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Invite and manage team members with role-based access
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <Button
                                     onClick={handleCreateNewSchool}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 text-lg font-medium transition-all hover:text-white-900"
+                                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-5 text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
                                     disabled={isLoading}
                                 >
-                                    Create New School
+                                    <span>Create New School</span>
+                                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </CardContent>
                         </Card>
 
-                        {/* Join Existing School Organization */}
-                        <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group">
-                            <CardHeader className="text-center pb-6">
-                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-green-200 transition-colors group-hover:scale-110 duration-300">
-                                    <UserPlus className="w-10 h-10 text-green-600" />
+                        {/* Join Existing School Card */}
+                        <Card className="relative overflow-hidden border-2 border-slate-200 hover:border-green-300 hover:shadow-2xl transition-all duration-300 group bg-white">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500 rounded-full -mr-16 -mt-16 opacity-5 group-hover:opacity-10 transition-opacity" />
+
+                            <CardHeader className="text-center pt-6 pb-4 px-5">
+                                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                    <UserPlus className="w-7 h-7 text-white" />
                                 </div>
-                                <CardTitle className="text-2xl font-semibold mb-2">Join School Organization</CardTitle>
-                                <CardDescription className="text-base text-gray-600">
-                                    Join an existing school organization using an invitation code
+                                <CardTitle className="text-xl font-bold mb-2 text-slate-900">
+                                    Join School Organization
+                                </CardTitle>
+                                <CardDescription className="text-sm text-slate-600">
+                                    Join an existing school organization using your invitation code
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="pt-0">
-                                <ul className="space-y-3 text-sm text-gray-600 mb-8">
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Use invitation code
-                                    </li>
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Access existing workflows
-                                    </li>
-                                    <li className="flex items-center">
-                                        <Plus className="w-5 h-5 text-green-500 mr-3" />
-                                        Collaborate with team
-                                    </li>
-                                </ul>
+
+                            <CardContent className="px-5 pb-6">
+                                <div className="space-y-3 mb-6 bg-slate-50 rounded-xl p-4">
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Quick setup with invitation code
+                                        </span>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Access existing workflows and templates
+                                        </span>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                        <span className="text-xs text-slate-700">
+                                            Collaborate seamlessly with your team
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <Button
                                     onClick={handleJoinSchool}
-                                    className="w-full bg-green-50 border border-green-600 text-green-700  py-4 text-lg font-medium transition-all duration-300 hover:bg-green-100 "
+                                    className="w-full bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 hover:border-green-700 py-5 text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
                                     disabled={isLoading}
                                 >
-                                    Join School Organization
+                                    <span>Join School Organization</span>
+                                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </CardContent>
                         </Card>
                     </div>
 
-                    <div className="text-center mt-8">
-                        <p className="text-md text-gray-500">
-                            Need help? Contact our support team for assistance
+                    {/* Footer */}
+                    <div className="text-center">
+                        <p className="text-slate-500 text-sm">
+                            Need assistance? <span className="text-blue-600 font-medium cursor-pointer hover:text-blue-700 transition-colors">Contact our support team</span>
                         </p>
                     </div>
                 </div>

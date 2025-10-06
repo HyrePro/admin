@@ -1,4 +1,5 @@
-import { supabase } from "./client";
+import { createClient } from "./client"
+import { type SupabaseClient } from '@supabase/supabase-js'
 
 export interface JobApplication {
   application_id: string;
@@ -49,6 +50,9 @@ export async function getJobApplications(
   endIndex: number = 10,
   searchText: string = ""
 ) {
+  // Create the supabase client instance
+  const supabase: SupabaseClient = createClient()
+  
   try {
     // Validate pagination parameters (finite integers, consistent bounds)
     const MAX_INDEX = 10000;
