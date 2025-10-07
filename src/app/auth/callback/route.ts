@@ -1,9 +1,9 @@
 // Create service client for admin operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/api/server'
 
 // Ensure service role key is available for admin operations
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -11,16 +11,14 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-const supabase = createRouteHandlerClient({ cookies })
-
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') ?? '/'
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createClient()
     
     try {
       // Exchange the authorization code for a session
@@ -36,9 +34,8 @@ export async function GET(request: NextRequest) {
       if (data.session && data.user) {
         // For password reset flows, we don't need email confirmation check
         const isPasswordReset = next === '/auth/reset-password'
-        const isSelectOrganization = next === '/select-organization'
         
-        if (!isPasswordReset && !isSelectOrganization) {
+        if (!isPasswordReset) {
           // Check if user email is confirmed for regular logins
           if (!data.user.email_confirmed_at) {
             return NextResponse.redirect(
@@ -47,33 +44,33 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // For organization selection flow, verify this is a new user completing signup
-        if (isSelectOrganization) {
-          // Check if user has completed organization setup by checking admin_user_info
-          // If they have a school_id already set, redirect them to dashboard instead
-          try {
-            const { data: userInfo } = await supabase
-              .from('admin_user_info')
-              .select('school_id')
-              .eq('id', data.user.id)
-              .single()
-            
-            if (userInfo && userInfo.school_id) {
-              // User already has organization set up, redirect to dashboard
-              return NextResponse.redirect(`${requestUrl.origin}/`)
-            }
-          } catch (error) {
-            console.error('Error checking user organization status:', error)
-            // Continue with organization selection if we can't determine status
+        // Check user's school_id status to determine where to redirect
+        try {
+          const { data: userInfo, error: userInfoError } = await supabase
+            .from('admin_user_info')
+            .select('school_id')
+            .eq('id', data.user.id)
+            .single()
+          
+          if (userInfoError) {
+            console.error('Error fetching user info:', userInfoError)
+            // If we can't determine user info, redirect to select organization
+            return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
           }
+          
+          // If user has a school_id, redirect to dashboard
+          if (userInfo && userInfo.school_id) {
+            return NextResponse.redirect(`${requestUrl.origin}/`)
+          } 
+          // Otherwise, redirect to select organization
+          else {
+            return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
+          }
+        } catch (error) {
+          console.error('Error checking user organization status:', error)
+          // If there's an error checking user info, redirect to select organization
+          return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
         }
-
-        // Validate redirect URL to prevent open redirect attacks
-        const allowedRedirects = ['/', '/jobs', '/settings', '/help', '/auth/reset-password', '/select-organization']
-        const redirectPath = allowedRedirects.includes(next) ? next : '/'
-        
-        // Successful authentication - redirect to requested page
-        return NextResponse.redirect(`${requestUrl.origin}${redirectPath}`)
       } else {
         return NextResponse.redirect(
           `${requestUrl.origin}/login?error=session_error&message=${encodeURIComponent('Failed to create session. Please try again.')}`

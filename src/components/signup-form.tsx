@@ -55,9 +55,10 @@ export function SignupForm({
       setSignupEmail(email)
       setIsSignupDialogOpen(true)
       
-      // Create a properly encoded redirect URL to avoid double encoding issues
+      // Create a simple redirect URL without next parameter
+      // The callback route will determine where to redirect based on user's school_id status
       const baseUrl = window.location.origin;
-      const redirectUrl = `${baseUrl}/auth/callback?next=/select-organization`;
+      const redirectUrl = `${baseUrl}`;
       
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
