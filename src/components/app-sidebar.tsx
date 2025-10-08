@@ -56,9 +56,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <Link href="/" className="flex items-center gap-2 px-2 py-1.5">
+        <Link href="/" className="flex items-center gap-2 px-2 py-1.5 mt-2">
           <Image src="/icon.png" alt="HyrePro logo" width={24} height={24} className="rounded-md" />
-          <span className="font-semibold group-data-[collapsible=icon]:hidden">HyrePro</span>
+          <span className="font-semibold text-lg group-data-[collapsible=icon]:hidden">HyrePro</span>
         </Link>
             {/* <SidebarTrigger className="-ml-1" /> */}
       </SidebarHeader>

@@ -10,12 +10,20 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Search, RefreshCw, FileX, AlertCircle, Users } from "lucide-react";
+import { ChevronRight, Search, RefreshCw, FileX, AlertCircle, Users, ArrowUpRightIcon } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
+import { 
+  Empty, 
+  EmptyContent, 
+  EmptyDescription, 
+  EmptyHeader, 
+  EmptyMedia, 
+  EmptyTitle 
+} from "@/components/ui/empty";
 
 type Job = {
   id: string;
@@ -169,28 +177,38 @@ export default function JobsPage() {
 
   // Empty State for No Jobs at All
   const EmptyJobsState = () => (
-    <div className="flex flex-col items-center justify-center py-16 px-4">
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 text-center text-white w-full shadow-xl">
-        <div className="mb-6">
-          <div className="bg-white/20 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <Users className="h-8 w-8 text-white" />
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-tight">
-            Get Started with Hiring
-          </h2>
-          <p className="text-lg md:text-xl text-white/90 leading-relaxed">
+    // <div className="flex items-center justify-center py-16 px-4">
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Users className="h-6 w-6" />
+          </EmptyMedia>
+          <EmptyTitle>Get Started with Hiring</EmptyTitle>
+          <EmptyDescription>
             Create your first job posting and start finding the perfect candidates for your school
-          </p>
-        </div>
-        <Button 
-          onClick={() => router.push('/create-job-post')}
-          size="lg"
-          className="bg-white text-blue-600 hover:bg-gray-50 font-semibold py-4 px-8 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-        >
-          Create Your First Job
-        </Button>
-      </div>
-    </div>
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button 
+            onClick={() => router.push('/create-job-post')}
+            size="lg"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+          >
+            Create Your First Job
+          </Button>
+        </EmptyContent>
+        <Button
+        variant="link"
+        asChild
+        className="text-muted-foreground"
+        size="sm"
+      >
+        <a href="#">
+          Learn More <ArrowUpRightIcon />
+        </a>
+      </Button>
+      </Empty>
+    // </div>
   );
 
   // No Results Component for Search/Filter Results
@@ -245,11 +263,6 @@ export default function JobsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Job Management</h1>
-        <p className="text-gray-600">Manage and monitor your job postings and applications</p>
-      </div>
 
       {/* Search and Filters Row - Only show if jobs exist */}
       {!loading && !authLoading && !error && jobs.length > 0 && (

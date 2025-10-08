@@ -15,6 +15,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import Image from 'next/image'
 import Link from 'next/link'
 import { SchoolCreationProgressDialog } from '@/components/school-creation-progress-dialog'
+import HeaderIcon from '@/components/header-icon'
 
 interface SchoolFormData {
   name: string
@@ -249,43 +250,41 @@ export default function CreateSchoolPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <ToastContainer position="top-center" autoClose={3000} />
       
-      {/* Header with HyrePro Logo */}
-      <div className="bg-white border-b border-gray-200">
+      {/* Header with HyrePro Logo - Sticky */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-6 py-4">
-          <div className="flex justify-start gap-2">
-            <Image src="/icon.png" alt="HyrePro logo" width={30} height={30} className="rounded-md" />
-            <span className="text-lg font-bold text-foreground cursor-pointer">HyrePro</span>
-          </div>
+          <HeaderIcon/>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex items-start justify-center p-6 pt-8">
-        <div className="w-full max-w-4xl">
-          {/* Back Button and Header */}
-          <div>
-            <Link 
-              href={isLoading ? "#" : "/select-organization"}
-              className={`inline-flex items-center mb-6 transition-colors ${
-                isLoading 
-                  ? 'text-gray-400 cursor-not-allowed pointer-events-none'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-              onClick={(e) => {
-                if (isLoading) {
-                  e.preventDefault()
-                }
-              }}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Organization Selection
-            </Link>
-          </div>
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex items-start justify-center p-6 pt-8">
+          <div className="w-full max-w-4xl">
+            {/* Back Button and Header */}
+            <div>
+              <Link 
+                href={isLoading ? "#" : "/select-organization"}
+                className={`inline-flex items-center mb-6 transition-colors ${
+                  isLoading 
+                    ? 'text-gray-400 cursor-not-allowed pointer-events-none'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+                onClick={(e) => {
+                  if (isLoading) {
+                    e.preventDefault()
+                  }
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Organization Selection
+              </Link>
+            </div>
 
-          {/* Form Card */}
+            {/* Form Card */}
           <Card className="shadow-lg border-0">
             <CardHeader className="pb-6">
               <CardTitle className="text-xl font-semibold flex items-center gap-2">
@@ -552,14 +551,15 @@ export default function CreateSchoolPage() {
           </Card>
         </div>
       </div>
-      
-      {/* Progress Dialog */}
-      <SchoolCreationProgressDialog
-        isOpen={showProgressDialog}
-        onClose={() => setShowProgressDialog(false)}
-        currentStep={progressStep}
-        errorMessage={progressError}
-      />
     </div>
+    
+    {/* Progress Dialog */}
+    <SchoolCreationProgressDialog
+      isOpen={showProgressDialog}
+      onClose={() => setShowProgressDialog(false)}
+      currentStep={progressStep}
+      errorMessage={progressError}
+    />
+  </div>
   )
 }

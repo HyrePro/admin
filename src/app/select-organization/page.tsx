@@ -3,16 +3,23 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Plus, Users, School, UserPlus, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Building2, Plus, Users, School, UserPlus, ArrowRight, CheckCircle2, User, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/api/client'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Image from 'next/image'
 import { useAuth } from '@/context/auth-context'
+import HeaderIcon from '@/components/header-icon'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 export default function SelectOrganizationPage() {
     const [isLoading, setIsLoading] = useState(false)
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false)
     const router = useRouter()
     const { user } = useAuth()
 
@@ -40,6 +47,40 @@ export default function SelectOrganizationPage() {
         }
     }
 
+    // Sign out function
+    const signOut = async () => {
+        try {
+            toast.info("Signing out...")
+            
+            // Create a Supabase client instance
+            const supabase = createClient();
+            // Sign out from Supabase
+            const { error } = await supabase.auth.signOut()
+            
+            if (error) {
+                console.error("Logout error:", error)
+                toast.error("Error signing out: " + error.message)
+                return
+            }
+            
+            // Clear any local state or cookies if needed
+            localStorage.removeItem('supabase.auth.token')
+            sessionStorage.clear()
+            
+            // Show success message
+            toast.success("Signed out successfully!")
+            
+            // Force redirect to login page
+            window.location.href = "/login"
+            
+        } catch (error) {
+            console.error("Unexpected logout error:", error)
+            toast.error("Unexpected error during logout")
+            // Force redirect anyway
+            window.location.href = "/login"
+        }
+    }
+
     // Get user's name from user metadata or email
     const getUserName = () => {
         if (!user) return ''
@@ -63,15 +104,47 @@ export default function SelectOrganizationPage() {
 
             {/* Header */}
             <div className="bg-white border-b border-slate-200 shadow-sm">
-                <div className="max-w-7xl mx-auto py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Image src="/icon.png" alt="HyrePro logo" width={32} height={32} className="rounded-lg" />
-                        <span className="text-xl font-semibold text-slate-900">HyrePro</span>
-                    </div>
+                <div className="mx-auto py-2 flex items-center justify-between">
+                  <HeaderIcon/>
                     {user && (
-                        <p className="text-base md:text-lg ">
-                            Welcome, <span className="font-bold">{getUserName()}</span>!
-                        </p>
+                        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <div
+                                    className="flex items-center justify-between p-4 bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                                    onMouseEnter={() => setIsPopoverOpen(true)}
+                                    onMouseLeave={() => setIsPopoverOpen(false)}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <User className="w-4 h-4 text-blue-600" />
+                                        <span className="text-blue-800 font-medium">
+                                            Welcome, {getUserName()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                className="w-48 p-2"
+                                align="end"
+                                onMouseEnter={() => setIsPopoverOpen(true)}
+                                onMouseLeave={() => setIsPopoverOpen(false)}
+                            >
+                                <div className="space-y-2">
+                                    <div className="px-2 text-md font-medium">{user.user_metadata.name}</div>
+                                    <div className="px-2 py-1 text-sm text-gray-600">
+                                        {user.user_metadata.email || user.email}
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={signOut}
+                                    >
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Sign Out
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     )}
                 </div>
             </div>
