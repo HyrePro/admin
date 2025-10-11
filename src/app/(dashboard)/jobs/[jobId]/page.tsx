@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
-import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check } from "lucide-react";
+import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/api/client";
 import { JobOverview } from "@/components/job-overview";
@@ -85,12 +85,14 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
     setSelectedStatus(newStatus);
     // TODO: Implement status update API call
     console.log("Status changed to:", newStatus);
+    // This is a placeholder for the actual API call
+    // When the API is ready, we'll implement the update here
   };
 
   const handleCopyLink = async () => {
-    const currentUrl = window.location.href;
+    const jobLink = `https://www.hyrepro.in/apply/${jobId}`;
     try {
-      await navigator.clipboard.writeText(currentUrl);
+      await navigator.clipboard.writeText(jobLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -101,11 +103,11 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   const fetchJobDetails = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Create a Supabase client instance
       const supabase = createClient();
-      
+
       const { data, error } = await supabase.rpc("get_job_with_analytics", {
         p_job_id: jobId,
       });
@@ -172,9 +174,9 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
       <div className="p-6 space-y-6">
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -196,9 +198,9 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
       <div className="p-6 space-y-6">
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -220,9 +222,9 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
       <div className="p-6 space-y-6">
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -252,181 +254,133 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleGoBack}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Jobs
-        </Button>
-        <div className="flex items-center gap-2">
-          <Briefcase className="h-5 w-5 text-gray-500" />
-          <h1 className="text-2xl font-bold tracking-tight">Job Details</h1>
-        </div>
-      </div>
-
-      {/* Job Details - Plain Layout */}
-      <div className="space-y-6">
-        {/* Job Title and Badges */}
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex-1 space-y-4">
-            <h2 className="text-3xl font-bold text-gray-900 leading-tight">
-              {job.title}
-            </h2>
-            
-            {/* Status, Grades and Subjects Badges */}
-            <div className="flex flex-wrap gap-2">
-              {/* Status Badge */}
-              <Badge 
-                variant="outline" 
+    <div className="h-full flex flex-col">
+      <div className="flex-shrink-0">
+        {/* Header with job title and action buttons */}
+        <div className="mt-6">
+          <div className="flex items-start justify-between gap-6 px-4">
+            <div className="flex flex-row gap-2">
+              <h2 className="text-2xl font-bold leading-tight">
+                {job.title}
+              </h2>
+              <Badge
+                variant="outline"
                 className={cn(
-                  "capitalize font-medium text-sm px-3 py-1",
+                  "capitalize font-medium text-sm",
                   statusColors[job.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
                 )}
               >
                 {job.status === "ALL" ? "All" : job.status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
               </Badge>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.push(`/jobs/${jobId}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Details
+              </Button>
               
-              {/* Grade Levels as Badges */}
-              {job.grade_levels?.length > 0 && (
-                job.grade_levels.map((grade) => (
-                  <Badge key={grade} variant="secondary" className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 transition-colors text-sm px-3 py-1">
-                    {grade}
-                  </Badge>
-                ))
-              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Users className="h-4 w-4 mr-2" />
+                    Change Status
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2">
+                  <div className="space-y-1">
+                    {["OPEN", "IN_PROGRESS", "COMPLETED", "SUSPENDED", "PAUSED", "APPEALED"].map((status) => (
+                      <Button
+                        key={status}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleStatusChange(status)}
+                      >
+                        {status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
               
-              {/* Subject Badges */}
-              {job.subjects?.length > 0 && (
-                job.subjects.map((subj) => (
-                  <Badge key={subj} variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 transition-colors text-sm px-3 py-1">
-                    {subj}
-                  </Badge>
-                ))
-              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleCopyLink}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Share Job Link
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-          
-          {/* Status Dropdown and Share Button */}
-          <div className="flex items-center gap-3 mt-2">
-            {/* Status Dropdown */}
-            <Select value={selectedStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[180px] h-10 bg-white shadow-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-                <SelectValue placeholder="Update status" />
-              </SelectTrigger>
-              <SelectContent>
-                {["OPEN", "IN_PROGRESS", "COMPLETED", "SUSPENDED", "PAUSED", "APPEALED"].map((status) => (
-                  <SelectItem key={status} value={status} className="capitalize">
-                    {status === "ALL" ? "All" : status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Share Button */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <Share className="h-4 w-4" />
-                  Share
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-4">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Share this job</h4>
-                    <p className="text-sm text-gray-600">Copy the link below to share this job with others</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-50 rounded-lg p-3 border">
-                      <code className="text-sm font-mono text-gray-800 break-all">
-                        {typeof window !== 'undefined' ? window.location.href : ''}
-                      </code>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={handleCopyLink}
-                      className="flex items-center gap-2 shrink-0"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+         
+          {/* Tab navigation */}
+          <div className="w-full">
+            <div className="flex border-b border-gray-200 px-4 mt-4">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+                  activeTab === "overview"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab("candidates")}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+                  activeTab === "candidates"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Candidates
+              </button>
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+                  activeTab === "analytics"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Analytics
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Custom Tab Navigation */}
-        <div className="w-full">
-          {/* Tab Buttons */}
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
-                activeTab === "overview"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("candidates")}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
-                activeTab === "candidates"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Candidates
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
-                activeTab === "analytics"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Analytics
-            </button>
-          </div>
+      {/* Scrollable content area */}
+      <div className="flex-grow overflow-hidden px-4 mt-4">
+        {activeTab === "overview" && (
+          <JobOverview job={job} />
+        )}
 
-          {/* Tab Content */}
-          <div className="mt-6">
-            {activeTab === "overview" && (
-              <JobOverview job={job} />
-            )}
+        {activeTab === "candidates" && (
+          <JobCandidates job_id={jobId} />
+        )}
 
-            {activeTab === "candidates" && (
-              <JobCandidates job_id={jobId} />
-            )}
-
-            {activeTab === "analytics" && (
-              <JobAnalytics jobId={jobId} />
-            )}
-          </div>
-        </div>
+        {activeTab === "analytics" && (
+          <JobAnalytics jobId={jobId} />
+        )}
       </div>
     </div>
   );

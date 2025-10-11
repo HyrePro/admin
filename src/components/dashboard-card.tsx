@@ -21,7 +21,7 @@ export function DashboardCard({
             {icon}
             <div className="flex flex-1 flex-col ms-4">
                 <CardHeader className="px-0">
-                    <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                    <CardTitle className="text-sm font-medium text-grey-500">{title}</CardTitle>
                 </CardHeader>
                 <CardContent className="px-0">
                     <div className="text-2xl font-bold">{value}</div>

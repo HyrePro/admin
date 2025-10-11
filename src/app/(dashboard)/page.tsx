@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/empty"
 import { useRouter } from "next/navigation"
 import { DashboardCard } from "@/components/dashboard-card"
+import { DashboardTable } from "@/components/dashboard-table"
+import { useState } from "react"
 
 // Fetcher function - reusable and testable
 const fetchSchoolInfo = async (userId: string) => {
@@ -136,41 +138,58 @@ export default function Page() {
   // Dashboard with job count
   return (
     <AuthGuard>
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col px-4">
+        <div className="@container/main flex flex-1 flex-col ">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-4">
-            <DashboardCard
+            <DashboardCard  
               title="Active Jobs"
               value={jobs.length}
               description="Active job postings"
-              icon={<Briefcase className="h-6 w-6 text-muted-foreground" />}
+              icon={<Briefcase className="h-10 w-10 text-green-500 p-3 bg-green-50 rounded-full" />}
             />
             
             <DashboardCard
               title="Total Applications"
               value="0"
               description="Across all positions"
-              icon={<Users className="h-6 w-6 text-muted-foreground" />}
+              icon={<Users className="h-10 w-10 text-red-500 p-3 bg-red-50 rounded-full" />}
             />
             
             <DashboardCard
               title="Interviews Scheduled"
               value="0"
               description="Upcoming interviews"
-              icon={<TvMinimalIcon className="h-6 w-6 text-muted-foreground" />}
+              icon={<TvMinimalIcon className="h-10 w-10 text-yellow-500 p-3 bg-yellow-50 rounded-full" />}
             />
 
             <DashboardCard
               title="Offers Sent"
               value="0"
               description="Pending responses"
-              icon={<BookText className="h-6 w-6 text-muted-foreground" />}
+              icon={<BookText className="h-10 w-10 text-blue-500 p-3 bg-blue-50 rounded-full" />}
             />
           </div>
           
-         
+          <div className="mt-8">
+            <TabsSection schoolId={schoolId} />
+          </div>
         </div>
       </div>
     </AuthGuard>
+  )
+}
+
+function TabsSection({ schoolId }: { schoolId: string }) {
+  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates'>('jobs')
+
+  return (
+    <>
+        <h2 className="text-lg font-medium">
+           Active Jobs
+        </h2>
+      <div className="mt-4">
+          <DashboardTable schoolId={schoolId} />
+      </div>
+    </>
   )
 }
