@@ -161,7 +161,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       <div className="bg-gray-50 rounded-full p-4 mb-4">
         <Users className="h-8 w-8 text-gray-400" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found {job_id}</h3>
       <p className="text-gray-600 text-center mb-6 max-w-md">
         {debouncedSearchText
           ? `No candidates match your search for "${debouncedSearchText}". Try adjusting your search terms.`
@@ -326,14 +326,14 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
             <>
               <div className="rounded-md border">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-1/4">Candidate</TableHead>
-                      <TableHead className="w-1/5">Subjects</TableHead>
-                      <TableHead className="w-1/6">Score</TableHead>
-                      <TableHead className="w-1/6">Status</TableHead>
-                      <TableHead className="w-1/12">Resume</TableHead>
-                      <TableHead className="w-12"></TableHead>
+                  <TableHeader className="bg-gray-50 sticky top-0 z-10">
+                    <TableRow >
+                      <TableHead className="w-1/4 font-normal">Candidate</TableHead>
+                      <TableHead className="w-1/5 font-normal">Subjects</TableHead>
+                      <TableHead className="w-1/6 font-normal">Score</TableHead>
+                      <TableHead className="w-1/6 font-normal">Status</TableHead>
+                      <TableHead className="w-1/12 font-normal">Resume</TableHead>
+                      <TableHead className="w-12 font-normal"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

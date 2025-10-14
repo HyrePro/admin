@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/api/client";
 import { JobOverview } from "@/components/job-overview";
 import { JobCandidates } from "@/components/job-candidates";
 import { JobAnalytics } from "@/components/job-analytics";
+import { EditJobDetailsDialog } from "@/components/edit-job-details-dialog";
 
 interface JobDetailsPageProps {
   params: Promise<{
@@ -76,6 +77,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleGoBack = () => {
     router.back();
@@ -132,6 +134,21 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   useEffect(() => {
     fetchJobDetails();
   }, [jobId]);
+
+  const handleSaveJobDetails = async (updatedJob: Partial<Job>) => {
+    // TODO: Implement the actual save functionality
+    console.log("Saving job details:", updatedJob);
+    // This is a placeholder for the actual API call
+    // When the API is ready, we'll implement the update here
+    
+    // For now, just update the local state
+    if (job) {
+      setJob({
+        ...job,
+        ...updatedJob
+      });
+    }
+  };
 
   // Error Component
   const ErrorState = () => (
@@ -255,22 +272,30 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Add the EditJobDetailsDialog component */}
+      <EditJobDetailsDialog 
+        job={job} 
+        open={isEditDialogOpen} 
+        onOpenChange={setIsEditDialogOpen}
+        onSave={handleSaveJobDetails}
+      />
+      
       <div className="flex-shrink-0">
         {/* Header with job title and action buttons */}
         <div className="mt-6">
           <div className="flex items-start justify-between gap-6 px-4">
             <div className="flex flex-row gap-2">
               <h2 className="text-2xl font-bold leading-tight">
-                {job.title}
+                {job?.title}
               </h2>
               <Badge
                 variant="outline"
                 className={cn(
                   "capitalize font-medium text-sm",
-                  statusColors[job.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
+                  statusColors[job?.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
                 )}
               >
-                {job.status === "ALL" ? "All" : job.status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {job?.status === "ALL" ? "All" : job?.status?.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
               </Badge>
             </div>
 
@@ -278,7 +303,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => router.push(`/jobs/${jobId}/edit`)}
+                onClick={() => setIsEditDialogOpen(true)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Details
@@ -287,7 +312,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <Users className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-4 w-4 mr-2" />
                     Change Status
                   </Button>
                 </PopoverTrigger>

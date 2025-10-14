@@ -154,12 +154,12 @@ export function JobOverview({ job }: JobOverviewProps) {
           </div>
           <div className="mt-4 space-y-3">
             <div
-              className="cursor-pointer pb-2 border-b-1 border-gray-200"
+              className="cursor-pointer pb-3 border-b-1 border-gray-200"
               onClick={() => setIsMcqExpanded(!isMcqExpanded)}
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium ">MCQ Assessment</div>
-                <div className="transform transition-transform">
+                <div className="transform transition-transform items-center">
                   {isMcqExpanded ?
                     <ChevronDown className="w-4 h-4" />
                     : <ChevronRight className="w-4 h-4" />
@@ -213,7 +213,7 @@ export function JobOverview({ job }: JobOverviewProps) {
               )}
             </div>
             <div
-              className="cursor-pointer pb-2 border-b-1 border-gray-200"
+              className="cursor-pointer pb-3 border-b-1 border-gray-200"
               onClick={() => setIsDemoExpanded(!isDemoExpanded)}
             >
               <div className="flex items-center justify-between">
@@ -336,7 +336,7 @@ export function JobOverview({ job }: JobOverviewProps) {
             </div>
             {/* Interview Expanded Content */}
             <div
-              className="cursor-pointer pb-2 border-b-1 border-gray-200"
+              className="cursor-pointer pb-3 border-b-1 border-gray-200"
               onClick={() => setIsInterviewExpanded(!isInterviewExpanded)}
             >
               <div className="flex items-center justify-between">
