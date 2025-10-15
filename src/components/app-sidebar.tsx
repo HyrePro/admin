@@ -12,6 +12,7 @@ import {
   ClipboardList,
   LifeBuoy,
   Settings,
+  TvMinimalIcon,
 } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -36,7 +37,8 @@ import { useAuth } from '@/context/auth-context';
 const mainLinks = [
   { title: "Dashboard", href: "/", Icon: LayoutDashboard },
   { title: "Jobs", href: "/jobs", Icon: FileText },
-  { title: "My Profile", href: "/profile", Icon: UserIcon },
+  { title: "Candidates", href: "/candidates", Icon: UserIcon },
+  { title: "Interview", href: "/interview", Icon: TvMinimalIcon },
 ]
 
 const bottomLinks = [

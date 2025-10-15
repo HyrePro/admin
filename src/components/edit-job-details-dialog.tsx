@@ -111,7 +111,7 @@ export function EditJobDetailsDialog({
         <SheetHeader>
           <SheetTitle>Edit Job Details</SheetTitle>
           <SheetDescription>
-            Make changes to the job details here. Click save when you're done.
+            Make changes to the job details here. Click save when you&apos;re done.
           </SheetDescription>
         </SheetHeader>
         

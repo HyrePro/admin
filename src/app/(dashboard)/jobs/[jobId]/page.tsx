@@ -299,20 +299,25 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
+                className="h-8 px-3 text-xs"
                 onClick={() => setIsEditDialogOpen(true)}
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="h-3.5 w-3.5 mr-1.5" />
                 Edit Details
               </Button>
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                     Change Status
                   </Button>
                 </PopoverTrigger>
@@ -335,16 +340,17 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="h-8 px-3 text-xs"
                 onClick={handleCopyLink}
               >
                 {copied ? (
                   <>
-                    <Check className="h-4 w-4 mr-2" />
+                    <Check className="h-3.5 w-3.5 mr-1.5" />
                     Copied
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4 mr-2" />
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
                     Share Job Link
                   </>
                 )}
