@@ -37,9 +37,6 @@ export async function getJobApplicationScores(jobId: string) {
       .from("job_applications")
       .select(`
         id,
-        overall_score,
-        total_questions,
-        attempted_questions,
         category_scores
       `)
       .eq("job_id", jobId);

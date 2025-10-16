@@ -7,6 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -78,17 +86,69 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const handleGoBack = () => {
     router.back();
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    setSelectedStatus(newStatus);
-    // TODO: Implement status update API call
-    console.log("Status changed to:", newStatus);
-    // This is a placeholder for the actual API call
-    // When the API is ready, we'll implement the update here
+    // If the status is the same, do nothing
+    if (selectedStatus === newStatus) {
+      return;
+    }
+    
+    // Set the pending status and open the confirmation dialog
+    setPendingStatus(newStatus);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatus || !jobId) return;
+    
+    try {
+      // Make API call to update the job status
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: pendingStatus })
+        .eq('id', jobId);
+      
+      if (error) {
+        console.error('Error updating job status:', error);
+        // TODO: Show error message to user
+        return;
+      }
+      
+      // Update the status in the UI
+      setSelectedStatus(pendingStatus);
+      
+      // Update the job object if it exists
+      if (job) {
+        setJob({
+          ...job,
+          status: pendingStatus
+        });
+      }
+      
+      // Close the dialog
+      setIsConfirmDialogOpen(false);
+      
+      // Clear the pending status
+      setPendingStatus(null);
+      
+      // Show success message
+      console.log("Job status updated successfully");
+    } catch (err) {
+      console.error('Error updating job status:', err);
+      // TODO: Show error message to user
+    }
+  };
+
+  const cancelStatusChange = () => {
+    setIsConfirmDialogOpen(false);
+    setPendingStatus(null);
   };
 
   const handleCopyLink = async () => {
@@ -240,13 +300,11 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
             size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
           </Button>
           <div className="flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-gray-500" />
@@ -272,6 +330,32 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Confirmation Dialog */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Status Change</DialogTitle>
+            <DialogDescription>
+              {pendingStatus === "PAUSED" && selectedStatus === "OPEN" ? (
+                "Changing the status to Paused means new applications will not be received, but the job can be reopened later."
+              ) : pendingStatus === "COMPLETED" ? (
+                "Closing the job means it cannot be reopened again. Are you sure you want to close this job?"
+              ) : (
+                `Are you sure you want to change the job status from ${selectedStatus?.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())} to ${pendingStatus?.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}?`
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelStatusChange}>
+              Cancel
+            </Button>
+            <Button onClick={confirmStatusChange}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Add the EditJobDetailsDialog component */}
       <EditJobDetailsDialog 
         job={job} 
@@ -323,14 +407,18 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
                 </PopoverTrigger>
                 <PopoverContent className="w-48 p-2">
                   <div className="space-y-1">
-                    {["OPEN", "IN_PROGRESS", "COMPLETED", "SUSPENDED", "PAUSED", "APPEALED"].map((status) => (
+                    {["OPEN", "COMPLETED", "PAUSED"].map((status) => (
                       <Button
                         key={status}
                         variant="ghost"
-                        className="w-full justify-start"
+                        className={`w-full justify-between ${selectedStatus === status ? 'bg-blue-50 text-blue-700' : ''}`}
                         onClick={() => handleStatusChange(status)}
+                        disabled={selectedStatus === status}
                       >
                         {status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                        {selectedStatus === status && (
+                          <span className="ml-2">•</span>
+                        )}
                       </Button>
                     ))}
                   </div>
@@ -400,7 +488,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
       </div>
 
       {/* Scrollable content area */}
-      <div className="flex-grow overflow-hidden px-4 mt-4">
+      <div className="flex-grow overflow-hidden">
         {activeTab === "overview" && (
           <JobOverview job={job} />
         )}

@@ -294,7 +294,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   };
 
   return (
-    <div>
+    <div className="p-4">
       <ToastContainer position="top-right" autoClose={3000} />
       {/* Search Bar */}
       <div className="mb-6">

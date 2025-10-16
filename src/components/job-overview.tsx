@@ -53,7 +53,7 @@ export function JobOverview({ job }: JobOverviewProps) {
   const [isInterviewExpanded, setIsInterviewExpanded] = useState(false);
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto p-4">
       {/* Job Basic Information */}
       {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg p-4 border">
@@ -336,7 +336,7 @@ export function JobOverview({ job }: JobOverviewProps) {
             </div>
             {/* Interview Expanded Content */}
             <div
-              className="cursor-pointer pb-3 border-b-1 border-gray-200"
+              className="cursor-pointer pb-3"
               onClick={() => setIsInterviewExpanded(!isInterviewExpanded)}
             >
               <div className="flex items-center justify-between">

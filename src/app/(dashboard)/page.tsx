@@ -2,7 +2,6 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
 import { Plus, Users, Briefcase, TrendingUp, TvMinimalIcon, BookText } from "lucide-react"
-import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
@@ -18,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { DashboardCard } from "@/components/dashboard-card"
 import { DashboardTable } from "@/components/dashboard-table"
 import { useState } from "react"
+import { ApplicationDistribution } from "@/components/application-distribution"
 
 // Fetcher function - reusable and testable
 const fetchSchoolInfo = async (userId: string) => {
@@ -172,6 +172,7 @@ export default function Page() {
           
           <div className="mt-8">
             <TabsSection schoolId={schoolId} />
+          {/* <ApplicationDistribution /> */}
           </div>
         </div>
       </div>
@@ -180,16 +181,15 @@ export default function Page() {
 }
 
 function TabsSection({ schoolId }: { schoolId: string }) {
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates'>('jobs')
 
   return (
-    <>
+    <div>
         <h2 className="text-lg font-medium">
            Active Jobs
         </h2>
       <div className="mt-4">
           <DashboardTable schoolId={schoolId} />
       </div>
-    </>
+    </div>
   )
 }

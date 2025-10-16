@@ -38,7 +38,7 @@ const mainLinks = [
   { title: "Dashboard", href: "/", Icon: LayoutDashboard },
   { title: "Jobs", href: "/jobs", Icon: FileText },
   { title: "Candidates", href: "/candidates", Icon: UserIcon },
-  { title: "Interview", href: "/interview", Icon: TvMinimalIcon },
+  { title: "Interviews", href: "/interviews", Icon: TvMinimalIcon },
 ]
 
 const bottomLinks = [
