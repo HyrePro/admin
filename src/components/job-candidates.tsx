@@ -235,6 +235,21 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
             </div>
           </TableCell>
           <TableCell>
+            <div className="space-y-1">
+              <div className="font-medium">
+                {application.demo_score ??"N/A"
+                }
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
+            <div className="space-y-1">
+              <div className="font-medium">
+                N/A
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
             <Badge
               variant="outline"
               className={
@@ -328,9 +343,11 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
                 <Table>
                   <TableHeader className="bg-gray-50 sticky top-0 z-10">
                     <TableRow >
-                      <TableHead className="w-1/4 font-normal">Candidate</TableHead>
-                      <TableHead className="w-1/5 font-normal">Subjects</TableHead>
+                      <TableHead className="w-1/5 font-normal">Candidate</TableHead>
+                      <TableHead className="w-1/6 font-normal">Subjects</TableHead>
                       <TableHead className="w-1/6 font-normal">Score</TableHead>
+                      <TableHead className="w-1/6 font-normal">AI Demo Score</TableHead>
+                      <TableHead className="w-1/6 font-normal">Interview Score</TableHead>
                       <TableHead className="w-1/6 font-normal">Status</TableHead>
                       <TableHead className="w-1/12 font-normal">Resume</TableHead>
                       <TableHead className="w-12 font-normal"></TableHead>

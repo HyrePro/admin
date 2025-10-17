@@ -42,6 +42,7 @@ export interface JobApplication {
     total_questions: number;
   } | null;
   video_url?: string | null;
+  demo_score?: number | null;
 }
 
 export async function getJobApplications(

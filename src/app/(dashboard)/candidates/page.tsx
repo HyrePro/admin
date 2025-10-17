@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import { useAuth } from '@/context/auth-context'
-import { useAuthStore } from '@/store/auth-store'
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
 import {
@@ -14,14 +13,13 @@ import {
   TableRow
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { IconMail, IconUser } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
+import '@/styles/candidates.css'
 
-// Define the application type based on the RPC function return
+// Types
 interface Application {
   first_name: string
   last_name: string
@@ -37,10 +35,33 @@ interface Application {
   application_id: string
 }
 
-// Fetcher function for school info
-const fetchSchoolInfo = async (userId: string) => {
-  if (!userId) return null
+interface ApplicationsResponse {
+  applications: Application[]
+  total_count: number
+}
 
+// Constants
+const PAGE_SIZE = 10
+const DEBOUNCE_DELAY = 500
+const CACHE_TIME = 60000
+const STALE_TIME = 30000
+
+const STATUS_CONFIG = {
+  in_progress: { text: 'New', color: 'status-new' },
+  reviewed: { text: 'Reviewed', color: 'status-reviewed' },
+  interview: { text: 'Interview', color: 'status-interview' },
+  offer: { text: 'Offer', color: 'status-offer' },
+  rejected: { text: 'Rejected', color: 'status-rejected' },
+  demo_ready: { text: 'Demo Ready', color: 'status-demo-ready' },
+  demo_evaluated: { text: 'Demo Evaluated', color: 'status-demo-evaluated' },
+  demo_in_evaluation: { text: 'Demo In Evaluation', color: 'status-demo-in-evaluation' },
+  appealed: { text: 'Appealed', color: 'status-appealed' },
+  assessment_in_progress: { text: 'Assessment In Progress', color: 'status-assessment' },
+  suspended: { text: 'Suspended', color: 'status-suspended' },
+} as const
+
+// Fetchers
+const fetchSchoolInfo = async (userId: string): Promise<string | null> => {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('admin_user_info')
@@ -52,283 +73,499 @@ const fetchSchoolInfo = async (userId: string) => {
   return data?.school_id || null
 }
 
-// Fetcher function for applications
-const fetchApplications = async (
+const fetchApplicationsWithCount = async (
   schoolId: string,
   startIndex: number,
   endIndex: number,
   search: string,
   status: string
-) => {
-  console.log("Fetching applications for schoolId:", schoolId)
-  if (!schoolId)
-    return []
+): Promise<ApplicationsResponse> => {
+  if (!schoolId) return { applications: [], total_count: 0 }
 
   const supabase = createClient()
-  const { data, error } = await supabase.rpc('get_applications_by_school', {
-    p_school_id: schoolId,
-    p_start_index: startIndex,
-    p_end_index: endIndex,
-    p_search: search,
-    p_status: status
-  })
+  
+  const [applicationsResult, countResult] = await Promise.all([
+    supabase.rpc('get_applications_by_school', {
+      p_school_id: schoolId,
+      p_start_index: startIndex,
+      p_end_index: endIndex,
+      p_search: search,
+      p_status: status
+    }),
+    supabase.rpc('get_applications_count_by_school', {
+      p_school_id: schoolId,
+      p_search: search,
+      p_status: status
+    })
+  ])
 
-  if (error) throw new Error(error.message)
-  console.log("Candidate Data:", data)
-  return data || []
+  if (applicationsResult.error) throw applicationsResult.error
+  if (countResult.error) throw countResult.error
+
+  return {
+    applications: applicationsResult.data || [],
+    total_count: countResult.data || 0
+  }
+}
+
+// Custom debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+
+  return debouncedValue
 }
 
 export default function CandidatesPage() {
   const { user } = useAuth()
   const router = useRouter()
-  const { schoolId: storeSchoolId } = useAuthStore()
   const [searchTerm, setSearchTerm] = useState('')
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [currentPage, setCurrentPage] = useState(0)
+  
+  const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY)
 
-  // Debounce search term
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm)
-    }, 500)
+    setCurrentPage(0)
+  }, [debouncedSearchTerm])
+
+  const { data: schoolId } = useSWR(
+    user?.id ? `school-${user.id}` : null,
+    () => fetchSchoolInfo(user!.id),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: CACHE_TIME,
+    }
+  )
+
+  const startIndex = currentPage * PAGE_SIZE
+  const endIndex = startIndex + PAGE_SIZE
+
+  const { 
+    data, 
+    error,
+    isLoading,
+    isValidating,
+    mutate 
+  } = useSWR(
+    schoolId 
+      ? `apps-${schoolId}-${startIndex}-${endIndex}-${debouncedSearchTerm}`
+      : null,
+    () => fetchApplicationsWithCount(
+      schoolId!,
+      startIndex,
+      endIndex,
+      debouncedSearchTerm,
+      'ALL'
+    ),
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: STALE_TIME,
+      refreshInterval: 30000,
+    }
+  )
+
+  useEffect(() => {
+    if (!schoolId) return
+
+    const supabase = createClient()
+    
+    const channel = supabase
+      .channel('job_applications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'job_applications',
+          filter: `job_id=in.(SELECT id FROM jobs WHERE school_id=eq.${schoolId})`
+        },
+        () => mutate()
+      )
+      .subscribe()
 
     return () => {
-      clearTimeout(timer)
+      supabase.removeChannel(channel)
     }
-  }, [searchTerm])
+  }, [schoolId, mutate])
 
-  // Fetch school info using SWR (more reliable than zustand store)
-  const { data: schoolId, error: schoolError } = useSWR(
-    user?.id ? ['school-info', user.id] : null,
-    ([_, userId]) => fetchSchoolInfo(userId),
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000, // Cache for 1 minute
+  const applications = data?.applications || []
+  const totalCount = data?.total_count || 0
+  
+  const { totalPages, canGoNext, canGoPrevious } = useMemo(() => {
+    const pages = Math.ceil(totalCount / PAGE_SIZE)
+    return {
+      totalPages: pages,
+      canGoNext: currentPage < pages - 1 && totalCount > 0,
+      canGoPrevious: currentPage > 0
     }
-  )
+  }, [totalCount, currentPage])
 
-  // SWR handles caching, revalidation, and loading states
-  const { data: applications, error, isLoading, isValidating } = useSWR(
-    schoolId ? ['applications', schoolId, 0, 10, debouncedSearchTerm, statusFilter] : null,
-    ([_, schoolId, startIndex, endIndex, search, status]) =>
-      fetchApplications(schoolId, startIndex, endIndex, search, status),
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000, // Cache for 1 minute
-    }
-  )
+  const getStatusBadge = useCallback((status: string) => {
+    return STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || 
+      { text: status, color: 'status-default' }
+  }, [])
 
-  // Format status badge
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { text: string; color: string }> = {
-      'in_progress': { text: 'New', color: 'bg-gray-100 text-gray-800' },
-      'reviewed': { text: 'Reviewed', color: 'bg-blue-100 text-blue-800' },
-      'interview': { text: 'Interview', color: 'bg-blue-100 text-blue-800' },
-      'offer': { text: 'Offer', color: 'bg-green-100 text-green-800' },
-      'rejected': { text: 'Rejected', color: 'bg-red-100 text-red-800' },
-      'demo_ready': { text: 'Demo Ready', color: 'bg-yellow-100 text-yellow-800' }
-    }
+  const handlePreviousPage = useCallback(() => {
+    if (canGoPrevious) setCurrentPage(prev => prev - 1)
+  }, [canGoPrevious])
 
-    return statusConfig[status] || { text: status, color: 'bg-gray-100 text-gray-800' }
-  }
+  const handleNextPage = useCallback(() => {
+    if (canGoNext) setCurrentPage(prev => prev + 1)
+  }, [canGoNext])
 
-  // Format assessment result
-  const getAssessmentStatus = (score: number) => {
-    if (score >= 70) return 'Passed'
-    return 'Failed'
-  }
+  const handleViewApplication = useCallback((jobId: string, applicationId: string) => {
+    router.push(`/jobs/${jobId}/${applicationId}`)
+  }, [router])
 
-  // Get the actual score to display
-  const getDisplayScore = (application: Application) => {
-    return application.score || application.demo_score || 0
-  }
+  const showLoading = isLoading || !schoolId
+  const showValidating = isValidating && !isLoading
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="candidates-container">
+      <div className="candidates-header"> 
+        <h1 className="candidates-title">Candidates</h1>
+        <Button
+          variant="outline"
+          onClick={() => router.push('/jobs')}
+          className='btn-invite'
+        >
+          <Plus className="btn-icon" />
+          Invite Candidate
+        </Button>
+      </div>
 
-
-      {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+      <div className="search-container">
+        <div className="search-wrapper">
+          <Search className="search-icon" />
           <input
             type="text"
             placeholder="Search candidates by name, job, or skill..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="search-input"
+            aria-label="Search candidates"
           />
         </div>
-
-        {/* <div className="flex gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="ALL">Status: All</option>
-            <option value="in_progress">New</option>
-            <option value="reviewed">Reviewed</option>
-            <option value="interview">Interview</option>
-            <option value="offer">Offer</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          
-          <Button variant="default" className="px-4 py-2">
-            Apply Filters
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="px-4 py-2"
-            onClick={() => {
-              setSearchTerm('')
-              setStatusFilter('ALL')
-            }}
-          >
-            Clear All
-          </Button>
-        </div> */}
       </div>
 
-      {/* Candidates Table */}
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-normal text-sm border-r px-4">Candidate</TableHead>
-              <TableHead className="font-normal text-sm border-r  px-4">Job Applied</TableHead>
-              <TableHead className="font-normal text-sm border-r  px-4">Status</TableHead>
-              <TableHead className="font-normal text-sm border-r px-0 ">
-                <div className="flex items-center px-2 py-2">
-                  <span>Assessment</span>
-                </div>
-                <div className="flex items-center flex-3 w-full border-t">
-                  <span className='flex-1 font-normal text-sm border-r text-center py-1 px-1'>M</span>
-                  <span className='flex-1 font-normal text-sm border-r text-center py-1 px-1'>V</span>
-                  <span className='flex-1 font-normal text-sm text-center py-1 px-1'>I</span>
-                </div>
-              </TableHead>
-              <TableHead className="font-normal text-sm border-r  px-4">Date Applied</TableHead>
-              <TableHead className="font-normal text-sm px-4">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading || isValidating ? (
-              // Loading skeleton rows
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Skeleton className="h-4 w-24 bg-gray-200" />
-                      <Skeleton className="h-3 w-32 bg-gray-200" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-32 bg-gray-200" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-16 rounded-full bg-gray-200" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-20 rounded-full bg-gray-200" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24 bg-gray-200" />
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Skeleton className="h-8 w-20 bg-gray-200" />
-                      <Skeleton className="h-8 w-20 bg-gray-200" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : error ? (
+      <div className="table-container">
+        {showValidating && (
+          <div className="loading-indicator">
+            <div className="loading-pulse" />
+          </div>
+        )}
+        
+        <div className="table-scroll">
+          <Table>
+            <TableHeader className="table-header">
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-red-500">
-                  Error loading candidates: {error.message}
-                </TableCell>
+                <TableHead className="table-head table-head-border">
+                  <div className="table-head-content">Candidate</div>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <div className="table-head-content">Job Applied</div>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <div className="table-head-content">Status</div>
+                </TableHead>
+                <TableHead className="table-head table-head-border table-head-assessment">
+                  <div className="assessment-header">
+                    <span>Assessment</span>
+                  </div>
+                  <div className="assessment-subheader">
+                    <span className="assessment-col">M</span>
+                    <span className="assessment-col">V</span>
+                    <span className="assessment-col-last">I</span>
+                  </div>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <div className="table-head-content">Date Applied</div>
+                </TableHead>
+                <TableHead className="table-head table-head-actions">
+                  <div className="table-head-content">Actions</div>
+                </TableHead>
               </TableRow>
-            ) : applications && applications.length > 0 ? (
-              applications.map((application: Application, index: number) => (
-                <TableRow key={index}>
-                  <TableCell className='border-r px-4'>
-                    <div>
-                      <p className="font-medium">
-                        {application.first_name} {application.last_name}
-                      </p>
-                      <p className="text-sm text-gray-500">{application.email || 'Email not specified'}</p>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className='font-medium border-r  px-4'>{application.job_title}</TableCell>
-
-                  <TableCell className='border-r px-4'>
-                    <Badge className={getStatusBadge(application.application_status).color}>
-                      <div className='font-medium p-1'>
-                        {getStatusBadge(application.application_status).text}
-
-                      </div>
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className='border-r p-0 m-0 h-full relative'>
-                    <div className="absolute inset-0 flex w-full h-full ">
-                      <span className='flex-1 font-normal text-sm border-r text-center py-1 px-1 flex items-center justify-center'>{application.score}</span>
-                      <span className='flex-1 font-normal text-sm border-r text-center py-1 px-1 flex items-center justify-center'>{application.demo_score || "-"}</span>
-                      <span className='flex-1 font-normal text-sm text-center py-1 px-1 flex items-center justify-center'>-</span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className='border-r px-4 font-medium'>
-                    {application.created_at
-                      ? new Date(application.created_at).toLocaleDateString()
-                      : '-'}
-                  </TableCell>
-
-
-
-                  <TableCell className="flex px-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                router.push(`/jobs/${application.job_id}/${application.application_id}`);
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  No candidates found matching your criteria.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-
-      </div>
-      <div className="flex items-center justify-end space-x-4 text-xs mt-2">
-        <div className="flex items-center space-x-1">
-          <span className="font-medium">M</span>
-          <span>- Multiple Choice Questions</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span className="font-medium">V</span>
-          <span>- AI Video Assessment</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span className="font-medium">I</span>
-          <span>- Interview Score</span>
+            </TableHeader>
+            <TableBody className="table-body">
+              {showLoading ? (
+                <LoadingSkeleton />
+              ) : error ? (
+                <ErrorRow error={error} />
+              ) : applications.length > 0 ? (
+                applications.map((app) => (
+                  <ApplicationRow
+                    key={`${app.application_id}-${app.job_id}`}
+                    application={app}
+                    getStatusBadge={getStatusBadge}
+                    onView={handleViewApplication}
+                  />
+                ))
+              ) : (
+                <EmptyRow />
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
+
+      {!showLoading && totalCount > 0 && (
+        <Pagination
+          startIndex={startIndex}
+          endIndex={Math.min(endIndex, totalCount)}
+          total={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          canGoPrevious={canGoPrevious}
+          canGoNext={canGoNext}
+          onPrevious={handlePreviousPage}
+          onNext={handleNextPage}
+          isLoading={isValidating}
+        />
+      )}
+
+      <AssessmentLegend />
     </div>
   )
 }
+
+// Memoized Sub-components
+
+const LoadingSkeleton = memo(function LoadingSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 10 }).map((_, i) => (
+        <TableRow key={i}>
+          <TableCell className="table-cell-border">
+            <div className="cell-content">
+              <Skeleton className="skeleton-primary" />
+              <Skeleton className="skeleton-secondary" />
+            </div>
+          </TableCell>
+          <TableCell className="table-cell-border">
+            <div className="cell-content">
+              <Skeleton className="skeleton-primary" />
+            </div>
+          </TableCell>
+          <TableCell className="table-cell-border">
+            <div className="cell-content">
+              <Skeleton className="skeleton-badge" />
+            </div>
+          </TableCell>
+          <TableCell className="table-cell-border table-cell-assessment">
+            <div className="assessment-scores">
+              <div className="assessment-score-col">
+                <Skeleton className="skeleton-score" />
+              </div>
+              <div className="assessment-score-col">
+                <Skeleton className="skeleton-score" />
+              </div>
+              <div className="assessment-score-col-last">
+                <Skeleton className="skeleton-score" />
+              </div>
+            </div>
+            <div className="assessment-spacer">&nbsp;</div>
+          </TableCell>
+          <TableCell className="table-cell-border">
+            <div className="cell-content">
+              <Skeleton className="skeleton-date" />
+            </div>
+          </TableCell>
+          <TableCell>
+            <div className="cell-content">
+              <Skeleton className="skeleton-action" />
+            </div>
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  )
+})
+
+const ErrorRow = memo(function ErrorRow({ error }: { error: Error }) {
+  return (
+    <TableRow>
+      <TableCell colSpan={6} className="error-cell">
+        Error loading candidates: {error.message}
+      </TableCell>
+    </TableRow>
+  )
+})
+
+const EmptyRow = memo(function EmptyRow() {
+  return (
+    <TableRow>
+      <TableCell colSpan={6} className="empty-cell">
+        No candidates found matching your criteria.
+      </TableCell>
+    </TableRow>
+  )
+})
+
+interface ApplicationRowProps {
+  application: Application
+  getStatusBadge: (status: string) => { text: string; color: string }
+  onView: (jobId: string, applicationId: string) => void
+}
+
+const ApplicationRow = memo(function ApplicationRow({ 
+  application, 
+  getStatusBadge, 
+  onView 
+}: ApplicationRowProps) {
+  const statusBadge = getStatusBadge(application.application_status)
+  
+  return (
+    <TableRow className="table-row-hover">
+      <TableCell className="table-cell-border">
+        <div className="cell-content">
+          <p className="candidate-name">
+            {application.first_name} {application.last_name}
+          </p>
+          <p className="candidate-email">
+            {application.email || 'Email not specified'}
+          </p>
+        </div>
+      </TableCell>
+
+      <TableCell className="table-cell-border candidate-job">
+        <div className="cell-content">
+          {application.job_title}
+        </div>
+      </TableCell>
+
+      <TableCell className="table-cell-border">
+        <div className="cell-content">
+          <Badge className={statusBadge.color}>
+            <div className="badge-text">{statusBadge.text}</div>
+          </Badge>
+        </div>
+      </TableCell>
+
+      <TableCell className="table-cell-border table-cell-assessment">
+        <div className="assessment-scores">
+          <span className="assessment-value">
+            {application.score}
+          </span>
+          <span className="assessment-value">
+            {application.demo_score || "-"}
+          </span>
+          <span className="assessment-value-disabled">
+            -
+          </span>
+        </div>
+        <div className="assessment-spacer">&nbsp;</div>
+      </TableCell>
+
+      <TableCell className="table-cell-border candidate-date">
+        <div className="cell-content">
+          {application.created_at
+            ? new Date(application.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })
+            : '-'}
+        </div>
+      </TableCell>
+
+      <TableCell className="table-cell-actions">
+        <div className="cell-content">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="action-btn"
+            onClick={() => onView(application.job_id, application.application_id)}
+            aria-label={`View application for ${application.first_name} ${application.last_name}`}
+          >
+            <ChevronRight className="btn-icon" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+})
+
+interface PaginationProps {
+  startIndex: number
+  endIndex: number
+  total: number
+  currentPage: number
+  totalPages: number
+  canGoPrevious: boolean
+  canGoNext: boolean
+  onPrevious: () => void
+  onNext: () => void
+  isLoading: boolean
+}
+
+const Pagination = memo(function Pagination({
+  startIndex,
+  endIndex,
+  total,
+  currentPage,
+  totalPages,
+  canGoPrevious,
+  canGoNext,
+  onPrevious,
+  onNext,
+  isLoading
+}: PaginationProps) {
+  return (
+    <div className="pagination-container">
+      <div className="pagination-info">
+        Showing <span className="pagination-value">{startIndex + 1}</span> to{' '}
+        <span className="pagination-value">{endIndex}</span> of{' '}
+        <span className="pagination-value">{total}</span> candidates
+      </div>
+      <div className="pagination-controls">
+        <span className="pagination-page">
+          Page {currentPage + 1} of {totalPages}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onPrevious}
+          disabled={!canGoPrevious || isLoading}
+          className="pagination-btn"
+        >
+          <ChevronLeft className="btn-icon" />
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onNext}
+          disabled={!canGoNext || isLoading}
+          className="pagination-btn"
+        >
+          Next
+          <ChevronRight className="btn-icon" />
+        </Button>
+      </div>
+    </div>
+  )
+})
+
+const AssessmentLegend = memo(function AssessmentLegend() {
+  return (
+    <div className="legend-container">
+      <div className="legend-item">
+        <span className="legend-key">M</span>
+        <span>- Multiple Choice Questions</span>
+      </div>
+      <div className="legend-item">
+        <span className="legend-key">V</span>
+        <span>- AI Video Assessment</span>
+      </div>
+      <div className="legend-item">
+        <span className="legend-key">I</span>
+        <span>- Interview Score</span>
+      </div>
+    </div>
+  )
+})

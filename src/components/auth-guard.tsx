@@ -82,7 +82,6 @@ export function AuthGuard({ children, fallback }: AuthGuardProps) {
   if (isLoading) {
     return fallback || (
       <main className="min-h-screen flex items-center justify-center text-2xl font-bold">
-        Authenticating...
       </main>
     )
   }

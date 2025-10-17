@@ -24,6 +24,7 @@ import { Bell, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
+import { NavUser } from "@/components/nav-user";
 
 // Minimal interface for job data from RPC response
 interface JobData {
@@ -48,19 +49,19 @@ export default function DashboardShellLayout({
   const { jobId, applicationId } = useMemo(() => {
     const jobsMatch = pathname.match(/^\/jobs\/([^/]+)$/);
     const applicationMatch = pathname.match(/^\/jobs\/([^/]+)\/([^/]+)$/);
-    
+
     if (applicationMatch) {
-      return { 
-        jobId: applicationMatch[1], 
-        applicationId: applicationMatch[2] 
+      return {
+        jobId: applicationMatch[1],
+        applicationId: applicationMatch[2]
       };
     } else if (jobsMatch) {
-      return { 
-        jobId: jobsMatch[1], 
-        applicationId: null 
+      return {
+        jobId: jobsMatch[1],
+        applicationId: null
       };
     }
-    
+
     return { jobId: null, applicationId: null };
   }, [pathname]);
 
@@ -111,7 +112,7 @@ export default function DashboardShellLayout({
       setLoadingCandidateName(true);
       try {
         const result = await getJobApplication(applicationId);
-        
+
         if (result.error) {
           console.error("Error fetching candidate data:", result.error);
           setCandidateName("Applicant Details");
@@ -143,10 +144,10 @@ export default function DashboardShellLayout({
 
     if (segments[0] === "jobs") {
       // Add Jobs page
-      items.push({ 
-        label: "Jobs", 
-        href: "/jobs", 
-        isCurrentPage: segments.length === 1 
+      items.push({
+        label: "Jobs",
+        href: "/jobs",
+        isCurrentPage: segments.length === 1
       });
 
       // If we have a job ID, add the job title
@@ -174,12 +175,12 @@ export default function DashboardShellLayout({
         "settings": "Settings",
         "create-job-post": "Create Job Post",
       };
-      
+
       const label = mapping[segments[0]] ?? segments[0].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      items.push({ 
-        label, 
-        href: `/${segments[0]}`, 
-        isCurrentPage: true 
+      items.push({
+        label,
+        href: `/${segments[0]}`,
+        isCurrentPage: true
       });
     }
 
@@ -201,9 +202,9 @@ export default function DashboardShellLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2 px-4">
-            <Breadcrumb>
+        <header className="flex h-20 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex px-4 flex-col py-">
+            {/* <Breadcrumb>
               <BreadcrumbList>
                 {breadcrumbItems.map((item, index) => (
                   <React.Fragment key={item.href}>
@@ -224,17 +225,16 @@ export default function DashboardShellLayout({
                   </React.Fragment>
                 ))}
               </BreadcrumbList>
-            </Breadcrumb>
+            </Breadcrumb> */}
+            <div className="font-regular text-gray-900 text-sm">Welcome</div>
+            <div className="font-medium text-gray-900 text-md">
+              Greenfield High, Bangalore
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-2 px-4">
-            <Link href="/create-job-post" passHref>
-            <Button asChild variant="default" size="sm" className="sm:flex bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-              <span>+ Create Job Post</span>
-            </Button>
-          </Link>
+          <div className="ml-auto flex items-center gap-4 px-4">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Messages">
+                <Button variant="ghost" size="icon" aria-label="Messages" className="hover:bg-gray-200">
                   <MessageSquare className="size-5" />
                 </Button>
               </PopoverTrigger>
@@ -259,7 +259,7 @@ export default function DashboardShellLayout({
             </Popover>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+                <Button variant="ghost" size="icon" aria-label="Notifications" className="hover:bg-gray-200 relative">
                   <Bell className="size-5" />
                   <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-red-500"></span>
                 </Button>
@@ -281,6 +281,13 @@ export default function DashboardShellLayout({
                 </div>
               </PopoverContent>
             </Popover>
+            {user && user.email ? (
+              <NavUser user={{
+                name: user.user_metadata?.name || user.email.split('@')[0] || 'User',
+                email: user.email,
+                avatar: user.user_metadata?.avatar_url || '',
+              }} />
+            ) : null}
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 pt-0 h-[calc(100vh-4rem)] overflow-hidden">{children}</div>

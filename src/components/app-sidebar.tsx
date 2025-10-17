@@ -31,6 +31,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useAuth } from '@/context/auth-context';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "./ui/item"
+import { Button } from "./ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar"
 
 
 
@@ -39,12 +42,9 @@ const mainLinks = [
   { title: "Jobs", href: "/jobs", Icon: FileText },
   { title: "Candidates", href: "/candidates", Icon: UserIcon },
   { title: "Interviews", href: "/interviews", Icon: TvMinimalIcon },
-]
-
-const bottomLinks = [
-  { title: "Help & Support", href: "/help", Icon: LifeBuoy },
   { title: "Settings", href: "/settings", Icon: Settings },
 ]
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
@@ -75,7 +75,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={active}
-                    className={active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined}
+                    className={`${active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined} hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 `}
                   >
                     <Link href={href}>
                         <Icon className={active ? "text-white" : undefined} />
@@ -91,32 +91,49 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          {bottomLinks.map(({ title, href, Icon }) => {
-            const active = isActive(href);
-            return (
-              <SidebarMenuItem key={title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={active}
-                  className={active ? "text-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10" : undefined}
-                >
-                  <Link href={href}>
-                    <Icon />
-                    <span>{title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-        {user && user.email ? (
-          <NavUser user={{
-            name: user.user_metadata?.name || user.email.split('@')[0] || 'User',
-            email: user.email,
-            avatar: user.user_metadata?.avatar_url || '',
-          }} />
-        ) : null}
+       <Item variant="outline" className="flex flex-col items-center justify-center border-dotted border-2">
+        <ItemMedia className="flex items-center justify-center w-full">
+          <div className="flex *:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:grayscale items-center justify-center">
+            <Avatar className="hidden sm:flex">
+              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" 
+                className="ring-background ring-2 h-8 w-8 rounded-full" 
+              />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+            <Avatar className="hidden sm:flex">
+              <AvatarImage
+                src="https://github.com/maxleiter.png"
+                alt="@maxleiter"
+                className="ring-background ring-2 h-8 w-8 rounded-full" 
+
+              />
+              <AvatarFallback>LR</AvatarFallback>
+            </Avatar>
+            <Avatar>
+              <AvatarImage
+                src="https://github.com/evilrabbit.png"
+                alt="@evilrabbit"
+                className="ring-background ring-2 h-8 w-8 rounded-full" 
+              />
+              <AvatarFallback>ER</AvatarFallback>
+            </Avatar>
+          </div>
+        </ItemMedia>
+        <ItemContent className="flex flex-col items-center justify-center text-center">
+          <ItemTitle>Need a new teacher?</ItemTitle>
+          <ItemDescription className="text-center">
+            Post a Job and start receiving applicants.
+          </ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <Link href="/create-job-post" passHref>
+              <Button asChild variant="default" size="sm" className="sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding">
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">+ Create Job Post</span>
+              </Button>
+            </Link>
+        </ItemActions>
+      </Item>
+        
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
