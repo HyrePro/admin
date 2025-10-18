@@ -79,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   >
                     <Link href={href}>
                         <Icon className={active ? "text-white" : undefined} />
-                        <span className={active ? "text-white" : undefined}>
+                        <span className={`${active ? "text-white" : 'text-blue'} hover: text-blue`}>
                           {title}
                         </span>
                       </Link>
@@ -91,8 +91,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-       <Item variant="outline" className="flex flex-col items-center justify-center border-dotted border-2">
-        <ItemMedia className="flex items-center justify-center w-full">
+       <Item variant="outline" className="flex flex-col items-center justify-center border-dotted border-2 group-data-[collapsible=icon]:p-2">
+        <ItemMedia className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden">
           <div className="flex *:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:grayscale items-center justify-center">
             <Avatar className="hidden sm:flex">
               <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" 
@@ -119,16 +119,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </Avatar>
           </div>
         </ItemMedia>
-        <ItemContent className="flex flex-col items-center justify-center text-center">
+        <ItemContent className="flex flex-col items-center justify-center text-center group-data-[collapsible=icon]:hidden">
           <ItemTitle>Need a new teacher?</ItemTitle>
           <ItemDescription className="text-center">
             Post a Job and start receiving applicants.
           </ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Link href="/create-job-post" passHref>
-              <Button asChild variant="default" size="sm" className="sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">+ Create Job Post</span>
+          <Link href="/jobs/create-job-post" passHref>
+              <Button asChild variant="default" size="sm" className="sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:w-auto">
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text group-data-[collapsible=icon]:bg-none group-data-[collapsible=icon]:text-white">
+                  + Create Job Post
+                </span>
               </Button>
             </Link>
         </ItemActions>

@@ -64,6 +64,8 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
             id="jobTitle"
             name="jobTitle"
             placeholder="e.g. Mathematics Teacher"
+            required
+            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
           />
         </div>
         {touched.jobTitle && !values.jobTitle && errors.jobTitle && (
@@ -79,7 +81,8 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
             id="description"
             name="description"
             placeholder="Describe the job role, expectations, or any other details (optional)"
-            rows={4}
+            rows={3}
+            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
           />
         </div>
       </div>
@@ -95,7 +98,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               key={subj}
               className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
                 (values.subjects as string[]).includes(subj)
-                  ? "bg-purple-50 border-purple-300 text-purple-800"
+                  ? "bg-blue-50 border-blue-300 text-blue-800"
                   : "hover:bg-gray-50 border-gray-200"
               }`}
             >
@@ -111,6 +114,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
                     setFieldValue("subjects", [...(values.subjects as string[]), subj])
                   }
                 }}
+                className="focus-visible:ring-blue-500 focus-visible:ring-1 bg-white"
               />
               <span className="text-sm">{subj}</span>
             </label>
@@ -119,15 +123,15 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         {touched.subjects && Array.isArray(values.subjects) && values.subjects.length === 0 && errors.subjects && (
           <div className="text-xs text-red-500 mt-1">{errors.subjects as string}</div>
         )}
-        {(values.subjects as string[]).length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
+        {/* {(values.subjects as string[]).length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4">
             {(values.subjects as string[]).map((subject) => (
-              <Badge key={subject} className="bg-purple-100 text-purple-700">
+              <Badge key={subject} className="bg-blue-100 text-blue-700 p-2">
                 {subject}
               </Badge>
             ))}
           </div>
-        )}
+        )} */}
       </div>
       {/* Grade Levels */}
       <div>
@@ -141,7 +145,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               key={grade}
               className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
                 (values.gradeLevel as string[]).includes(grade)
-                  ? "bg-purple-50 border-purple-300 text-purple-800"
+                  ? "bg-blue-50 border-blue-300 text-blue-800"
                   : "hover:bg-gray-50 border-gray-200"
               }`}
             >
@@ -157,6 +161,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
                     setFieldValue("gradeLevel", [...(values.gradeLevel as string[]), grade])
                   }
                 }}
+                className="focus-visible:ring-blue-500 focus-visible:ring-1"
               />
               <span className="text-sm">{grade}</span>
             </label>
@@ -226,18 +231,22 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       {/* Salary Range */}
       <div>
         <Label>Salary Range (Annual)</Label>
-        <div className="grid grid-cols-2 gap-4 mt-1">
+        <div className="grid grid-cols-2 gap-4 mt-2">
           <Field
             as={Input}
             name="salaryMin"
             placeholder="Min (₹)"
             type="number"
+            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+
           />
           <Field
             as={Input}
             name="salaryMax"
             placeholder="Max (₹)"
             type="number"
+            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+
           />
         </div>
         <p className="text-xs text-gray-500 mt-1">Leave blank if you prefer not to disclose.</p>

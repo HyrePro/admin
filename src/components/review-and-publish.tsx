@@ -38,6 +38,7 @@ interface ReviewAndPublishProps {
     interviewQuestions: InterviewQuestion[]
     assessmentDifficulty?: string
     numberOfQuestions?: number
+    minimumPassingMarks?: number
   }
 }
 
@@ -122,20 +123,34 @@ export function ReviewAndPublish({ jobData }: ReviewAndPublishProps) {
                     </Badge>
                   </span>
                 )}
-                {jobData.numberOfQuestions && (
+                {jobData.numberOfQuestions !== undefined && jobData.numberOfQuestions >= 0 && (
                   <span className="ml-2">
                     <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                      {jobData.numberOfQuestions} Questions
+                      {Math.max(5, jobData.numberOfQuestions)} Questions
+                    </Badge>
+                  </span>
+                )}
+                {jobData.minimumPassingMarks !== undefined && (
+                  <span className="ml-2">
+                    <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+                      {jobData.minimumPassingMarks}% Pass Mark
                     </Badge>
                   </span>
                 )}
               </div>
             </div>
           )}
-          {jobData.demoVideoDuration && (
+          {jobData.demoVideoDuration !== undefined && jobData.demoVideoDuration >= 0 && (
             <div className="flex items-center p-3 bg-purple-50 rounded-lg">
               <Video className="w-5 h-5 text-purple-600 mr-3" />
-              <span className="text-gray-700">Teaching demo video</span>
+              <span className="text-gray-700">
+                Teaching demo video
+                <span className="ml-2">
+                  <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
+                    {Math.max(2, jobData.demoVideoDuration)} min
+                  </Badge>
+                </span>
+              </span>
             </div>
           )}
           {jobData.includeInterview && jobData.interviewQuestions.length > 0 && (

@@ -5,15 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -201,31 +192,10 @@ export default function DashboardShellLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-20 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex px-4 flex-col py-">
-            {/* <Breadcrumb>
-              <BreadcrumbList>
-                {breadcrumbItems.map((item, index) => (
-                  <React.Fragment key={item.href}>
-                    <BreadcrumbItem>
-                      {item.isCurrentPage ? (
-                        <BreadcrumbPage className="font-bold text-gray-900 text-lg">
-                          {item.label}
-                        </BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={item.href} className="text-gray-600 hover:text-gray-900 transition-colors">
-                          {item.label}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    {index < breadcrumbItems.length - 1 && (
-                      <BreadcrumbSeparator className="text-gray-400" />
-                    )}
-                  </React.Fragment>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb> */}
+      <SidebarInset className="flex flex-col h-screen overflow-hidden">
+        {/* Fixed Header */}
+        <header className="shrink-0 flex h-20 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex px-4 flex-col">
             <div className="font-regular text-gray-900 text-sm">Welcome</div>
             <div className="font-medium text-gray-900 text-md">
               Greenfield High, Bangalore
@@ -290,7 +260,11 @@ export default function DashboardShellLayout({
             ) : null}
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 pt-0 h-[calc(100vh-4rem)] overflow-hidden">{children}</div>
+        
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

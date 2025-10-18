@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Search, RefreshCw, FileX, AlertCircle, Users, ArrowUpRightIcon } from "lucide-react";
+import { ChevronRight, Search, RefreshCw, FileX, AlertCircle, Users, ArrowUpRightIcon, Plus } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import {
   EmptyMedia, 
   EmptyTitle 
 } from "@/components/ui/empty";
+import '@/styles/jobs.css'
 
 type Job = {
   id: string;
@@ -262,8 +263,18 @@ export default function JobsPage() {
   );
 
   return (
-    <div className="p-6 space-y-6">
-
+    <div className="p-4 space-y-6">
+<div className="jobs-header"> 
+        <h1 className="jobs-title">Jobs</h1>
+        <Button
+          variant="outline"
+          onClick={() => router.push('/jobs/create-job-post')}
+          className='btn-create'
+        >
+          <Plus className="btn-icon" />
+          Create New Job Post
+        </Button>
+      </div>
       {/* Search and Filters Row - Only show if jobs exist */}
       {!loading && !authLoading && !error && jobs.length > 0 && (
         <>

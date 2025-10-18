@@ -22,6 +22,7 @@ export interface CreateJobInput {
   interviewQuestions: { id: string | number; question: string }[]
   assessmentDifficulty?: string
   numberOfQuestions?: number
+  minimumPassingMarks?: number
 }
 
 /**
@@ -54,7 +55,18 @@ export async function createJob(jobData: CreateJobInput) {
     interviewQuestions,
     assessmentDifficulty,
     numberOfQuestions,
+    minimumPassingMarks,
   } = jobData;
+
+  // Validate demoVideoDuration if provided
+  if (demoVideoDuration !== undefined && (demoVideoDuration < 0 || demoVideoDuration > 10)) {
+    throw new Error('demoVideoDuration must be between 0 and 10 minutes');
+  }
+  
+  // Validate numberOfQuestions if provided
+  if (numberOfQuestions !== undefined && (numberOfQuestions < 0 || numberOfQuestions > 30)) {
+    throw new Error('numberOfQuestions must be between 0 and 30');
+  }
 
   // Compose salary range string
   let salary_range = "";
@@ -75,6 +87,7 @@ export async function createJob(jobData: CreateJobInput) {
     interviewQuestions,
     assessmentDifficulty: includeSubjectTest ? assessmentDifficulty : undefined,
     numberOfQuestions: includeSubjectTest ? numberOfQuestions : undefined,
+    minimumPassingMarks: includeSubjectTest ? minimumPassingMarks : undefined,
   };
 
   // Insert into jobs table
@@ -94,6 +107,7 @@ export async function createJob(jobData: CreateJobInput) {
       assessment_difficulty,
       created_at: new Date().toISOString(),
       number_of_questions: includeSubjectTest ? numberOfQuestions : 10,
+      minimum_passing_marks: includeSubjectTest ? minimumPassingMarks : 0,
     },
   ]).select("id").single();
 

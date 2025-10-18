@@ -40,6 +40,7 @@ export interface CreateJobInput {
   interviewQuestions: { id: string | number; question: string }[]
   assessmentDifficulty?: string
   numberOfQuestions?: number
+  minimumPassingMarks?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -134,6 +135,7 @@ export async function POST(request: NextRequest) {
       interviewQuestions,
       assessmentDifficulty,
       numberOfQuestions,
+      minimumPassingMarks,
     } = jobData
 
     // Validate required fields
@@ -153,6 +155,22 @@ export async function POST(request: NextRequest) {
     if ((Number.isNaN(minNum) && salaryMin) || (Number.isNaN(maxNum) && salaryMax)) {
       return NextResponse.json(
         { error: 'salaryMin/salaryMax must be numbers' },
+        { status: 400 }
+      )
+    }
+
+    // Validate demoVideoDuration if provided
+    if (demoVideoDuration !== undefined && (demoVideoDuration < 0 || demoVideoDuration > 10)) {
+      return NextResponse.json(
+        { error: 'demoVideoDuration must be between 0 and 10 minutes' },
+        { status: 400 }
+      )
+    }
+    
+    // Validate numberOfQuestions if provided
+    if (numberOfQuestions !== undefined && (numberOfQuestions < 0 || numberOfQuestions > 30)) {
+      return NextResponse.json(
+        { error: 'numberOfQuestions must be between 0 and 30' },
         { status: 400 }
       )
     }
@@ -186,6 +204,7 @@ export async function POST(request: NextRequest) {
       interviewQuestions,
       assessmentDifficulty: includeSubjectTest ? assessmentDifficulty : undefined,
       numberOfQuestions: includeSubjectTest ? numberOfQuestions : undefined,
+      minimumPassingMarks: includeSubjectTest ? minimumPassingMarks : undefined,
     }
 
     // Insert into jobs table with user's school_id
@@ -205,6 +224,7 @@ export async function POST(request: NextRequest) {
         assessment_difficulty,
         created_at: new Date().toISOString(),
         number_of_questions: includeSubjectTest ? numberOfQuestions : 10,
+        minimum_passing_marks: includeSubjectTest ? minimumPassingMarks : 0,
         school_id: adminInfo.school_id, // Use dynamic school_id from user metadata
       },
     ]).select("id").single()
