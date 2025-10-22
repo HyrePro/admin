@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error)
       return NextResponse.json(
-        { error: 'Failed to insert user info' },
+        { error: 'Failed to insert user info'+error },
         { status: 500 }
       )
     }

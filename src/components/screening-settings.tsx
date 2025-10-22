@@ -226,7 +226,7 @@ export function ScreeningSettings({
         checked={values.interviewScheduling}
         onChange={checked => onChange({ ...values, interviewScheduling: checked })}
         title="Interview Scheduling"
-        description="Allow candidates to schedule interviews directly after screening."
+        description="Allow recruiters to schedule interviews after screening."
       />
     </div>
   )

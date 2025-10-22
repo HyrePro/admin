@@ -1,7 +1,6 @@
 'use client';
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation"
-import JobPostSuccessHeader from "@/components/job-post-success/job-post-success-header"
 import JobPostSuccessMessage from "@/components/job-post-success/job-post-success-message"
 import JobPostSuccessShare from "@/components/job-post-success/job-post-success-share"
 import JobPostSuccessNextSteps from "@/components/job-post-success/job-post-success-next-steps"
@@ -15,14 +14,15 @@ function JobPostSuccessContent() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <JobPostSuccessHeader />
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <JobPostSuccessMessage />
-          <JobPostSuccessShare jobId={jobId} />
-          <JobPostSuccessNextSteps />
-          <JobPostSuccessWhatNext />
-          <JobPostSuccessActions />
+      <div className="flex flex-1 flex-col px-4">
+        <div className="mx-auto w-full max-w-2xl py-8">
+          <div className="space-y-8">
+            <JobPostSuccessMessage />
+            <JobPostSuccessShare jobId={jobId} />
+            <JobPostSuccessNextSteps />
+            <JobPostSuccessWhatNext />
+            <JobPostSuccessActions />
+          </div>
         </div>
       </div>
     </AuthGuard>
@@ -35,4 +35,4 @@ export default function JobPostSuccess() {
       <JobPostSuccessContent />
     </Suspense>
   );
-} 
+}

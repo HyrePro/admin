@@ -6,7 +6,7 @@ import { ReviewAndPublish } from "@/components/review-and-publish"
 
 import { Formik, Form, FormikProps } from 'formik'
 import * as Yup from 'yup'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/auth-context'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,8 @@ import { AuthGuard } from '@/components/auth-guard'
 import '@/styles/jobs.css'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 
 const validationSchema = Yup.object({
   jobTitle: Yup.string().required('Job title is required'),
@@ -24,9 +26,24 @@ const validationSchema = Yup.object({
   gradeLevel: Yup.array().min(1, 'At least one grade level is required'),
   employmentType: Yup.string().required('Employment type is required'),
   experience: Yup.string(),
-  salaryMin: Yup.string(),
-  salaryMax: Yup.string(),
-})
+  salaryMin: Yup.number()
+    .transform((value, originalValue) => 
+      originalValue === '' ? undefined : value
+    )
+    .min(0, 'Minimum salary must be 0 or greater')
+    .optional(),
+  salaryMax: Yup.number()
+    .transform((value, originalValue) => 
+      originalValue === '' ? undefined : value
+    )
+    .min(0, 'Maximum salary must be 0 or greater')
+    .when('salaryMin', ([salaryMin], schema) => {
+      return salaryMin !== undefined
+        ? schema.min(salaryMin, 'Maximum salary must be greater than or equal to minimum salary')
+        : schema;
+    })
+    .optional(),
+});
 
 type FormValues = {
   jobTitle: string
@@ -35,8 +52,8 @@ type FormValues = {
   gradeLevel: string[]
   employmentType: string
   experience: string
-  salaryMin: string
-  salaryMax: string
+  salaryMin?: number
+  salaryMax?: number
 }
 
 const initialValues: FormValues = {
@@ -46,8 +63,8 @@ const initialValues: FormValues = {
   gradeLevel: [],
   employmentType: 'full-time',
   experience: 'any',
-  salaryMin: '',
-  salaryMax: '',
+  salaryMin: 0,
+  salaryMax: 0,
 }
 
 const steps = [
@@ -101,6 +118,17 @@ export default function CreateJobApplicationPage() {
         }
         formikRef.current.handleSubmit()
       }
+    } else if (step === 1) {
+      // Validate screening settings - at least one assessment or demo screening should be checked
+      if (!screening.assessment && !screening.demoVideo) {
+        setError('Please select at least one screening method (Subject Screening Assessment or Teaching Demo Video)')
+        // Show alert at the bottom of the screen
+        setTimeout(() => {
+          setError(null)
+        }, 5000)
+        return
+      }
+      setStep(step + 1)
     } else {
       // For other steps, just proceed
       setStep(step + 1)
@@ -197,8 +225,8 @@ export default function CreateJobApplicationPage() {
                       employmentType: jobInfo?.employmentType ?? "full-time",
                       subjects: jobInfo?.subjects ?? [],
                       gradeLevel: jobInfo?.gradeLevel ?? [],
-                      salaryMin: jobInfo?.salaryMin ?? "",
-                      salaryMax: jobInfo?.salaryMax ?? "",
+                      salaryMin: jobInfo?.salaryMin?.toString() ?? "",
+                      salaryMax: jobInfo?.salaryMax?.toString() ?? "",
                       schoolName: "Dayanand Public School",
                       location: "Mumbai",
                       jobDescription: jobInfo?.description ?? "Job description here...",
@@ -225,6 +253,19 @@ export default function CreateJobApplicationPage() {
             <div className="h-6"></div>
           </div>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="fixed top-2 bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+            <Alert variant="destructive" className="shadow-lg">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* Fixed Footer */}
         <div className="shrink-0 bg-white border-t border-gray-200 shadow-sm">
@@ -328,7 +369,7 @@ export default function CreateJobApplicationPage() {
                       setTimeout(() => {
                         setDialogOpen(false)
                         setTimeout(() => {
-                          router.push(`/create-job-post/success?jobId=${data.id}`)
+                          router.push(`/jobs/create-job-post/success?jobId=${data.id}`)
                         }, 100) // small delay to allow dialog to close visually
                       }, 1000)
                     } catch (e: unknown) {

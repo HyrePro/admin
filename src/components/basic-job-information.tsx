@@ -37,13 +37,14 @@ const experienceOptions = [
 
 type FormValues = {
   jobTitle: string
-  description?: string // Optional description field
+  description?: string
   subjects: string[]
+  otherSubject?: string
   gradeLevel: string[]
   employmentType: string
   experience: string
-  salaryMin: string
-  salaryMax: string
+  salaryMin?: number
+  salaryMax?: number
 }
 
 type BasicJobInformationProps = FormikProps<FormValues>
@@ -123,15 +124,29 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         {touched.subjects && Array.isArray(values.subjects) && values.subjects.length === 0 && errors.subjects && (
           <div className="text-xs text-red-500 mt-1">{errors.subjects as string}</div>
         )}
-        {/* {(values.subjects as string[]).length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {(values.subjects as string[]).map((subject) => (
-              <Badge key={subject} className="bg-blue-100 text-blue-700 p-2">
-                {subject}
-              </Badge>
-            ))}
+        
+        {/* Other Subject Input Field */}
+        {(values.subjects as string[]).includes("Other") && (
+          <div className="mt-3">
+            <Label htmlFor="otherSubject">
+              Please specify other subject
+              <span className="text-red-500 ml-0.5">*</span>
+            </Label>
+            <div className="mt-2">
+              <Field
+                as={Input}
+                id="otherSubject"
+                name="otherSubject"
+                placeholder="Enter the subject name"
+                className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+                value={values.otherSubject || ''}
+              />
+            </div>
+            {touched.otherSubject && !values.otherSubject && errors.otherSubject && (
+              <div className="text-xs text-red-500 mt-1">{errors.otherSubject}</div>
+            )}
           </div>
-        )} */}
+        )}
       </div>
       {/* Grade Levels */}
       <div>
@@ -232,22 +247,30 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       <div>
         <Label>Salary Range (Annual)</Label>
         <div className="grid grid-cols-2 gap-4 mt-2">
-          <Field
-            as={Input}
-            name="salaryMin"
-            placeholder="Min (₹)"
-            type="number"
-            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
-
-          />
-          <Field
-            as={Input}
-            name="salaryMax"
-            placeholder="Max (₹)"
-            type="number"
-            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
-
-          />
+          <div>
+            <Field
+              as={Input}
+              name="salaryMin"
+              placeholder="Min (₹)"
+              type="number"
+              className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+            />
+            {touched.salaryMin && errors.salaryMin && (
+              <div className="text-xs text-red-500 mt-1">{errors.salaryMin}</div>
+            )}
+          </div>
+          <div>
+            <Field
+              as={Input}
+              name="salaryMax"
+              placeholder="Max (₹)"
+              type="number"
+              className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+            />
+            {errors.salaryMax && (
+              <div className="text-xs text-red-500 mt-1">{errors.salaryMax}</div>
+            )}
+          </div>
         </div>
         <p className="text-xs text-gray-500 mt-1">Leave blank if you prefer not to disclose.</p>
       </div>

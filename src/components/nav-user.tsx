@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/sidebar"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/api/client"
 
 export function NavUser({
@@ -43,7 +42,6 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const router = useRouter()
 
   // Generate initials from user name
   const getInitials = (name: string) => {
