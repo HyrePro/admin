@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
-import { ToastContainer, toast } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
+import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/api/client"
 import { Separator } from "./ui/separator"
@@ -23,107 +22,151 @@ export function SignupForm({
   const [signupEmail, setSignupEmail] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
-  
-  // Create the supabase client instance
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setMessage(null);
-    const form = e.target as HTMLFormElement;
-    const firstName = (form.elements.namedItem('firstName') as HTMLInputElement)?.value;
-    const lastName = (form.elements.namedItem('lastName') as HTMLInputElement)?.value;
-    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
-    const contactNumber = (form.elements.namedItem('contactNumber') as HTMLInputElement)?.value;
-    const password = (form.elements.namedItem('password') as HTMLInputElement)?.value;
-    
+    e.preventDefault()
+    setError(null)
+    setMessage(null)
+    setIsSubmitting(true)
+
+    const form = e.target as HTMLFormElement
+    const firstName = (form.elements.namedItem('firstName') as HTMLInputElement)?.value
+    const lastName = (form.elements.namedItem('lastName') as HTMLInputElement)?.value
+    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value
+    const contactNumber = (form.elements.namedItem('contactNumber') as HTMLInputElement)?.value
+    const password = (form.elements.namedItem('password') as HTMLInputElement)?.value
+
     if (!firstName || !lastName || !email || !contactNumber || !password) {
-      setError("Please fill in all fields.");
-      toast.error("Please fill in all fields.");
-      return;
+      setError("Please fill in all fields.")
+      toast.error("Please fill in all fields.")
+      setIsSubmitting(false)
+      return
     }
+
     if (!email.includes("@")) {
-      setError("Please enter a valid email address.");
-      toast.error("Please enter a valid email address.");
-      return;
+      setError("Please enter a valid email address.")
+      toast.error("Please enter a valid email address.")
+      setIsSubmitting(false)
+      return
     }
-    
+
     try {
-      // Show signup progress dialog
-      setSignupEmail(email)
-      setIsSignupDialogOpen(true)
-      
-      // Create a simple redirect URL without next parameter
-      // The callback route will determine where to redirect based on user's school_id status
       const baseUrl = window.location.origin;
       const redirectUrl = `${baseUrl}`;
-      
+      console.log('Redirect URL:', redirectUrl)
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { 
-          data: { 
+        options: {
+          data: {
             first_name: firstName,
             last_name: lastName,
             contact_number: contactNumber,
-            user_type: 'admin',
-            school_id: null
+            user_type: "admin",
+            school_id: null,
           },
-          emailRedirectTo: redirectUrl
-        }
+          emailRedirectTo: redirectUrl,
+        },
       })
-      
-      if (signUpError) {
-        setIsSignupDialogOpen(false)
-        setError(signUpError.message)
-        toast.error(signUpError.message)
+
+      // Log for debugging
+      console.log('Signup response:', { 
+        hasUser: !!data?.user, 
+        hasSession: !!data?.session,
+        identitiesLength: data?.user?.identities?.length,
+        error: signUpError 
+      })
+
+      // Check if signUp returned a user with empty identities
+      // This indicates the user already exists and is verified
+      if (data?.user && data.user.identities && data.user.identities.length === 0) {
+        // User already exists and is verified
+        setIsSubmitting(false)
+        setError("This email is already registered.")
+        toast.error("Account already exists", {
+          description:
+            "This email is already registered. Please log in instead.",
+          action: {
+            label: "Go to Login",
+            onClick: () => router.push("/login"),
+          },
+          duration: 5000,
+        })
         return
       }
 
-      // If signup successful, create admin user record
-      if (data.user) {
-        try {
-          const adminUserResponse = await fetch('/api/admin-user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+      // Handle error from Supabase
+      if (signUpError) {
+        // Check if it's an "already registered" error
+        if (/already registered|already exists|user already registered/i.test(signUpError.message)) {
+          setIsSubmitting(false)
+          setError("This email is already registered.")
+          toast.error("Account already exists", {
+            description:
+              "This email is already registered. Please log in instead.",
+            action: {
+              label: "Go to Login",
+              onClick: () => router.push("/login"),
             },
+            duration: 5000,
+          })
+          return
+        }
+        throw signUpError
+      }
+
+      // Handle existing unverified user - show dialog and resend email
+      if (data.user && !data.session) {
+        setSignupEmail(email)
+        setIsSignupDialogOpen(true)
+        await supabase.auth.resend({ type: "signup", email })
+        toast.success(
+          "Account already created but not verified. Verification email resent."
+        )
+        setIsSubmitting(false)
+        return
+      }
+
+      // Handle new signup successful - show dialog
+      if (data.user && data.session) {
+        setSignupEmail(email)
+        setIsSignupDialogOpen(true)
+
+        try {
+          await fetch("/api/admin-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               first_name: firstName,
               last_name: lastName,
-              email: email,
+              email,
               phone_no: contactNumber,
-              user_id: data.user.id
+              user_id: data.user.id,
             }),
           })
-
-          if (!adminUserResponse.ok) {
-            console.error('Failed to create admin user record')
-            // Don't fail the signup process if admin record creation fails
-            // The user can still proceed with email verification
-          }
-        } catch (adminError) {
-          console.error('Error creating admin user record:', adminError)
-          // Don't fail the signup process
+        } catch {
+          // non-blocking
         }
+
+        toast.success(
+          "Signup successful! Please check your email to confirm your account."
+        )
+        setMessage(
+          "Account created successfully! Please check your email and click the verification link to activate your account."
+        )
       }
 
-      // Signup successful - keep dialog open and show success message
-      toast.success("Signup successful! Please check your email to confirm your account.")
-      
-      // Keep the dialog open to show verification progress
-      // The dialog will automatically progress through the steps
-      
-      // Also show a success message in the form
-      setMessage("Account created successfully! Please check your email and click the verification link to activate your account.")
-      
-    } catch (error) {
+      setIsSubmitting(false)
+    } catch (err) {
       setIsSignupDialogOpen(false)
-      const message = error instanceof Error ? error.message : "Signup failed. Please try again.";
-      setError(message);
-      toast.error(message);
+      setIsSubmitting(false)
+      const msg =
+        err instanceof Error ? err.message : "Signup failed. Please try again."
+      setError(msg)
+      toast.error(msg)
     }
   }
 
@@ -133,57 +176,41 @@ export function SignupForm({
         type: 'signup',
         email: signupEmail
       })
-      
-      if (error) {
-        toast.error("Failed to resend verification email: " + error.message)
-      } else {
-        toast.success("Verification email resent! Please check your inbox.")
-      }
-    } catch (error) {
+      if (error) toast.error("Failed to resend verification email: " + error.message)
+      else toast.success("Verification email resent! Please check your inbox.")
+    } catch {
       toast.error("Failed to resend verification email. Please try again.")
     }
   }
 
   const handleCloseDialog = () => {
     setIsSignupDialogOpen(false)
-    // If email is confirmed, redirect to the next step
-    if (isEmailConfirmed) {
-      router.push("/select-organization")
-    }
+    if (isEmailConfirmed) router.push("/select-organization")
   }
 
-  // Check if user's email is confirmed
   const checkEmailConfirmation = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email_confirmed_at) {
         setIsEmailConfirmed(true)
-        // Close dialog and redirect to select organization
         setIsSignupDialogOpen(false)
         router.push("/select-organization")
         return true
       }
       return false
-    } catch (error) {
-      console.error("Error checking email confirmation:", error)
+    } catch {
       return false
     }
   }
 
-  // Poll for email confirmation
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
-    
     if (isSignupDialogOpen && !isEmailConfirmed) {
-      // Check every 3 seconds if email is confirmed
       intervalId = setInterval(async () => {
         const confirmed = await checkEmailConfirmation()
-        if (confirmed) {
-          if (intervalId) clearInterval(intervalId)
-        }
+        if (confirmed && intervalId) clearInterval(intervalId)
       }, 3000)
     }
-    
     return () => {
       if (intervalId) clearInterval(intervalId)
     }
@@ -191,95 +218,67 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col items-center justify-center gap-6 w-full", className)} {...props}>
-      <ToastContainer position="top-center" autoClose={3000} />
       {error && (
         <div className="w-full max-w-xs text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">
           {error}
         </div>
       )}
-      
       {message && (
         <div className="w-full max-w-xs text-center text-sm text-green-600 bg-green-50 border border-green-200 rounded p-2 mb-2">
           {message}
         </div>
       )}
-      
 
-      
       <form className="w-full flex flex-col gap-6 max-w-md" onSubmit={handleSubmit}>
         <div className="space-y-2 mb-4">
           <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-muted-foreground text-sm">Enter your details below to create a new account</p>
         </div>
+
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                name="firstName"
-                type="text"
-                placeholder="First name"
-                required
-              />
+              <Input id="firstName" name="firstName" type="text" placeholder="First name" required disabled={isSubmitting} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                name="lastName"
-                type="text"
-                placeholder="Last name"
-                required
-              />
+              <Input id="lastName" name="lastName" type="text" placeholder="Last name" required disabled={isSubmitting} />
             </div>
           </div>
+
           <div className="grid gap-3">
             <Label htmlFor="contactNumber">Contact Number</Label>
-            <Input
-              id="contactNumber"
-              name="contactNumber"
-              type="tel"
-              placeholder="+1234567890"
-              required
-            />
+            <Input id="contactNumber" name="contactNumber" type="tel" placeholder="+1234567890" required disabled={isSubmitting} />
           </div>
+
           <div className="grid gap-3">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="m@example.com"
-              required
-            />
+            <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={isSubmitting} />
           </div>
+
           <div className="grid gap-3">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
-              <Input 
-                id="password" 
-                name="password" 
-                type={showPassword ? "text" : "password"} 
-                className="pr-10"
-                required 
-              />
+              <Input id="password" name="password" type={showPassword ? "text" : "password"} className="pr-10" required disabled={isSubmitting} />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+                disabled={isSubmitting}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
+
           <div className="flex flex-col gap-3">
-            <Button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white ">
-              Sign Up
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating Account..." : "Sign Up"}
             </Button>
 
             <div className="flex items-center gap-3 w-full">
@@ -288,22 +287,22 @@ export function SignupForm({
               <Separator className="flex-1" />
             </div>
 
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-            <Image src="/iv_google.png" alt="Google" width={20} height={20} className="rounded-md" />
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              type="button"
+            >
+              <Image src="/iv_google.png" alt="Google" width={20} height={20} className="rounded-md" />
               Sign up with Google
             </Button>
           </div>
         </div>
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground">
           By continuing, you agree to our{' '}
-          <a href="/terms" className="text-primary hover:underline font-medium">
-            Terms of Service
-          </a>
-          {' '}and{' '}
-          <a href="/privacy" className="text-primary hover:underline font-medium">
-            Privacy Policy
-          </a>
+          <a href="/terms" className="text-primary hover:underline font-medium">Terms of Service</a>{' '}and{' '}
+          <a href="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</a>
         </div>
       </form>
 
