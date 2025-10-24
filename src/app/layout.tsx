@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '@/context/auth-context';
-
+import { Toaster } from "@/components/ui/sonner"
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -26,7 +26,9 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+
       </body>
+      <Toaster position="top-center" />
     </html>
   );
 }
