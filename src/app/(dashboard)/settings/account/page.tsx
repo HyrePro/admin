@@ -143,9 +143,9 @@ export default function AccountPage() {
             setSelectedFile(null);
             
             toast.success('Profile updated successfully!', { id: toastId });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving profile:', error);
-            toast.error(`Error saving profile: ${error.message || 'Please try again.'}`, { id: toastId });
+            toast.error(`Error saving profile: ${(error as Error).message || 'Please try again.'}`, { id: toastId });
         } finally {
             setIsSaving(false);
         }

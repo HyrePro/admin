@@ -45,6 +45,7 @@ type FormValues = {
   experience: string
   salaryMin?: number
   salaryMax?: number
+  numberOfOpenings?: number
 }
 
 type BasicJobInformationProps = FormikProps<FormValues>
@@ -187,7 +188,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         )}
       </div>
       {/* Employment & Experience */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <div className="flex flex-col w-full">
           <Label>
             Employment Type
@@ -241,6 +242,22 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               )}
             </Field>
           </div>
+        </div>
+        <div className="flex flex-col w-full">
+          <Label>Number of Openings</Label>
+          <div className="mt-2">
+            <Field
+              as={Input}
+              name="numberOfOpenings"
+              type="number"
+              min="1"
+              placeholder="Enter number of openings"
+              className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+            />
+          </div>
+          {errors.numberOfOpenings && (
+            <div className="text-xs text-red-500 mt-1">{errors.numberOfOpenings}</div>
+          )}
         </div>
       </div>
       {/* Salary Range */}

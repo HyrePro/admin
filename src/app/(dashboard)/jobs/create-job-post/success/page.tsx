@@ -7,6 +7,9 @@ import JobPostSuccessNextSteps from "@/components/job-post-success/job-post-succ
 import JobPostSuccessWhatNext from "@/components/job-post-success/job-post-success-what-next"
 import JobPostSuccessActions from "@/components/job-post-success/job-post-success-actions"
 import { AuthGuard } from "@/components/auth-guard"
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 function JobPostSuccessContent() {
   const searchParams = useSearchParams();
@@ -14,14 +17,21 @@ function JobPostSuccessContent() {
 
   return (
     <AuthGuard>
-      <div className="flex flex-1 flex-col px-4">
-        <div className="mx-auto w-full max-w-2xl py-8">
-          <div className="space-y-8">
-            <JobPostSuccessMessage />
-            <JobPostSuccessShare jobId={jobId} />
-            <JobPostSuccessNextSteps />
-            <JobPostSuccessWhatNext />
-            <JobPostSuccessActions />
+      <div className="flex flex-1 flex-col h-full">
+        <div className="flex-1 overflow-y-auto px-4">
+          <div className="mx-auto w-full py-8">
+            <div className="space-y-4">
+              <Link href="/">
+              <Button variant="ghost" className="w-10 h-10" 
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              </Link>
+              <JobPostSuccessMessage />
+              <JobPostSuccessShare jobId={jobId} />
+              <JobPostSuccessWhatNext />
+              <JobPostSuccessActions />
+            </div>
           </div>
         </div>
       </div>

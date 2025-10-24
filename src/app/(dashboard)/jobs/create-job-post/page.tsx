@@ -43,6 +43,10 @@ const validationSchema = Yup.object({
         : schema;
     })
     .optional(),
+  numberOfOpenings: Yup.number()
+    .min(1, 'Number of openings must be at least 1')
+    .required('Number of openings is required')
+    .typeError('Number of openings must be a number'),
 });
 
 type FormValues = {
@@ -54,6 +58,7 @@ type FormValues = {
   experience: string
   salaryMin?: number
   salaryMax?: number
+  numberOfOpenings?: number
 }
 
 const initialValues: FormValues = {
@@ -65,6 +70,7 @@ const initialValues: FormValues = {
   experience: 'any',
   salaryMin: 0,
   salaryMax: 0,
+  numberOfOpenings: 1,
 }
 
 const steps = [
@@ -92,6 +98,7 @@ export default function CreateJobApplicationPage() {
     minimumPassingMarks: undefined as number | undefined,
     demoVideo: false,
     demoVideoDuration: undefined as number | undefined,
+    demoVideoPassingScore: undefined as number | undefined,
     interviewScheduling: false,
   })
   const [loading, setLoading] = useState(false)
@@ -212,6 +219,7 @@ export default function CreateJobApplicationPage() {
                         minimumPassingMarks: values.minimumPassingMarks,
                         demoVideo: values.demoVideo,
                         demoVideoDuration: values.demoVideoDuration,
+                        demoVideoPassingScore: values.demoVideoPassingScore,
                         interviewScheduling: values.interviewScheduling,
                       });
                     }}
@@ -227,6 +235,7 @@ export default function CreateJobApplicationPage() {
                       gradeLevel: jobInfo?.gradeLevel ?? [],
                       salaryMin: jobInfo?.salaryMin?.toString() ?? "",
                       salaryMax: jobInfo?.salaryMax?.toString() ?? "",
+                      numberOfOpenings: jobInfo?.numberOfOpenings,
                       schoolName: "Dayanand Public School",
                       location: "Mumbai",
                       jobDescription: jobInfo?.description ?? "Job description here...",
@@ -234,6 +243,7 @@ export default function CreateJobApplicationPage() {
                       includeSubjectTest: screening.assessment,
                       subjectTestDuration: screening.assessment ? 30 : undefined,
                       demoVideoDuration: screening.demoVideo ? screening.demoVideoDuration : undefined,
+                      demoVideoPassingScore: screening.demoVideo ? screening.demoVideoPassingScore : undefined,
                       includeInterview: screening.interviewScheduling,
                       interviewFormat: screening.interviewScheduling ? "panel" : undefined,
                       interviewDuration: screening.interviewScheduling ? 20 : undefined,
@@ -316,6 +326,7 @@ export default function CreateJobApplicationPage() {
                         gradeLevel: jobInfo?.gradeLevel ?? [],
                         salaryMin: jobInfo?.salaryMin ?? "",
                         salaryMax: jobInfo?.salaryMax ?? "",
+                        numberOfOpenings: jobInfo?.numberOfOpenings,
                         schoolName: "Dayanand Public School",
                         location: "Mumbai",
                         jobDescription: jobInfo?.description ?? "Job description here...",
@@ -323,6 +334,7 @@ export default function CreateJobApplicationPage() {
                         includeSubjectTest: screening.assessment,
                         subjectTestDuration: screening.assessment ? 30 : undefined,
                         demoVideoDuration: screening.demoVideo ? screening.demoVideoDuration : undefined,
+                        demoVideoPassingScore: screening.demoVideo ? screening.demoVideoPassingScore : undefined,
                         includeInterview: screening.interviewScheduling,
                         interviewFormat: screening.interviewScheduling ? "panel" : undefined,
                         interviewDuration: screening.interviewScheduling ? 20 : undefined,

@@ -73,6 +73,7 @@ export function ScreeningSettings({
     minimumPassingMarks?: number
     demoVideo: boolean
     demoVideoDuration?: number
+    demoVideoPassingScore?: number
     interviewScheduling: boolean
   }
   onChange: (values: {
@@ -82,6 +83,7 @@ export function ScreeningSettings({
     minimumPassingMarks?: number
     demoVideo: boolean
     demoVideoDuration?: number
+    demoVideoPassingScore?: number
     interviewScheduling: boolean
   }) => void
 }) {
@@ -197,6 +199,10 @@ export function ScreeningSettings({
           if (checked && (!values.demoVideoDuration || values.demoVideoDuration < 2)) {
             newValues.demoVideoDuration = 2;
           }
+          // Set default passing score to 1 when demo video is enabled and no score is set
+          if (checked && (!values.demoVideoPassingScore || values.demoVideoPassingScore < 1)) {
+            newValues.demoVideoPassingScore = 1;
+          }
           // Don't reset duration when demo video is disabled, just keep the value
           onChange(newValues);
         }}
@@ -206,17 +212,45 @@ export function ScreeningSettings({
         {values.demoVideo && (
           <div className="mt-4 space-y-2">
             <Label htmlFor="demo-video-duration" className="text-sm font-medium text-gray-700">
-              Video Duration: {values.demoVideoDuration !== undefined ? Math.max(2, values.demoVideoDuration) : 2} minutes
+              Video Duration: {Math.max(2, values.demoVideoDuration || 2)} minutes
             </Label>
             <Slider
               id="demo-video-duration"
               min={0}
               max={10}
               step={1}
-              value={[values.demoVideoDuration !== undefined ? values.demoVideoDuration : 2]}
+              value={[Math.max(2, values.demoVideoDuration || 2)]}
               onValueChange={(value) => onChange({ ...values, demoVideoDuration: Math.max(2, value[0]) })}
               className="w-full"
             />
+            
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="demo-video-passing-score" className="text-sm font-medium text-gray-700">
+                Passing Demo Score: {Math.max(1, values.demoVideoPassingScore || 1)}/10
+              </Label>
+              <Select
+                value={Math.max(1, values.demoVideoPassingScore || 1).toString()}
+                onValueChange={(value) => onChange({ ...values, demoVideoPassingScore: parseInt(value) })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select passing score" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {value}/10
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {Math.max(1, values.demoVideoPassingScore || 1) > 7 && (
+                <Alert variant="warning" className="items-center gap-2 mt-2">
+                  <AlertTitle>
+                    Higher demo score can lead to candidate drop off
+                  </AlertTitle>
+                </Alert>
+              )}
+            </div>
           </div>
         )}
       </RadioCard>

@@ -41,6 +41,7 @@ export interface CreateJobInput {
   assessmentDifficulty?: string
   numberOfQuestions?: number
   minimumPassingMarks?: number
+  numberOfOpenings?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
       assessmentDifficulty,
       numberOfQuestions,
       minimumPassingMarks,
+      numberOfOpenings,
     } = jobData
 
     // Validate required fields
@@ -217,7 +219,7 @@ export async function POST(request: NextRequest) {
         grade_levels: gradeLevel,
         subjects,
         salary_range,
-        openings: 1, // Default to 1, adjust as needed
+        openings: numberOfOpenings || 1, // Use numberOfOpenings or default to 1
         job_description: jobDescription,
         responsibilities: "", // Not provided in jobData
         requirements: requirements.join("\n"),

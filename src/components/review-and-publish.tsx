@@ -16,6 +16,7 @@ interface InterviewQuestion {
   question: string
 }
 
+// Updated to include demoVideoPassingScore property
 interface ReviewAndPublishProps {
   jobData: {
     jobTitle: string
@@ -32,6 +33,7 @@ interface ReviewAndPublishProps {
     includeSubjectTest?: boolean
     subjectTestDuration?: number
     demoVideoDuration?: number
+    demoVideoPassingScore?: number
     includeInterview?: boolean
     interviewFormat?: string
     interviewDuration?: number
@@ -39,6 +41,7 @@ interface ReviewAndPublishProps {
     assessmentDifficulty?: string
     numberOfQuestions?: number
     minimumPassingMarks?: number
+    numberOfOpenings?: number
   }
 }
 
@@ -57,6 +60,18 @@ export function ReviewAndPublish({ jobData }: ReviewAndPublishProps) {
             <GraduationCap className="w-4 h-4 text-gray-500" />
             <span className="font-medium text-capitalize">{jobData.employmentType?.charAt(0).toUpperCase() + jobData.employmentType?.slice(1)}</span>
           </div>
+          {jobData.numberOfOpenings && jobData.numberOfOpenings > 1 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+              <Users className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">{jobData.numberOfOpenings} Openings</span>
+            </div>
+          )}
+          {jobData.numberOfOpenings && jobData.numberOfOpenings === 1 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+              <Users className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">1 Opening</span>
+            </div>
+          )}
           {jobData.salaryMin && parseInt(jobData.salaryMin) > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
               <IndianRupee className="w-4 h-4 text-gray-500" />
@@ -146,6 +161,11 @@ export function ReviewAndPublish({ jobData }: ReviewAndPublishProps) {
                 <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-white">
                   {Math.max(2, jobData.demoVideoDuration)} min
                 </Badge>
+                {jobData.demoVideoPassingScore !== undefined && (
+                  <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-white">
+                    Pass Score: {Math.max(1, jobData.demoVideoPassingScore)}/10
+                  </Badge>
+                )}
                </div>
                </div>
             </div>

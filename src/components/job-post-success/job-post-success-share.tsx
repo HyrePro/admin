@@ -10,7 +10,7 @@ export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
 
   useEffect(() => {
     if (!jobId) return;
-    const link = `${'hyrepro.in'}/apply/${jobId}`
+    const link = `${'https://hyrepro.in'}/apply/${jobId}`
     setJobLink(link)
   }, [jobId])
 
@@ -78,14 +78,6 @@ export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
               Copy Link
             </Button>
           </div>
-        </div>
-
-        {/* QR Code placeholder */}
-        <div className="text-center p-6 bg-gray-50 rounded-lg">
-          <div className="w-32 h-32 bg-white border-2 border-dashed border-gray-300 rounded-lg mx-auto mb-4 flex items-center justify-center">
-            <span className="text-gray-500 text-sm">QR Code</span>
-          </div>
-          <p className="text-sm text-gray-600">Print this QR code to share offline</p>
         </div>
       </CardContent>
     </Card>

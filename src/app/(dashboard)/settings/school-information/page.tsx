@@ -2,8 +2,7 @@ import React from 'react';
 
 export default function SchoolInformationPage() {
   return (
-    <div className="max-w-3xl">
-      <h2 className="text-xl font-semibold mb-6">School Information</h2>
+    <div >
       <div className="bg-white rounded-lg border p-6">
         <div className="space-y-6">
           <div>
