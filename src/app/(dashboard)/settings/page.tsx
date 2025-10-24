@@ -1,8 +1,8 @@
+import '@/styles/settings.css';
+import { redirect } from 'next/navigation';
+
 export default function Page() {
-  return (
-    <div className="p-2">
-      <h1 className="text-xl font-semibold">Settings</h1>
-    </div>
-  );
+  // Redirect to the default account tab
+  redirect('/settings/account');
 }
 

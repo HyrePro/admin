@@ -54,9 +54,9 @@ export function SignupForm({
     }
 
     try {
-      const baseUrl = window.location.origin;
-      const redirectUrl = `${baseUrl}`;
-      console.log('Redirect URL:', redirectUrl)
+      const baseUrl = window.location.origin
+      const redirectUrl = `${baseUrl}`
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -72,7 +72,6 @@ export function SignupForm({
         },
       })
 
-      // Log for debugging
       console.log('Signup response:', { 
         hasUser: !!data?.user, 
         hasSession: !!data?.session,
@@ -80,15 +79,13 @@ export function SignupForm({
         error: signUpError 
       })
 
-      // Check if signUp returned a user with empty identities
-      // This indicates the user already exists and is verified
+      // Check if user already exists and is verified
+      // Supabase returns user with empty identities array for existing users
       if (data?.user && data.user.identities && data.user.identities.length === 0) {
-        // User already exists and is verified
         setIsSubmitting(false)
         setError("This email is already registered.")
         toast.error("Account already exists", {
-          description:
-            "This email is already registered. Please log in instead.",
+          description: "This email is already registered. Please log in instead.",
           action: {
             label: "Go to Login",
             onClick: () => router.push("/login"),
@@ -98,40 +95,15 @@ export function SignupForm({
         return
       }
 
-      // Handle error from Supabase
       if (signUpError) {
-        // Check if it's an "already registered" error
-        if (/already registered|already exists|user already registered/i.test(signUpError.message)) {
-          setIsSubmitting(false)
-          setError("This email is already registered.")
-          toast.error("Account already exists", {
-            description:
-              "This email is already registered. Please log in instead.",
-            action: {
-              label: "Go to Login",
-              onClick: () => router.push("/login"),
-            },
-            duration: 5000,
-          })
-          return
-        }
-        throw signUpError
-      }
-
-      // Handle existing unverified user - show dialog and resend email
-      if (data.user && !data.session) {
-        setSignupEmail(email)
-        setIsSignupDialogOpen(true)
-        await supabase.auth.resend({ type: "signup", email })
-        toast.success(
-          "Account already created but not verified. Verification email resent."
-        )
         setIsSubmitting(false)
+        setError(signUpError.message)
+        toast.error(signUpError.message)
         return
       }
 
-      // Handle new signup successful - show dialog
-      if (data.user && data.session) {
+      // If signup successful, show dialog and create admin user record
+      if (data.user) {
         setSignupEmail(email)
         setIsSignupDialogOpen(true)
 
@@ -147,24 +119,20 @@ export function SignupForm({
               user_id: data.user.id,
             }),
           })
-        } catch {
-          // non-blocking
+        } catch (adminError) {
+          console.error("Error creating admin user record:", adminError)
+          // Don't fail the signup process
         }
 
-        toast.success(
-          "Signup successful! Please check your email to confirm your account."
-        )
-        setMessage(
-          "Account created successfully! Please check your email and click the verification link to activate your account."
-        )
+        toast.success("Signup successful! Please check your email to confirm your account.")
+        setMessage("Account created successfully! Please check your email and click the verification link to activate your account.")
       }
 
       setIsSubmitting(false)
     } catch (err) {
       setIsSignupDialogOpen(false)
       setIsSubmitting(false)
-      const msg =
-        err instanceof Error ? err.message : "Signup failed. Please try again."
+      const msg = err instanceof Error ? err.message : "Signup failed. Please try again."
       setError(msg)
       toast.error(msg)
     }
@@ -185,7 +153,9 @@ export function SignupForm({
 
   const handleCloseDialog = () => {
     setIsSignupDialogOpen(false)
-    if (isEmailConfirmed) router.push("/select-organization")
+    if (isEmailConfirmed) {
+      router.push("/select-organization")
+    }
   }
 
   const checkEmailConfirmation = async () => {

@@ -1,0 +1,29 @@
+/* settings Page Styles */
+
+/* Container */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.settings-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Tab Content */
+.settings-tab-content {
+  padding: 1rem;
+}

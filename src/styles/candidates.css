@@ -111,7 +111,7 @@
 .table-header {
   position: sticky;
   top: 0;
-  background-color: rgb(243 244 246);
+  background-color: #EFF6FF;
   z-index: 10;
   border-bottom: 1px solid rgb(229 231 235);
 }
