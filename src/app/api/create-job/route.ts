@@ -221,13 +221,12 @@ export async function POST(request: NextRequest) {
         salary_range,
         openings: numberOfOpenings || 1, // Use numberOfOpenings or default to 1
         job_description: jobDescription,
-        responsibilities: "", // Not provided in jobData
-        requirements: requirements.join("\n"),
         assessment_difficulty,
         created_at: new Date().toISOString(),
         number_of_questions: includeSubjectTest ? numberOfQuestions : 10,
         minimum_passing_marks: includeSubjectTest ? minimumPassingMarks : 0,
         school_id: adminInfo.school_id, // Use dynamic school_id from user metadata
+        created_by: user.id,
       },
     ]).select("id").single()
 

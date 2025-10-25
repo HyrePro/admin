@@ -40,7 +40,7 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalJobs, setTotalJobs] = useState(0);
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
-  const pageSize = 5;
+  const pageSize = 10;
 
   const statusColors: Record<string, string> = {
     OPEN: "bg-green-50 text-green-700 border-green-200",

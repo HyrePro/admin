@@ -44,7 +44,6 @@ type Job = {
   salary_range?: string;
   job_description?: string;
   responsibilities?: string;
-  requirements?: string;
   created_at?: string;
   school_id?: string;
   number_of_questions?: number;
