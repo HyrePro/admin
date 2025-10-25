@@ -4,7 +4,6 @@ import { type SupabaseClient } from '@supabase/supabase-js'
 export interface CreateJobInput {
   jobTitle: string
   schoolName: string
-  location: string
   experience: string
   employmentType: string
   salaryMin?: string
@@ -23,6 +22,8 @@ export interface CreateJobInput {
   assessmentDifficulty?: string
   numberOfQuestions?: number
   minimumPassingMarks?: number
+  numberOfOpenings?: number
+  demoVideoPassingScore?: number
 }
 
 /**
@@ -37,7 +38,6 @@ export async function createJob(jobData: CreateJobInput) {
   // Map jobData to DB schema
   const {
     jobTitle,
-    location,
     experience,
     employmentType,
     salaryMin,
@@ -45,7 +45,6 @@ export async function createJob(jobData: CreateJobInput) {
     subjects,
     gradeLevel,
     jobDescription,
-    requirements,
     includeSubjectTest,
     subjectTestDuration,
     demoVideoDuration,
@@ -56,6 +55,8 @@ export async function createJob(jobData: CreateJobInput) {
     assessmentDifficulty,
     numberOfQuestions,
     minimumPassingMarks,
+    numberOfOpenings,
+    demoVideoPassingScore
   } = jobData;
 
   // Validate demoVideoDuration if provided
@@ -79,15 +80,6 @@ export async function createJob(jobData: CreateJobInput) {
     subjectScreening: includeSubjectTest || false,
     includeVideoAssessment: !!demoVideoDuration,
     includeInterview: includeInterview || false,
-    includeSubjectTest,
-    subjectTestDuration,
-    demoVideoDuration,
-    interviewFormat,
-    interviewDuration,
-    interviewQuestions,
-    assessmentDifficulty: includeSubjectTest ? assessmentDifficulty : undefined,
-    numberOfQuestions: includeSubjectTest ? numberOfQuestions : undefined,
-    minimumPassingMarks: includeSubjectTest ? minimumPassingMarks : undefined,
   };
 
   // Insert into jobs table
@@ -95,19 +87,20 @@ export async function createJob(jobData: CreateJobInput) {
     {
       title: jobTitle,
       job_type: employmentType,
-      location,
       mode: experience, // You may want to map this differently if 'mode' is not 'experience'
       grade_levels: gradeLevel,
       subjects,
       salary_range,
-      openings: 1, // Default to 1, adjust as needed
+      openings: numberOfOpenings || 1, // Default to 1, adjust as needed
       job_description: jobDescription,
       responsibilities: "", // Not provided in jobData
-      requirements: requirements.join("\n"),
       assessment_difficulty,
       created_at: new Date().toISOString(),
       number_of_questions: includeSubjectTest ? numberOfQuestions : 10,
       minimum_passing_marks: includeSubjectTest ? minimumPassingMarks : 0,
+      demo_duration: demoVideoDuration || 0,
+      demo_passing_score: demoVideoPassingScore,
+      assessment_type: assessmentDifficulty
     },
   ]).select("id").single();
 

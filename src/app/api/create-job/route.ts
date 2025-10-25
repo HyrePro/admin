@@ -42,6 +42,7 @@ export interface CreateJobInput {
   numberOfQuestions?: number
   minimumPassingMarks?: number
   numberOfOpenings?: number
+  demoVideoPassingScore?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
       numberOfQuestions,
       minimumPassingMarks,
       numberOfOpenings,
+      demoVideoPassingScore
     } = jobData
 
     // Validate required fields
@@ -197,16 +199,7 @@ export async function POST(request: NextRequest) {
     const assessment_difficulty = {
       subjectScreening: includeSubjectTest || false,
       includeVideoAssessment: !!demoVideoDuration,
-      includeInterview: includeInterview || false,
-      includeSubjectTest,
-      subjectTestDuration,
-      demoVideoDuration,
-      interviewFormat,
-      interviewDuration,
-      interviewQuestions,
-      assessmentDifficulty: includeSubjectTest ? assessmentDifficulty : undefined,
-      numberOfQuestions: includeSubjectTest ? numberOfQuestions : undefined,
-      minimumPassingMarks: includeSubjectTest ? minimumPassingMarks : undefined,
+      includeInterview: includeInterview || false
     }
 
     // Insert into jobs table with user's school_id
@@ -214,7 +207,6 @@ export async function POST(request: NextRequest) {
       {
         title: jobTitle,
         job_type: employmentType,
-        location,
         mode: experience,
         grade_levels: gradeLevel,
         subjects,
@@ -227,6 +219,10 @@ export async function POST(request: NextRequest) {
         minimum_passing_marks: includeSubjectTest ? minimumPassingMarks : 0,
         school_id: adminInfo.school_id, // Use dynamic school_id from user metadata
         created_by: user.id,
+        demo_duration: demoVideoDuration || 0,
+        demo_passing_score: demoVideoPassingScore || 0,
+      assessment_type: assessmentDifficulty,
+      status: 'processing'
       },
     ]).select("id").single()
 
