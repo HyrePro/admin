@@ -16,6 +16,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { SchoolCreationProgressDialog } from '@/components/school-creation-progress-dialog'
 import HeaderIcon from '@/components/header-icon'
+import { NavUser } from '@/components/nav-user'
+import { useAuth } from '@/context/auth-context'
 
 interface SchoolFormData {
   name: string
@@ -49,6 +51,7 @@ export default function CreateSchoolPage() {
   })
   const [errors, setErrors] = useState<Partial<SchoolFormData>>({})
   const router = useRouter()
+  const { user } = useAuth()
 
   const validateForm = (): boolean => {
     const newErrors: Partial<SchoolFormData> = {}
@@ -92,7 +95,7 @@ export default function CreateSchoolPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       toast.error('Please fix the errors in the form')
       return
@@ -106,9 +109,10 @@ export default function CreateSchoolPage() {
     try {
       // Create a Supabase client instance
       const supabase = createClient();
-      
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
+
       if (!user) {
         toast.error('You must be logged in to create a school')
         setShowProgressDialog(false)
@@ -117,7 +121,7 @@ export default function CreateSchoolPage() {
       }
 
       let logoUrl = ''
-      
+
       // Upload logo if selected
       if (logoFile) {
         try {
@@ -145,7 +149,7 @@ export default function CreateSchoolPage() {
               fileName: fileName,
               bucketName: 'school'
             })
-            
+
             // Provide more specific error messages
             let errorMsg = 'Failed to upload logo. Please try again.'
             if (uploadError.message?.includes('not found')) {
@@ -157,7 +161,7 @@ export default function CreateSchoolPage() {
             } else if (uploadError.message) {
               errorMsg = `Upload failed: ${uploadError.message}`
             }
-            
+
             setProgressStep('error')
             setProgressError(errorMsg)
             setTimeout(() => {
@@ -173,10 +177,9 @@ export default function CreateSchoolPage() {
           const { data: { publicUrl } } = supabase.storage
             .from('school')
             .getPublicUrl(fileName)
-            
+
           console.log('Generated public URL:', publicUrl)
           logoUrl = publicUrl
-          
         } catch (error) {
           console.error('Logo upload catch error:', error)
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -229,15 +232,14 @@ export default function CreateSchoolPage() {
       }
 
       const result = await response.json()
-      
+
       // Show success step
       setProgressStep('success')
-      
+
       // Redirect to dashboard after a delay
       setTimeout(() => {
         router.push('/')
       }, 2000)
-
     } catch (error) {
       console.error('Unexpected error:', error)
       setProgressStep('error')
@@ -249,20 +251,38 @@ export default function CreateSchoolPage() {
     }
   }
 
+  // Get user data for NavUser component
+  const getUserData = () => {
+    if (!user) return { name: 'Loading...', email: '', avatar: '' }
+
+    return {
+      name: user.user_metadata?.name || user.email?.split('@')[0] || user.id || 'User',
+      email: user.user_metadata?.email || user.email || '',
+      avatar: user.user_metadata?.avatar_url || ''
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <ToastContainer position="top-center" autoClose={3000} />
-      
-      {/* Header with HyrePro Logo - Sticky */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-6 py-4">
-          <HeaderIcon/>
+
+      {/* Header with HyrePro Logo and NavUser - Sticky */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="px-4 sm:px-6 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <HeaderIcon />
+            {user && (
+              <div className="ml-auto">
+                <NavUser user={getUserData()} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
-        <div className="flex items-start justify-center p-6 pt-8">
+        <div className="flex items-start justify-center p-4 sm:p-6 pt-6 sm:pt-8">
           <div className="w-full max-w-4xl">
             {/* Back Button and Header */}
             <div>
@@ -285,281 +305,279 @@ export default function CreateSchoolPage() {
             </div>
 
             {/* Form Card */}
-          <Card className="shadow-lg border-0">
-            <CardHeader className="pb-6">
-              <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                School Information
-              </CardTitle>
-              <CardDescription>
-                Please provide details about your school to complete the setup
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Logo and School Name Header */}
-                <div className="flex items-center gap-6">
-                  {/* Circular Logo Picker */}
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="space-y-2">
-                      {/* Clickable Circular Logo */}
-                      <div className="relative flex justify-center">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              // Validate file type
-                              if (!file.type.startsWith('image/')) {
-                                toast.error('Please select a valid image file')
-                                return
+            <Card className="shadow-lg border-0">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                  School Information
+                </CardTitle>
+                <CardDescription>
+                  Please provide details about your school to complete the setup
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Logo and School Name Header */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                    {/* Circular Logo Picker */}
+                    <div className="flex flex-col items-center justify-center space-y-2 mx-auto sm:mx-0">
+                      <div className="space-y-2">
+                        {/* Clickable Circular Logo */}
+                        <div className="relative flex justify-center">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                // Validate file type
+                                if (!file.type.startsWith('image/')) {
+                                  toast.error('Please select a valid image file')
+                                  return
+                                }
+                                // Validate file size (max 5MB)
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast.error('Image size should be less than 5MB')
+                                  return
+                                }
+                                // Store file and create preview
+                                setLogoFile(file)
+                                setLogoPreview(URL.createObjectURL(file))
+                                // Store file name in form data for now
+                                setFormData(prev => ({ ...prev, logo_url: file.name }))
                               }
-                              // Validate file size (max 5MB)
-                              if (file.size > 5 * 1024 * 1024) {
-                                toast.error('Image size should be less than 5MB')
-                                return
-                              }
-                              // Store file and create preview
-                              setLogoFile(file)
-                              setLogoPreview(URL.createObjectURL(file))
-                              // Store file name in form data for now
-                              setFormData(prev => ({ ...prev, logo_url: file.name }))
-                            }
-                          }}
-                          className="hidden"
-                          id="logo-upload"
-                        />
-                        <label
-                          htmlFor="logo-upload"
-                          className="block w-16 h-16 rounded-full border-2 border-gray-300 overflow-hidden bg-gray-50 cursor-pointer hover:border-gray-400 transition-colors"
-                        >
-                          <div className="w-full h-full flex items-center justify-center">
-                            {logoPreview ? (
-                              <img
-                                src={logoPreview}
-                                alt="Logo preview"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                            )}
-                          </div>
-                        </label>
-                        {logoPreview && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLogoFile(null)
-                              setLogoPreview('')
-                              setFormData(prev => ({ ...prev, logo_url: '' }))
                             }}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                            className="hidden"
+                            id="logo-upload"
+                          />
+                          <label
+                            htmlFor="logo-upload"
+                            className="block w-16 h-16 rounded-full border-2 border-gray-300 overflow-hidden bg-gray-50 cursor-pointer hover:border-gray-400 transition-colors"
                           >
-                            <X className="w-3 h-3" />
-                          </button>
+                            <div className="w-full h-full flex items-center justify-center">
+                              {logoPreview ? (
+                                <img
+                                  src={logoPreview}
+                                  alt="Logo preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                              )}
+                            </div>
+                          </label>
+                          {logoPreview && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLogoFile(null)
+                                setLogoPreview('')
+                                setFormData(prev => ({ ...prev, logo_url: '' }))
+                              }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 text-center">
+                          Click to {logoPreview ? 'change' : 'upload'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* School Name, Board and Type */}
+                    <div className="flex-1 w-full space-y-4">
+                      {/* School Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-sm font-medium">
+                          School Name *
+                        </Label>
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="Enter school name"
+                          value={formData.name}
+                          onChange={(e) => handleInputChange('name', e.target.value)}
+                          className={errors.name ? 'border-red-500' : ''}
+                        />
+                        {errors.name && (
+                          <p className="text-sm text-red-600">{errors.name}</p>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 text-center">
-                        Click to {logoPreview ? 'change' : 'upload'}
-                      </p>
+
+                      {/* Board and School Type */}
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1 space-y-2">
+                          <Label htmlFor="board" className="text-sm font-medium">
+                            Board/Curriculum *
+                          </Label>
+                          <Select value={formData.board} onValueChange={(value) => handleInputChange('board', value)}>
+                            <SelectTrigger className={`w-full ${errors.board ? 'border-red-500' : ''}`}>
+                              <SelectValue placeholder="Select board" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cbse">CBSE</SelectItem>
+                              <SelectItem value="icse">ICSE</SelectItem>
+                              <SelectItem value="state">State Board</SelectItem>
+                              <SelectItem value="igcse">Cambridge / CAIE</SelectItem>
+                              <SelectItem value="ib">International Baccalaureate</SelectItem>
+                              <SelectItem value="cambridge">Mix Boards</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {errors.board && (
+                            <p className="text-sm text-red-600">{errors.board}</p>
+                          )}
+                        </div>
+
+                        <div className="flex-1 space-y-2">
+                          <Label htmlFor="school_type" className="text-sm font-medium">
+                            School Type *
+                          </Label>
+                          <Select value={formData.school_type} onValueChange={(value) => handleInputChange('school_type', value)}>
+                            <SelectTrigger className={`w-full ${errors.school_type ? 'border-red-500' : ''}`}>
+                              <SelectValue placeholder="Select school type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="preschool">Pre-school</SelectItem>
+                              <SelectItem value="primary">Primary school</SelectItem>
+                              <SelectItem value="k8">K-8 school</SelectItem>
+                              <SelectItem value="k10">K-10 school</SelectItem>
+                              <SelectItem value="k12">K-12 school</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {errors.school_type && (
+                            <p className="text-sm text-red-600">{errors.school_type}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* School Name, Board and Type */}
-                  <div className="flex-1 space-y-4">
-                    {/* School Name */}
+                  {/* Address */}
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-sm font-medium">
+                      Complete Address *
+                    </Label>
+                    <Textarea
+                      id="address"
+                      placeholder="Enter complete school address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      className={errors.address ? 'border-red-500' : ''}
+                      rows={3}
+                    />
+                    {errors.address && (
+                      <p className="text-sm text-red-600">{errors.address}</p>
+                    )}
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      Location *
+                    </Label>
+                    <Input
+                      id="location"
+                      type="text"
+                      placeholder="City, State/Province"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      className={errors.location ? 'border-red-500' : ''}
+                    />
+                    {errors.location && (
+                      <p className="text-sm text-red-600">{errors.location}</p>
+                    )}
+                  </div>
+
+                  {/* Statistics */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">
-                        School Name *
+                      <Label htmlFor="num_students" className="text-sm font-medium flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        Number of Students
                       </Label>
                       <Input
-                        id="name"
-                        type="text"
-                        placeholder="Enter school name"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className={errors.name ? 'border-red-500' : ''}
+                        id="num_students"
+                        type="number"
+                        placeholder="Enter number of students"
+                        value={formData.num_students}
+                        onChange={(e) => handleInputChange('num_students', e.target.value)}
+                        className={errors.num_students ? 'border-red-500' : ''}
+                        min="0"
                       />
-                      {errors.name && (
-                        <p className="text-sm text-red-600">{errors.name}</p>
+                      {errors.num_students && (
+                        <p className="text-sm text-red-600">{errors.num_students}</p>
                       )}
                     </div>
 
-                    {/* Board and School Type */}
-                    <div className="flex gap-4">
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="board" className="text-sm font-medium">
-                          Board/Curriculum *
-                        </Label>
-                        <Select value={formData.board} onValueChange={(value) => handleInputChange('board', value)}>
-                          <SelectTrigger className={`w-full ${errors.board ? 'border-red-500' : ''}`}>
-                            <SelectValue placeholder="Select board" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cbse">CBSE</SelectItem>
-                            <SelectItem value="icse">ICSE</SelectItem>
-                            <SelectItem value="state">State Board</SelectItem>
-                            <SelectItem value="igcse">IGCSE</SelectItem>
-                            <SelectItem value="ib">International Baccalaureate</SelectItem>
-                            <SelectItem value="cambridge">Cambridge</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {errors.board && (
-                          <p className="text-sm text-red-600">{errors.board}</p>
-                        )}
-                      </div>
-
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="school_type" className="text-sm font-medium">
-                          School Type *
-                        </Label>
-                        <Select value={formData.school_type} onValueChange={(value) => handleInputChange('school_type', value)}>
-                          <SelectTrigger className={`w-full ${errors.school_type ? 'border-red-500' : ''}`}>
-                            <SelectValue placeholder="Select school type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="primary">Primary School</SelectItem>
-                            <SelectItem value="secondary">Secondary School</SelectItem>
-                            <SelectItem value="higher_secondary">Higher Secondary School</SelectItem>
-                            <SelectItem value="k12">K-12 School</SelectItem>
-                            <SelectItem value="international">International School</SelectItem>
-                            <SelectItem value="private">Private School</SelectItem>
-                            <SelectItem value="public">Public School</SelectItem>
-                            <SelectItem value="vocational">Vocational School</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {errors.school_type && (
-                          <p className="text-sm text-red-600">{errors.school_type}</p>
-                        )}
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="num_teachers" className="text-sm font-medium flex items-center gap-1">
+                        <GraduationCap className="w-4 h-4" />
+                        Number of Teachers
+                      </Label>
+                      <Input
+                        id="num_teachers"
+                        type="number"
+                        placeholder="Enter number of teachers"
+                        value={formData.num_teachers}
+                        onChange={(e) => handleInputChange('num_teachers', e.target.value)}
+                        className={errors.num_teachers ? 'border-red-500' : ''}
+                        min="0"
+                      />
+                      {errors.num_teachers && (
+                        <p className="text-sm text-red-600">{errors.num_teachers}</p>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                {/* Address */}
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm font-medium">
-                    Complete Address *
-                  </Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Enter complete school address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    className={errors.address ? 'border-red-500' : ''}
-                    rows={3}
-                  />
-                  {errors.address && (
-                    <p className="text-sm text-red-600">{errors.address}</p>
-                  )}
-                </div>
-
-                {/* Location */}
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-sm font-medium flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    Location *
-                  </Label>
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="City, State/Province"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className={errors.location ? 'border-red-500' : ''}
-                  />
-                  {errors.location && (
-                    <p className="text-sm text-red-600">{errors.location}</p>
-                  )}
-                </div>
-
-                {/* Statistics */}
-                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Website */}
                   <div className="space-y-2">
-                    <Label htmlFor="num_students" className="text-sm font-medium flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      Number of Students
+                    <Label htmlFor="website" className="text-sm font-medium flex items-center gap-1">
+                      <Globe className="w-4 h-4" />
+                      Website URL
                     </Label>
                     <Input
-                      id="num_students"
-                      type="number"
-                      placeholder="Enter number of students"
-                      value={formData.num_students}
-                      onChange={(e) => handleInputChange('num_students', e.target.value)}
-                      className={errors.num_students ? 'border-red-500' : ''}
-                      min="0"
+                      id="website"
+                      type="url"
+                      placeholder="https://www.example.com"
+                      value={formData.website}
+                      onChange={(e) => handleInputChange('website', e.target.value)}
+                      className={errors.website ? 'border-red-500' : ''}
                     />
-                    {errors.num_students && (
-                      <p className="text-sm text-red-600">{errors.num_students}</p>
+                    {errors.website && (
+                      <p className="text-sm text-red-600">{errors.website}</p>
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="num_teachers" className="text-sm font-medium flex items-center gap-1">
-                      <GraduationCap className="w-4 h-4" />
-                      Number of Teachers
-                    </Label>
-                    <Input
-                      id="num_teachers"
-                      type="number"
-                      placeholder="Enter number of teachers"
-                      value={formData.num_teachers}
-                      onChange={(e) => handleInputChange('num_teachers', e.target.value)}
-                      className={errors.num_teachers ? 'border-red-500' : ''}
-                      min="0"
-                    />
-                    {errors.num_teachers && (
-                      <p className="text-sm text-red-600">{errors.num_teachers}</p>
-                    )}
+                  {/* Submit Button */}
+                  <div className="pt-6 border-t">
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-8 text-base font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 w-full sm:w-auto sm:min-w-[200px]"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Creating School...' : 'Create School'}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Website */}
-                <div className="space-y-2">
-                  <Label htmlFor="website" className="text-sm font-medium flex items-center gap-1">
-                    <Globe className="w-4 h-4" />
-                    Website URL
-                  </Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    placeholder="https://www.example.com"
-                    value={formData.website}
-                    onChange={(e) => handleInputChange('website', e.target.value)}
-                    className={errors.website ? 'border-red-500' : ''}
-                  />
-                  {errors.website && (
-                    <p className="text-sm text-red-600">{errors.website}</p>
-                  )}
-                </div>
-
-                {/* Submit Button */}
-                <div className="pt-6 border-t">
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-8 text-base font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 min-w-[200px]"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Creating School...' : 'Create School'}
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+
+      {/* Progress Dialog */}
+      <SchoolCreationProgressDialog
+        isOpen={showProgressDialog}
+        onClose={() => setShowProgressDialog(false)}
+        currentStep={progressStep}
+        errorMessage={progressError}
+      />
     </div>
-    
-    {/* Progress Dialog */}
-    <SchoolCreationProgressDialog
-      isOpen={showProgressDialog}
-      onClose={() => setShowProgressDialog(false)}
-      currentStep={progressStep}
-      errorMessage={progressError}
-    />
-  </div>
   )
 }

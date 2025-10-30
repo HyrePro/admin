@@ -22,6 +22,12 @@ interface JobData {
   title: string;
 }
 
+// Interface for school information
+interface SchoolInfo {
+  name: string;
+  location: string;
+}
+
 export default function DashboardShellLayout({
   children,
 }: {
@@ -37,6 +43,8 @@ export default function DashboardShellLayout({
   // New state for checking school_id
   const [checkingSchoolId, setCheckingSchoolId] = useState(true);
   const [hasSchoolId, setHasSchoolId] = useState<boolean | null>(null);
+  // State for school information
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
 
   // Extract job ID and application ID from pathname
   const { jobId, applicationId } = useMemo(() => {
@@ -58,7 +66,29 @@ export default function DashboardShellLayout({
     return { jobId: null, applicationId: null };
   }, [pathname]);
 
-  // Check if user has school_id
+  // Fetch school information
+  const fetchSchoolInfo = async (schoolId: string) => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('school_info')
+        .select('name, location')
+        .eq('id', schoolId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching school info:", error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error fetching school info:", err);
+      return null;
+    }
+  };
+
+  // Check if user has school_id and fetch school information
   useEffect(() => {
     if (!user || loading) return;
 
@@ -89,6 +119,10 @@ export default function DashboardShellLayout({
           router.replace("/select-organization");
           return;
         }
+
+        // Fetch school information
+        const schoolData = await fetchSchoolInfo(data.school_id);
+        setSchoolInfo(schoolData);
       } catch (err) {
         console.error("Unexpected error checking school ID:", err);
         // On any error, redirect to select-organization for safety
@@ -258,7 +292,7 @@ export default function DashboardShellLayout({
           <div className="flex px-2 flex-col">
             <div className="font-regular text-gray-900 text-sm">Welcome</div>
             <div className="font-medium text-gray-900 text-md">
-              Greenfield High, Bangalore
+              {schoolInfo ? `${schoolInfo.name}, ${schoolInfo.location}` : "Loading school info..."}
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">

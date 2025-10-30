@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Plus, Users, School, UserPlus, ArrowRight, CheckCircle2, User, LogOut } from 'lucide-react'
+import { Building2, Plus, Users, School, UserPlus, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/api/client'
 import { ToastContainer, toast } from 'react-toastify'
@@ -11,15 +11,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import Image from 'next/image'
 import { useAuth } from '@/context/auth-context'
 import HeaderIcon from '@/components/header-icon'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { NavUser } from '@/components/nav-user'
 
 export default function SelectOrganizationPage() {
     const [isLoading, setIsLoading] = useState(false)
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false)
     const router = useRouter()
     const { user } = useAuth()
 
@@ -47,55 +42,15 @@ export default function SelectOrganizationPage() {
         }
     }
 
-    // Sign out function
-    const signOut = async () => {
-        try {
-            toast.info("Signing out...")
-            
-            // Create a Supabase client instance
-            const supabase = createClient();
-            // Sign out from Supabase
-            const { error } = await supabase.auth.signOut()
-            
-            if (error) {
-                console.error("Logout error:", error)
-                toast.error("Error signing out: " + error.message)
-                return
-            }
-            
-            // Clear any local state or cookies if needed
-            localStorage.removeItem('supabase.auth.token')
-            sessionStorage.clear()
-            
-            // Show success message
-            toast.success("Signed out successfully!")
-            
-            // Force redirect to login page
-            window.location.href = "/login"
-            
-        } catch (error) {
-            console.error("Unexpected logout error:", error)
-            toast.error("Unexpected error during logout")
-            // Force redirect anyway
-            window.location.href = "/login"
+    // Get user data for NavUser component
+    const getUserData = () => {
+        if (!user) return { name: 'Loading...', email: '', avatar: '' }
+
+        return {
+            name: user.user_metadata?.name || user.email?.split('@')[0] || user.id || 'User',
+            email: user.user_metadata?.email || user.email || '',
+            avatar: user.user_metadata?.avatar_url || ''
         }
-    }
-
-    // Get user's name from user metadata or email
-    const getUserName = () => {
-        if (!user) return ''
-
-        // Try to get first name from user metadata
-        const firstName = user.user_metadata?.first_name
-        if (firstName) return firstName
-
-        // Fallback to email username
-        if (user.email) {
-            return user.email.split('@')[0]
-        }
-
-        // Fallback to user ID
-        return user.id
     }
 
     return (
@@ -103,66 +58,29 @@ export default function SelectOrganizationPage() {
             <ToastContainer position="top-center" autoClose={3000} />
 
             {/* Header */}
-            <div className="bg-white border-b border-slate-200 shadow-sm">
+            <div className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm px-4 py-2">
                 <div className="mx-auto py-2 flex items-center justify-between">
                   <HeaderIcon/>
                     {user && (
-                        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                            <PopoverTrigger asChild>
-                                <div
-                                    className="flex items-center justify-between p-4 bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                                    onMouseEnter={() => setIsPopoverOpen(true)}
-                                    onMouseLeave={() => setIsPopoverOpen(false)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <User className="w-4 h-4 text-blue-600" />
-                                        <span className="text-blue-800 font-medium">
-                                            Welcome, {getUserName()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                className="w-48 p-2"
-                                align="end"
-                                onMouseEnter={() => setIsPopoverOpen(true)}
-                                onMouseLeave={() => setIsPopoverOpen(false)}
-                            >
-                                <div className="space-y-2">
-                                    <div className="px-2 text-md font-medium">{user.user_metadata.name}</div>
-                                    <div className="px-2 py-1 text-sm text-gray-600">
-                                        {user.user_metadata.email || user.email}
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={signOut}
-                                    >
-                                        <LogOut className="w-4 h-4 mr-2" />
-                                        Sign Out
-                                    </Button>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                        <NavUser user={getUserData()} />
                     )}
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex items-center justify-center px-4 h-[calc(100vh-73px)]">
+            <div className="flex items-center justify-center px-4 py-8 min-h-[calc(100vh-73px)]">
                 <div className="w-full max-w-6xl">
                     {/* Header Section */}
-                    <div className="text-center mb-4">
+                    <div className="text-center mb-6 md:mb-4">
                         
-                        <p className="text-base md:text-lg text-slate-700 font-semibold max-w-2xl mx-auto">
+                        <p className="text-sm md:text-base lg:text-lg text-slate-700 font-semibold max-w-2xl mx-auto px-2">
                             Choose how you&apos;d like to set up your organization and start streamlining your hiring process
                         </p>
 
                     </div>
 
                     {/* Cards Grid */}
-                    <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 max-w-5xl mx-auto mb-6">
                         {/* Create New School Card */}
                         <Card className="relative overflow-hidden border-2 border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-300 group bg-white">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full -mr-16 -mt-16 opacity-5 group-hover:opacity-10 transition-opacity" />
@@ -263,8 +181,8 @@ export default function SelectOrganizationPage() {
                     </div>
 
                     {/* Footer */}
-                    <div className="text-center">
-                        <p className="text-slate-500 text-sm">
+                    <div className="text-center px-4">
+                        <p className="text-slate-500 text-xs md:text-sm">
                             Need assistance? <span className="text-blue-600 font-medium cursor-pointer hover:text-blue-700 transition-colors">Contact our support team</span>
                         </p>
                     </div>
