@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Bell, MessageSquare } from "lucide-react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 import { NavUser } from "@/components/nav-user";
@@ -35,6 +34,9 @@ export default function DashboardShellLayout({
   const [candidateName, setCandidateName] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
   const [loadingCandidateName, setLoadingCandidateName] = useState(false);
+  // New state for checking school_id
+  const [checkingSchoolId, setCheckingSchoolId] = useState(true);
+  const [hasSchoolId, setHasSchoolId] = useState<boolean | null>(null);
 
   // Extract job ID and application ID from pathname
   const { jobId, applicationId } = useMemo(() => {
@@ -55,6 +57,51 @@ export default function DashboardShellLayout({
 
     return { jobId: null, applicationId: null };
   }, [pathname]);
+
+  // Check if user has school_id
+  useEffect(() => {
+    if (!user || loading) return;
+
+    const checkSchoolId = async () => {
+      setCheckingSchoolId(true);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('admin_user_info')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+
+        // If there's an error or no data, redirect to select-organization
+        // This handles cases where user doesn't exist in admin_user_info table yet
+        if (error || !data) {
+          console.warn("User not found in admin_user_info or error occurred:", error || "No data returned");
+          setHasSchoolId(false);
+          router.replace("/select-organization");
+          return;
+        }
+
+        const schoolIdExists = !!data.school_id;
+        setHasSchoolId(schoolIdExists);
+        
+        // If user doesn't have school_id, redirect to select-organization
+        if (!schoolIdExists) {
+          router.replace("/select-organization");
+          return;
+        }
+      } catch (err) {
+        console.error("Unexpected error checking school ID:", err);
+        // On any error, redirect to select-organization for safety
+        setHasSchoolId(false);
+        router.replace("/select-organization");
+        return;
+      } finally {
+        setCheckingSchoolId(false);
+      }
+    };
+
+    checkSchoolId();
+  }, [user, loading, router]);
 
   // Fetch job title when we have a job ID
   useEffect(() => {
@@ -185,8 +232,18 @@ export default function DashboardShellLayout({
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
-    return <div className="p-8">Authenticating...</div>;
+  // Show loading state while checking authentication or school_id
+  if (loading || !user || checkingSchoolId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  // If user doesn't have school_id, don't render dashboard content
+  if (hasSchoolId === false) {
+    return null;
   }
 
   return (

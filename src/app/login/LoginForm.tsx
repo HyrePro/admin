@@ -73,7 +73,7 @@ export function LoginForm({
       // If user is verified but school_id is missing, redirect to create-school
       if (isVerified && !fetchedSchoolId) {
         console.log('Redirecting to create-school because school_id is null')
-        router.replace('/create-school')
+        router.replace('/select-organization')
         return
       }
 
