@@ -143,3 +143,112 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    // Get user from request cookies
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      supabaseUrl as string,
+      supabaseAnonKey as string,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      )
+    }
+
+    // Get user's admin info to retrieve school_id
+    const { data: adminInfo, error: adminError } = await supabaseService
+      .from('admin_user_info')
+      .select('school_id')
+      .eq('id', user.id)
+      .single()
+
+    if (adminError || !adminInfo?.school_id) {
+      return NextResponse.json(
+        { error: 'User school information not found. Please complete your profile.' },
+        { status: 404 }
+      )
+    }
+
+    const body = await request.json()
+    const { 
+      name, 
+      location, 
+      board, 
+      address, 
+      school_type, 
+      num_students, 
+      num_teachers, 
+      website, 
+      logo_url
+    } = body
+
+    // Validate required fields
+    if (!name || !location || !board || !address || !school_type) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name, location, board, address, school_type' },
+        { status: 400 }
+      )
+    }
+
+    // Update data in school_info table using service client
+    const { data: schoolData, error: schoolError } = await supabaseService
+      .from('school_info')
+      .update({
+        name,
+        location,
+        board,
+        address,
+        school_type,
+        num_students: num_students ? parseInt(num_students) : null,
+        num_teachers: num_teachers ? parseInt(num_teachers) : null,
+        website: website || null,
+        logo_url: logo_url || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', adminInfo.school_id)
+      .select()
+      .single()
+
+    if (schoolError) {
+      console.error('School update error:', schoolError)
+      return NextResponse.json(
+        { error: 'Failed to update school' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        message: 'School updated successfully',
+        school: schoolData
+      },
+      { status: 200 }
+    )
+
+  } catch (error) {
+    console.error('API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

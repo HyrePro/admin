@@ -1,0 +1,35 @@
+/* interview Page Styles */
+
+/* Container */
+.interview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  gap: 0;
+}
+
+/* Header */
+.interview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+.interview-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Tab Content */
+.interview-tab-content {
+  padding: 1rem;
+}
+
+/* Flex container for calendar and candidates */
+.interview-container > .flex {
+  flex: 1;
+  min-height: 0; /* Allow flex children to shrink below their natural size */
+}
