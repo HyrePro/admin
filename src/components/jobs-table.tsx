@@ -239,8 +239,8 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
       
 
       {/* Jobs Table - Takes remaining space */}
-      <div className="rounded-md border flex-grow flex flex-col overflow-hidden">
-        <Table className="flex-grow">
+      <div className="rounded-md border flex-1 flex-col overflow-y-auto flex-grow">
+        {/* <Table >
           <TableHeader>
             <TableRow>
               <TableHead className="w-1/4">Job Title</TableHead>
@@ -252,7 +252,7 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
               <TableHead className="w-1/12 border-l border-border text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="overflow-y-auto flex-grow">
+          <TableBody className="overflow-y-auto">
             {paginatedJobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
@@ -339,7 +339,7 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
               })
             )}
           </TableBody>
-        </Table>
+        </Table> */}
       </div>
 
       {/* Pagination - Always shown at bottom */}

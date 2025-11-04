@@ -111,7 +111,6 @@
 .table-header {
   position: sticky;
   top: 0;
-  background-color: #EFF6FF;
   z-index: 10;
   border-bottom: 1px solid rgb(229 231 235);
 }
@@ -123,7 +122,7 @@
 }
 
 .table-head-border {
-  border-right: 1px solid rgb(229 231 235);
+  border-right: 1px solid rgb(212, 217, 227);
 }
 
 .table-head-actions {
