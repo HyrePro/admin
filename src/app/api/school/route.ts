@@ -219,7 +219,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    let schoolId = adminInfo?.school_id;
+    const schoolId = adminInfo?.school_id;
 
     // If no school exists for this user, we might need to handle this case differently
     // For now, we'll assume the school already exists as this is an update operation

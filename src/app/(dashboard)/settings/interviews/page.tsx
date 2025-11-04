@@ -321,7 +321,7 @@ export default function InterviewSettingsPage() {
               <Label htmlFor="default_interview_type">Default Interview Type</Label>
               <Select 
                 value={interviewSettings.default_interview_type} 
-                onValueChange={(value) => handleSettingsChange('default_interview_type', value as any)}
+                onValueChange={(value) => handleSettingsChange('default_interview_type', value as unknown as string)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select interview type" />

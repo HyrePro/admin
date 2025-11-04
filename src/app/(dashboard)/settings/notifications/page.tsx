@@ -308,7 +308,7 @@ export default function NotificationsPage() {
             
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Browser notifications require your browser's permission and may not work in all environments.
+                <strong>Note:</strong> Browser notifications require your browser&apos;s permission and may not work in all environments.
               </p>
             </div>
           </div>

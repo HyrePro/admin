@@ -35,10 +35,10 @@ export async function GET() {
       calendars: response.data.items,
       note: 'You can now create Google Meet links'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       error: 'Failed to connect to Google Calendar',
-      message: error.message,
+      message: (error as Error)?.message,
       instructions: [
         '1. Check if GOOGLE_REFRESH_TOKEN is set in .env.local',
         '2. Make sure the token is valid (not revoked)',

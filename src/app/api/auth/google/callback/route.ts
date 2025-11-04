@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
       ],
       note: 'This refresh token never expires unless revoked, so save it securely'
     });
-  } catch (error: any) {
+  } catch (error: unknown ) {
     console.error('Error getting tokens:', error);
     return NextResponse.json(
       { 
-        error: error.message,
+        error: (error as Error)?.message,
         details: 'Make sure your Google OAuth credentials are correct in .env.local'
       },
       { status: 500 }

@@ -22,9 +22,9 @@ export async function GET() {
       authUrl,
       instructions: 'Copy the authUrl and open it in your browser to authorize'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message },
+      { error: (error as Error).message },
       { status: 500 }
     );
   }
