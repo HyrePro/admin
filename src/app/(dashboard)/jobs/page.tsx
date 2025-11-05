@@ -112,7 +112,7 @@ export default function JobsPage() {
   }, [user, session, authLoading]);
 
   return (
-    <div className="p-4 space-y-6 ">
+    <div className="p-4 space-y-6 flex flex-col flex-1 overflow-hidden">
       <div className="jobs-header">
         <h1 className="jobs-title">Jobs</h1>
         <Button

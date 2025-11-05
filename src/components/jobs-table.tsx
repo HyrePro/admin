@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronLeft, ChevronRight, Eye, Copy } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Copy, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -205,7 +205,7 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-col flex-grow h-full mb-4">
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -230,17 +230,14 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
         </Select>
         {onRefresh && (
           <Button variant="outline" onClick={onRefresh}>
-            Refresh
+            <RefreshCw className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      {/* Results Summary */}
-      
-
       {/* Jobs Table - Takes remaining space */}
-      <div className="rounded-md border flex-1 flex-col overflow-y-auto flex-grow">
-        {/* <Table >
+      <div className="rounded-md border flex-col overflow-y-auto flex-1">
+        <Table >
           <TableHeader>
             <TableRow>
               <TableHead className="w-1/4">Job Title</TableHead>
@@ -339,7 +336,7 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
               })
             )}
           </TableBody>
-        </Table> */}
+        </Table>
       </div>
 
       {/* Pagination - Always shown at bottom */}
