@@ -97,7 +97,7 @@ const WeeklyActivity: React.FC<WeeklyActivityChartProps> = ({ schoolId: propScho
     } satisfies ChartConfig;
 
     return (
-        <Card className="hover:shadow-lg transition-shadow duration-300 gap-2 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none h-full">
+        <Card className="hover:shadow-lg transition-shadow duration-300 gap-2 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none">
             <div className="flex flex-row justify-between items-center pb-4">
                 <CardTitle>
                     {timeRange + " Activity"}

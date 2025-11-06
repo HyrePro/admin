@@ -23,6 +23,14 @@ import WeeklyActivity from "@/components/weekly-activity-chart"
 import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SchoolJobsContainer } from "@/components/school-job-campaign"
 
+
+
+interface DashboardStats {
+  total_applications: number
+  interview_ready: number
+  offered: number
+}
+
 // Fetcher function - reusable and testable
 const fetchSchoolInfo = async (userId: string) => {
   if (!userId) return null
@@ -52,6 +60,19 @@ const fetchJobs = async (schoolId: string) => {
   return data || []
 }
 
+// Fetcher function for dashboard stats
+const fetchDashboardStats = async (schoolId: string): Promise<DashboardStats | null> => {
+  if (!schoolId) return null
+
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .rpc('get_school_dashboard_stats', { p_school_id: schoolId })
+    .single()
+
+  if (error) throw error
+  return data as DashboardStats || null
+}
+
 export default function Page() {
   const { user } = useAuth()
   const router = useRouter()
@@ -76,8 +97,18 @@ export default function Page() {
     }
   )
 
+  // Fetch dashboard stats based on schoolId
+  const { data: dashboardStats, error: statsError, isLoading: statsLoading } = useSWR<DashboardStats | null>(
+    schoolId ? ['dashboard-stats', schoolId] : null,
+    ([_, schoolId]) => fetchDashboardStats(schoolId as string),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  )
+
   // Loading state
-  if (schoolLoading || jobsLoading) {
+  if (schoolLoading || jobsLoading || statsLoading) {
     return (
       <AuthGuard>
         <div className="flex flex-1 flex-col">
@@ -92,7 +123,7 @@ export default function Page() {
   }
 
   // Error state
-  if (schoolError || jobsError) {
+  if (schoolError || jobsError || statsError) {
     return (
       <AuthGuard>
         <div className="flex flex-1 flex-col">
@@ -154,23 +185,23 @@ export default function Page() {
 
             <DashboardCard
               title="Total Applications"
-              value="0"
+              value={dashboardStats?.total_applications?.toString() || "0"}
               description="Across all positions"
               icon={<Users className="h-10 w-10 text-red-500 p-3 bg-red-50 rounded-full" />}
             />
 
             <DashboardCard
               title="Interviews Scheduled"
-              value="0"
+              value={dashboardStats?.interview_ready?.toString() || "0"}
               description="Upcoming interviews"
               icon={<TvMinimalIcon className="h-10 w-10 text-yellow-500 p-3 bg-yellow-50 rounded-full" />}
             />
 
             <DashboardCard
               title="Offers Sent"
-              value="0"
+              value={dashboardStats?.offered?.toString() || "0"}
               description="Pending responses"
-              icon={<BookText className="h-10 w-10 text-blue-500 p-3 bg-blue-50 rounded-full" />}
+              icon={<BookText className="h-10 w-10 text-violet-500 p-3 bg-violet-50 rounded-full" />}
             />
           </div>
 

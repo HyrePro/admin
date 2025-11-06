@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import '@/styles/jobs.css';
 
 interface Job {
   id: string;
@@ -34,6 +36,11 @@ interface Job {
     interviews: number;
     offered: number;
   };
+  hiring:{
+    first_name: string;
+    last_name: string;
+    avatar: string;
+  };
 }
 
 interface JobsTableProps {
@@ -45,16 +52,13 @@ interface JobsTableProps {
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All Statuses" },
   { value: "OPEN", label: "Open" },
-  { value: "IN_PROGRESS", label: "In Progress" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "SUSPENDED", label: "Suspended" },
   { value: "PAUSED", label: "Paused" },
-  { value: "APPEALED", label: "Appealed" },
+  { value: "COMPLETED", label: "Completed" },
 ];
 
 export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 10;
@@ -147,55 +151,71 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
           </Select>
         </div>
 
-        <div className="rounded-md border flex-grow flex flex-col overflow-hidden">
-          <Table className="flex-grow">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/4">Job Title</TableHead>
-                <TableHead className="w-1/12 border-l border-border">Applications</TableHead>
-                <TableHead className="w-1/12 border-l border-border">Status</TableHead>
-                <TableHead className="w-1/12 border-l border-border">Created</TableHead>
-                <TableHead className="w-1/4 border-l border-border">Grade Levels</TableHead>
-                <TableHead className="w-1/6 border-l border-border">Hiring Manager</TableHead>
-                <TableHead className="w-1/12 border-l border-border text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="overflow-y-auto flex-grow">
-              {[...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-3/4" />
-                  </TableCell>
-                  <TableCell className="border-l border-border">
-                    <Skeleton className="h-4 w-1/2" />
-                  </TableCell>
-                  <TableCell className="border-l border-border">
-                    <Skeleton className="h-6 w-16" />
-                  </TableCell>
-                  <TableCell className="border-l border-border">
-                    <Skeleton className="h-4 w-1/2" />
-                  </TableCell>
-                  <TableCell className="border-l border-border">
-                    <Skeleton className="h-4 w-full" />
-                  </TableCell>
-                  <TableCell className="border-l border-border">
-                    <Skeleton className="h-4 w-full" />
-                  </TableCell>
-                  <TableCell className="border-l border-border text-right">
-                    <Skeleton className="h-8 w-16 ml-auto" />
-                  </TableCell>
+        <div className="table-container">
+          <div className="table-scroll">
+            <Table>
+              <TableHeader className="table-header">
+                <TableRow>
+                  <TableHead className="table-head table-head-border">Job Title</TableHead>
+                  <TableHead className="table-head table-head-border">Applications</TableHead>
+                  <TableHead className="table-head table-head-border">Status</TableHead>
+                  <TableHead className="table-head table-head-border">Created</TableHead>
+                  <TableHead className="table-head table-head-border">Grade Levels</TableHead>
+                  <TableHead className="table-head table-head-border">Hiring Manager</TableHead>
+                  <TableHead className="table-head table-head-actions">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody className="table-body">
+                {[...Array(5)].map((_, i) => (
+                  <TableRow key={i} className="table-row-hover">
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-border">
+                      <div className="cell-content">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="table-cell-actions">
+                      <div className="cell-content">
+                        <Skeleton className="h-8 w-16 ml-auto" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Pagination Skeleton - Always shown at bottom */}
-        <div className="flex items-center justify-between pt-4">
-          <div className="text-sm text-gray-600">
+        <div className="pagination-container">
+          <div className="pagination-info">
             <Skeleton className="h-4 w-32" />
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="pagination-controls">
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-8 w-20" />
           </div>
@@ -205,13 +225,13 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
   }
 
   return (
-    <div className="flex-col flex-grow h-full mb-4">
+    <div className="flex flex-col h-full">
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search by title or grade level..."
-            value={searchQuery}
+            value={searchQuery ?? ""}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
@@ -235,139 +255,171 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
         )}
       </div>
 
-      {/* Jobs Table - Takes remaining space */}
-      <div className="rounded-md border flex-col overflow-y-auto flex-1">
-        <Table >
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/4">Job Title</TableHead>
-              <TableHead className="w-1/12 border-l border-border">Applications</TableHead>
-              <TableHead className="w-1/12 border-l border-border">Status</TableHead>
-              <TableHead className="w-1/12 border-l border-border">Created</TableHead>
-              <TableHead className="w-1/4 border-l border-border">Grade Levels</TableHead>
-              <TableHead className="w-1/6 border-l border-border">Hiring Manager</TableHead>
-              <TableHead className="w-1/12 border-l border-border text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="overflow-y-auto">
-            {paginatedJobs.length === 0 ? (
+      {/* Table Container - Using the same structure as candidates page */}
+      <div className="table-container">
+        <div className="table-scroll">
+          <Table>
+            <TableHeader className="table-header">
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  No jobs found matching your criteria
-                </TableCell>
+                <TableHead className="table-head table-head-border">Job Title</TableHead>
+                <TableHead className="table-head table-head-border">Applications</TableHead>
+                <TableHead className="table-head table-head-border">Status</TableHead>
+                <TableHead className="table-head table-head-border">Created</TableHead>
+                <TableHead className="table-head table-head-border">Grade Levels</TableHead>
+                <TableHead className="table-head table-head-border">Hiring Manager</TableHead>
+                <TableHead className="table-head table-head-actions">Actions</TableHead>
               </TableRow>
-            ) : (
-              paginatedJobs.map((job) => {
-                return (
-                  <TableRow key={job.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <span>{job.title}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="border-l border-border">
-                      <div className="font-medium">{job.application_analytics.total_applications || 0}</div>
-                    </TableCell>
-                    <TableCell className="border-l border-border">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "capitalize font-medium",
-                          statusColors[job.status] || "bg-gray-50 text-gray-700 border-gray-200"
-                        )}
-                      >
-                        {job.status.toLowerCase().replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="border-l border-border">
-                      {new Date(job.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </TableCell>
-                    <TableCell className="border-l border-border">
-                      <div className="flex flex-wrap gap-1">
-                        {job.grade_levels?.slice(0, 2).map((grade) => (
-                          <Badge key={grade} variant="secondary" className="text-xs">
-                            {grade}
+            </TableHeader>
+            <TableBody className="table-body">
+              {paginatedJobs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    No jobs found matching your criteria
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedJobs.map((job) => {
+                  return (
+                    <TableRow key={job.id} className="table-row-hover">
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          <div className="flex flex-col">
+                            <span>{job.title}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          <div className="font-medium">{job.application_analytics.total_applications || 0}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          <Badge
+                            className={cn(
+                              "capitalize font-medium",
+                              statusColors[job.status] || "bg-gray-50 text-gray-700 border-gray-200"
+                            )}
+                          >
+                            {job.status.toLowerCase().replace("_", " ")}
                           </Badge>
-                        ))}
-                        {job.grade_levels && job.grade_levels.length > 2 && (
-                          <div className="w-full flex flex-wrap gap-1 mt-1">
-                            {job.grade_levels.slice(2).map((grade) => (
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          {new Date(job.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          <div className="flex flex-wrap gap-1">
+                            {job.grade_levels?.slice(0, 2).map((grade) => (
                               <Badge key={grade} variant="secondary" className="text-xs">
                                 {grade}
                               </Badge>
                             ))}
+                            {job.grade_levels && job.grade_levels.length > 2 && (
+                              <div className="w-full flex flex-wrap gap-1 mt-1">
+                                {job.grade_levels.slice(2).map((grade) => (
+                                  <Badge key={grade} variant="secondary" className="text-xs">
+                                    {grade}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="border-l border-border">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={`https://i.pravatar.cc/150?u=${job.id}`} alt="Hiring Manager" />
-                          <AvatarFallback>HM</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">John Doe</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="border-l border-border text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCopyLink(job.id)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewJob(job.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-border">
+                        <div className="cell-content">
+                          {(job.hiring && job.hiring.first_name && job.hiring.last_name)  ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={job.hiring.avatar || ''} alt="Hiring Manager" />
+                                <AvatarFallback>{job.hiring.first_name[0]} {job.hiring.last_name[0]}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{job.hiring.first_name} {job.hiring.last_name}</span>
+                            </div>
+                          ): <div>-</div>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="table-cell-actions">
+                        <div className="cell-content">
+                          <div className="flex justify-end gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleCopyLink(job.id)}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copy job link</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewJob(job.id)}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View job details</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      {/* Pagination - Always shown at bottom */}
-      <div className="flex items-center justify-between pt-4">
-        <div className="text-sm text-gray-600">
-          Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-          <span className="font-medium">{endIndex}</span> of{' '}
-          <span className="font-medium">{filteredJobs.length}</span> jobs
-          
+      {/* Pagination - Always shown at bottom to maintain consistent layout */}
+      <div className="pagination-container" style={{ zIndex: 20, marginTop:8 }}>
+        <div className="pagination-info">
+          Showing <span className="pagination-value">{startIndex + 1}</span> to{' '}
+          <span className="pagination-value">{endIndex || 0}</span> of{' '}
+          <span className="pagination-value">{filteredJobs.length}</span> jobs
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">
-            Page {currentPage + 1} of {totalPages}
+        <div className="pagination-controls">
+          <span className="pagination-page">
+            Page {currentPage + 1} of {totalPages || 1}
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={handlePreviousPage}
             disabled={currentPage === 0}
+            className="pagination-btn"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="btn-icon" />
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleNextPage}
-            disabled={currentPage >= totalPages - 1}
+            disabled={currentPage >= (totalPages - 1 || 0)}
+            className="pagination-btn"
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="btn-icon" />
           </Button>
         </div>
       </div>

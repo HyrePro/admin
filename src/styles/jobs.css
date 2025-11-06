@@ -26,7 +26,6 @@
 }
 
 .btn-icon {
-  margin-right: 0.5rem;
   height: 1rem;
   width: 1rem;
 }
@@ -105,14 +104,15 @@
 .table-scroll {
   overflow: auto;
   flex: 1;
+  position: relative;
 }
 
 /* Table Header */
 .table-header {
   position: sticky;
   top: 0;
-  background-color: rgb(243 244 246);
-  z-index: 10;
+  background-color: rgb(255, 255, 255);
+  z-index: 50;
   border-bottom: 1px solid rgb(229 231 235);
 }
 
@@ -120,6 +120,7 @@
   font-weight: 400;
   font-size: 0.875rem;
   padding: 0.5rem;
+  background-color: white;
 }
 
 .table-head-border {
@@ -307,6 +308,8 @@
   height: 2rem;
   width: 2rem;
   padding: 0;
+  align-items: center;
+  display: flex;
 }
 
 .action-btn:hover {
@@ -382,7 +385,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.25rem;
+  padding-top: 0.75rem;
   flex-shrink: 0;
 }
 

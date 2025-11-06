@@ -22,6 +22,11 @@ type Job = {
     interviews: number;
     offered: number;
   };
+  hiring:{
+    first_name: string;
+    last_name: string;
+    avatar: string;
+  }
 };
 
 export default function JobsPage() {
@@ -112,7 +117,7 @@ export default function JobsPage() {
   }, [user, session, authLoading]);
 
   return (
-    <div className="p-4 space-y-6 flex flex-col flex-1 overflow-hidden">
+    <div className="jobs-container flex flex-col h-full">
       <div className="jobs-header">
         <h1 className="jobs-title">Jobs</h1>
         <Button
@@ -125,12 +130,13 @@ export default function JobsPage() {
         </Button>
       </div>
       
-      {/* Jobs Table */}
-      <JobsTable 
-        jobs={jobs} 
-        loading={loading} 
-        onRefresh={fetchJobs} 
-      />
+      <div className="flex-1 overflow-hidden">
+        <JobsTable 
+          jobs={jobs} 
+          loading={loading} 
+          onRefresh={fetchJobs} 
+        />
+      </div>
     </div>
   );
 }
