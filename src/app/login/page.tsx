@@ -24,7 +24,7 @@ export default function LoginPage() {
           </div>
           <div className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
+            <Link href="/signup" className="text-primary hover:underline font-medium" scroll={false}>
               Sign up
             </Link>
           </div>

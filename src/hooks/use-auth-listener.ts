@@ -20,7 +20,10 @@ export function useAuthListener() {
           if (session.user.email_confirmed_at) {
             console.log('Email confirmed, redirecting to dashboard')
             toast.success("Email confirmed! Redirecting to dashboard...")
-            router.push("/")
+            // Only redirect if we're not already on a dashboard page
+            if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
+              router.push("/")
+            }
           }
         }
         
@@ -28,7 +31,10 @@ export function useAuthListener() {
         if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at) {
           console.log('Email confirmed on token refresh, redirecting to dashboard')
           toast.success("Email confirmed! Redirecting to dashboard...")
-          router.push("/")
+          // Only redirect if we're not already on a dashboard page
+          if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
+            router.push("/")
+          }
         }
       }
     )
@@ -38,8 +44,11 @@ export function useAuthListener() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user?.email_confirmed_at) {
-          console.log('Current session has confirmed email, redirecting to dashboard')
-          router.push("/")
+          console.log('Current session has confirmed email')
+          // Only redirect if we're not already on a dashboard page
+          if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
+            router.push("/")
+          }
         }
       } catch (error) {
         console.error('Error checking current session:', error)
@@ -51,8 +60,12 @@ export function useAuthListener() {
     // Handle page visibility changes (when user returns to tab)
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        console.log('Page became visible, checking auth status...')
-        await checkCurrentSession()
+        console.log('Page became visible')
+        // Only check auth status if we're on an auth-related page
+        if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+          console.log('Checking auth status on auth page')
+          await checkCurrentSession()
+        }
       }
     }
 
@@ -60,8 +73,12 @@ export function useAuthListener() {
 
     // Handle focus events (when user returns to window)
     const handleFocus = async () => {
-      console.log('Window focused, checking auth status...')
-      await checkCurrentSession()
+      console.log('Window focused')
+      // Only check auth status if we're on an auth-related page
+      if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+        console.log('Checking auth status on auth page')
+        await checkCurrentSession()
+      }
     }
 
     window.addEventListener('focus', handleFocus)

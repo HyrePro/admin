@@ -16,7 +16,7 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">Documents</h1>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/create-job-post" passHref>
+          <Link href="/create-job-post" passHref scroll={false}>
             <Button asChild variant="default" size="sm" className="sm:flex bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               <span>+ Create Job Post</span>
             </Button>

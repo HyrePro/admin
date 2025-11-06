@@ -77,7 +77,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={active}
                     className={`${active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined} hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 `}
                   >
-                    <Link href={href}>
+                    <Link href={href} scroll={false}>
                         <Icon className={active ? "text-white" : undefined} />
                         <span className={`${active ? "text-white" : 'text-blue'} hover: text-blue`}>
                           {title}
@@ -126,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </ItemDescription>
         </ItemContent>
         <ItemActions>
-          <Link href="/jobs/create-job-post" passHref>
+          <Link href="/jobs/create-job-post" passHref scroll={false}>
               <Button asChild variant="default" size="sm" className="sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:w-auto">
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text group-data-[collapsible=icon]:bg-none group-data-[collapsible=icon]:text-white">
                   + Create Job Post

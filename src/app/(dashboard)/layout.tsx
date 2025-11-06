@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -45,6 +45,8 @@ export default function DashboardShellLayout({
   const [hasSchoolId, setHasSchoolId] = useState<boolean | null>(null);
   // State for school information
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
+  // State to track if initial auth check has been done
+  const [initialAuthCheckDone, setInitialAuthCheckDone] = useState(false);
 
   // Extract job ID and application ID from pathname
   const { jobId, applicationId } = useMemo(() => {
@@ -67,7 +69,7 @@ export default function DashboardShellLayout({
   }, [pathname]);
 
   // Fetch school information
-  const fetchSchoolInfo = async (schoolId: string) => {
+  const fetchSchoolInfo = useCallback(async (schoolId: string) => {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -86,124 +88,125 @@ export default function DashboardShellLayout({
       console.error("Error fetching school info:", err);
       return null;
     }
-  };
+  }, []);
 
   // Check if user has school_id and fetch school information
-  useEffect(() => {
-    if (!user || loading) return;
+  const checkSchoolId = useCallback(async () => {
+    if (!user || loading || initialAuthCheckDone) return;
 
-    const checkSchoolId = async () => {
-      setCheckingSchoolId(true);
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('admin_user_info')
-          .select('school_id')
-          .eq('id', user.id)
-          .single();
+    setCheckingSchoolId(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('admin_user_info')
+        .select('school_id')
+        .eq('id', user.id)
+        .single();
 
-        // If there's an error or no data, redirect to select-organization
-        // This handles cases where user doesn't exist in admin_user_info table yet
-        if (error || !data) {
-          console.warn("User not found in admin_user_info or error occurred:", error || "No data returned");
-          setHasSchoolId(false);
-          router.replace("/select-organization");
-          return;
-        }
-
-        const schoolIdExists = !!data.school_id;
-        setHasSchoolId(schoolIdExists);
-
-        // If user doesn't have school_id, redirect to select-organization
-        if (!schoolIdExists) {
-          router.replace("/select-organization");
-          return;
-        }
-
-        // Fetch school information
-        const schoolData = await fetchSchoolInfo(data.school_id);
-        setSchoolInfo(schoolData);
-      } catch (err) {
-        console.error("Unexpected error checking school ID:", err);
-        // On any error, redirect to select-organization for safety
+      // If there's an error or no data, redirect to select-organization
+      // This handles cases where user doesn't exist in admin_user_info table yet
+      if (error || !data) {
+        console.warn("User not found in admin_user_info or error occurred:", error || "No data returned");
         setHasSchoolId(false);
         router.replace("/select-organization");
         return;
-      } finally {
-        setCheckingSchoolId(false);
       }
-    };
 
+      const schoolIdExists = !!data.school_id;
+      setHasSchoolId(schoolIdExists);
+
+      // If user doesn't have school_id, redirect to select-organization
+      if (!schoolIdExists) {
+        router.replace("/select-organization");
+        return;
+      }
+
+      // Fetch school information
+      const schoolData = await fetchSchoolInfo(data.school_id);
+      setSchoolInfo(schoolData);
+    } catch (err) {
+      console.error("Unexpected error checking school ID:", err);
+      // On any error, redirect to select-organization for safety
+      setHasSchoolId(false);
+      router.replace("/select-organization");
+      return;
+    } finally {
+      setCheckingSchoolId(false);
+      setInitialAuthCheckDone(true);
+    }
+  }, [user, loading, initialAuthCheckDone, router, fetchSchoolInfo]);
+
+  useEffect(() => {
     checkSchoolId();
-  }, [user, loading, router]);
+  }, [checkSchoolId]);
 
   // Fetch job title when we have a job ID
-  useEffect(() => {
+  const fetchJobTitle = useCallback(async () => {
     if (!jobId) {
       setJobTitle(null);
       return;
     }
 
-    const fetchJobTitle = async () => {
-      setLoadingJobTitle(true);
-      try {
-        // Create a Supabase client instance
-        const supabase = createClient();
-        // Query the jobs table directly by ID to get the title
-        const { data, error } = await supabase
-          .from('jobs')
-          .select('title')
-          .eq('id', jobId)
-          .single();
+    setLoadingJobTitle(true);
+    try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      // Query the jobs table directly by ID to get the title
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('title')
+        .eq('id', jobId)
+        .single();
 
-        if (error) {
-          console.error("Error fetching job data:", error);
-          setJobTitle("Job Details");
-        } else {
-          setJobTitle(data?.title || "Job Details");
-        }
-      } catch (err) {
-        console.error("Error fetching job title:", err);
+      if (error) {
+        console.error("Error fetching job data:", error);
         setJobTitle("Job Details");
-      } finally {
-        setLoadingJobTitle(false);
+      } else {
+        setJobTitle(data?.title || "Job Details");
       }
-    };
-
-    fetchJobTitle();
+    } catch (err) {
+      console.error("Error fetching job title:", err);
+      setJobTitle("Job Details");
+    } finally {
+      setLoadingJobTitle(false);
+    }
   }, [jobId]);
 
-  // Fetch candidate name when we have an application ID
   useEffect(() => {
+    fetchJobTitle();
+  }, [fetchJobTitle]);
+
+  // Fetch candidate name when we have an application ID
+  const fetchCandidateName = useCallback(async () => {
     if (!applicationId) {
       setCandidateName(null);
       return;
     }
 
-    const fetchCandidateName = async () => {
-      setLoadingCandidateName(true);
-      try {
-        const result = await getJobApplication(applicationId);
+    setLoadingCandidateName(true);
+    try {
+      const result = await getJobApplication(applicationId);
 
-        if (result.error) {
-          console.error("Error fetching candidate data:", result.error);
-          setCandidateName("Applicant Details");
-        } else if (result.candidateInfo) {
-          const fullName = `${result.candidateInfo.first_name} ${result.candidateInfo.last_name}`;
-          setCandidateName(fullName);
-        } else {
-          setCandidateName("Applicant Details");
-        }
-      } catch (err) {
-        console.error("Error fetching candidate name:", err);
+      if (result.error) {
+        console.error("Error fetching candidate data:", result.error);
         setCandidateName("Applicant Details");
-      } finally {
-        setLoadingCandidateName(false);
+      } else if (result.candidateInfo) {
+        const fullName = `${result.candidateInfo.first_name} ${result.candidateInfo.last_name}`;
+        setCandidateName(fullName);
+      } else {
+        setCandidateName("Applicant Details");
       }
-    };
-
-    fetchCandidateName();
+    } catch (err) {
+      console.error("Error fetching candidate name:", err);
+      setCandidateName("Applicant Details");
+    } finally {
+      setLoadingCandidateName(false);
+    }
   }, [applicationId]);
+
+  useEffect(() => {
+    fetchCandidateName();
+  }, [fetchCandidateName]);
 
   // Generate breadcrumb items based on pathname
   const breadcrumbItems = useMemo(() => {
