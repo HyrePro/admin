@@ -18,16 +18,6 @@ export function MCQOverview({ applicationStage }: MCQOverviewProps) {
     if (totalQuestions === 0) return "N/A";
     return `${score}/${totalQuestions}`;
   };
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   // Check if assessment is in progress (no overall data available)
   const isAssessmentInProgress = !applicationStage.overall;
 
@@ -122,138 +112,113 @@ export function MCQOverview({ applicationStage }: MCQOverviewProps) {
 
       {/* Subject-wise Performance Chart */}
       {applicationStage.category_scores && Object.keys(applicationStage.category_scores).length > 0 && (
-        <div>
+        <div className="mt-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject-wise Performance</h3>
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Performance by Subject</CardTitle>
-            </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={{
-                  correctAnswers: {
-                    label: "Correct Answers",
-                    color: "#3b82f6"
-                  },
-                  incorrectAnswers: {
-                    label: "Incorrect Answers", 
-                    color: "#9ca3af"
-                  }
-                }}
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={Object.entries(applicationStage.category_scores).map(([category, scores]) => {
-                      const accuracy = scores.total_questions > 0 ? (scores.score / scores.total_questions) : 0;
-                      const incorrectAnswers = scores.total_questions - scores.score;
-                      return {
-                        subject: category.charAt(0).toUpperCase() + category.slice(1),
-                        totalQuestions: scores.total_questions,
-                        correctAnswers: scores.score,
-                        incorrectAnswers: incorrectAnswers,
-                        accuracy: Math.round(accuracy * 100)
-                      };
-                    })}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="subject" 
-                      className="text-xs"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-white p-3 border rounded-lg shadow-lg">
-                              <p className="font-semibold">{label}</p>
-                              <p className="text-sm text-blue-600">Correct: {data.correctAnswers}</p>
-                              <p className="text-sm text-gray-600">Incorrect: {data.incorrectAnswers}</p>
-                              <p className="text-sm text-gray-900">Total: {data.totalQuestions}</p>
-                              <p className="text-sm text-green-600">Accuracy: {data.accuracy}%</p>
-                            </div>
-                          );
-                        }
-                        return null;
+              <div className="flex flex-col lg:flex-row gap-6">
+                <ChartContainer
+                  config={{
+                    correctAnswers: {
+                      label: "Correct Answers",
+                      color: "#3b82f6"
+                    },
+                    incorrectAnswers: {
+                      label: "Incorrect Answers", 
+                      color: "#9ca3af"
+                    }
+                  }}
+                  className="h-[300px] lg:w-2/3"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={Object.entries(applicationStage.category_scores).map(([category, scores]) => {
+                        const accuracy = scores.total_questions > 0 ? (scores.score / scores.total_questions) : 0;
+                        const incorrectAnswers = scores.total_questions - scores.score;
+                        return {
+                          subject: category.charAt(0).toUpperCase() + category.slice(1),
+                          totalQuestions: scores.total_questions,
+                          correctAnswers: scores.score,
+                          incorrectAnswers: incorrectAnswers,
+                          accuracy: Math.round(accuracy * 100)
+                        };
+                      })}
+                      margin={{
+                        top: 20,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
                       }}
-                    />
-                    <Legend />
-                    {/* Blue bar for correct answers (bottom) */}
-                    <Bar 
-                      dataKey="correctAnswers" 
-                      name="Correct Answers"
-                      fill="#3b82f6"
-                      stackId="performance"
-                      radius={[0, 0, 0, 0]}
-                    />
-                    {/* Gray bar for incorrect answers (stacked on top) */}
-                    <Bar 
-                      dataKey="incorrectAnswers" 
-                      name="Incorrect Answers"
-                      fill="#9ca3af"
-                      stackId="performance"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-              
-              {/* Subject Performance Summary */}
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(applicationStage.category_scores).map(([category, scores]) => (
-                  <div key={category} className="bg-gray-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-medium text-gray-900 capitalize text-sm">{category}</h4>
-                      <Badge variant="outline" className="bg-white text-xs">
-                        {formatScore(scores.score, scores.total_questions)}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {scores.total_questions > 0 
-                        ? `${Math.round((scores.score / scores.total_questions) * 100)}% accuracy`
-                        : 'N/A'
-                      }
-                    </div>
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="subject" 
+                        className="text-xs"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white p-3 border rounded-lg shadow-lg">
+                                <p className="font-semibold">{label}</p>
+                                <p className="text-sm text-blue-600">Correct: {data.correctAnswers}</p>
+                                <p className="text-sm text-gray-600">Incorrect: {data.incorrectAnswers}</p>
+                                <p className="text-sm text-gray-900">Total: {data.totalQuestions}</p>
+                                <p className="text-sm text-green-600">Accuracy: {data.accuracy}%</p>
+                            </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend />
+                      {/* Blue bar for correct answers (bottom) */}
+                      <Bar 
+                        dataKey="correctAnswers" 
+                        name="Correct Answers"
+                        fill="#3b82f6"
+                        stackId="performance"
+                        radius={[0, 0, 0, 0]}
+                      />
+                      {/* Gray bar for incorrect answers (stacked on top) */}
+                      <Bar 
+                        dataKey="incorrectAnswers" 
+                        name="Incorrect Answers"
+                        fill="#9ca3af"
+                        stackId="performance"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                
+                {/* Subject Performance Summary */}
+                <div className="lg:w-1/3">
+                  <div className="space-y-3">
+                    {Object.entries(applicationStage.category_scores).map(([category, scores]) => (
+                      <div key={category} className="bg-gray-50 p-3 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-medium text-gray-900 capitalize text-sm">{category}</h4>
+                          <Badge variant="outline" className="bg-white text-xs">
+                            {formatScore(scores.score, scores.total_questions)}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {scores.total_questions > 0 
+                            ? `${Math.round((scores.score / scores.total_questions) * 100)}% accuracy`
+                            : 'N/A'
+                          }
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {/* Video Assessment */}
-      {applicationStage.video_url && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Video Assessment</h3>
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">Demo Video Submission</div>
-                <div className="text-sm text-gray-600">Click to view the candidate&apos;s video response</div>
-              </div>
-              <a 
-                href={applicationStage.video_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                View Video
-              </a>
-            </div>
-          </div>
         </div>
       )}
     </div>

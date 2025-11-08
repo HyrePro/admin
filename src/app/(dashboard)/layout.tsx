@@ -140,128 +140,6 @@ export default function DashboardShellLayout({
     checkSchoolId();
   }, [checkSchoolId]);
 
-  // Fetch job title when we have a job ID
-  const fetchJobTitle = useCallback(async () => {
-    if (!jobId) {
-      setJobTitle(null);
-      return;
-    }
-
-    setLoadingJobTitle(true);
-    try {
-      // Create a Supabase client instance
-      const supabase = createClient();
-      // Query the jobs table directly by ID to get the title
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('title')
-        .eq('id', jobId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching job data:", error);
-        setJobTitle("Job Details");
-      } else {
-        setJobTitle(data?.title || "Job Details");
-      }
-    } catch (err) {
-      console.error("Error fetching job title:", err);
-      setJobTitle("Job Details");
-    } finally {
-      setLoadingJobTitle(false);
-    }
-  }, [jobId]);
-
-  useEffect(() => {
-    fetchJobTitle();
-  }, [fetchJobTitle]);
-
-  // Fetch candidate name when we have an application ID
-  const fetchCandidateName = useCallback(async () => {
-    if (!applicationId) {
-      setCandidateName(null);
-      return;
-    }
-
-    setLoadingCandidateName(true);
-    try {
-      const result = await getJobApplication(applicationId);
-
-      if (result.error) {
-        console.error("Error fetching candidate data:", result.error);
-        setCandidateName("Applicant Details");
-      } else if (result.candidateInfo) {
-        const fullName = `${result.candidateInfo.first_name} ${result.candidateInfo.last_name}`;
-        setCandidateName(fullName);
-      } else {
-        setCandidateName("Applicant Details");
-      }
-    } catch (err) {
-      console.error("Error fetching candidate name:", err);
-      setCandidateName("Applicant Details");
-    } finally {
-      setLoadingCandidateName(false);
-    }
-  }, [applicationId]);
-
-  useEffect(() => {
-    fetchCandidateName();
-  }, [fetchCandidateName]);
-
-  // Generate breadcrumb items based on pathname
-  const breadcrumbItems = useMemo(() => {
-    if (!pathname || pathname === "/") {
-      return [{ label: "Dashboard", href: "/", isCurrentPage: true }];
-    }
-
-    const segments = pathname.split("/").filter(Boolean);
-    const items = [];
-
-    if (segments[0] === "jobs") {
-      // Add Jobs page
-      items.push({
-        label: "Jobs",
-        href: "/jobs",
-        isCurrentPage: segments.length === 1
-      });
-
-      // If we have a job ID, add the job title
-      if (segments.length >= 2 && jobId) {
-        items.push({
-          label: loadingJobTitle ? "Loading..." : (jobTitle || "Job Details"),
-          href: `/jobs/${jobId}`,
-          isCurrentPage: segments.length === 2
-        });
-      }
-
-      // If we have an application ID, add the applicant name (first and last name)
-      if (segments.length === 3 && applicationId) {
-        items.push({
-          label: loadingCandidateName ? "Loading..." : (candidateName || "Applicant Details"),
-          href: `/jobs/${jobId}/${applicationId}`,
-          isCurrentPage: true
-        });
-      }
-    } else {
-      // Handle other pages
-      const mapping: Record<string, string> = {
-        "profile": "My Profile",
-        "help": "Help & Support",
-        "settings": "Settings",
-        "create-job-post": "Create Job Post",
-      };
-
-      const label = mapping[segments[0]] ?? segments[0].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      items.push({
-        label,
-        href: `/${segments[0]}`,
-        isCurrentPage: true
-      });
-    }
-
-    return items;
-  }, [pathname, jobId, applicationId, jobTitle, candidateName, loadingJobTitle, loadingCandidateName]);
-
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -294,7 +172,7 @@ export default function DashboardShellLayout({
           </div>
           <div className="flex px-2 flex-col ms-2">
             <div className="font-regular text-gray-900 text-sm">Welcome</div>
-            <div className="font-medium text-gray-900 text-md">
+            <div className="font-medium text-gray-900 text-md truncate">
               {schoolInfo ? `${schoolInfo.name}, ${schoolInfo.location}` : "Loading school info..."}
             </div>
           </div>

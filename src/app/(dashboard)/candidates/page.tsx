@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import '@/styles/candidates.css'
+import { statusColors } from '../../../../utils/statusColor'
 
 // Types
 interface Application {
@@ -47,28 +48,28 @@ const CACHE_TIME = 60000
 const STALE_TIME = 30000
 
 const STATUS_CONFIG = {
-  in_progress: { text: 'In Progress', color: 'status-in-progress' },
-  application_submitted: { text: 'Application Submitted', color: 'status-application-submitted' },
-  assessment_in_progress: { text: 'Assessment In Progress', color: 'status-assessment-in-progress' },
-  assessment_in_evaluation: { text: 'Assessment In Evaluation', color: 'status-assessment-in-evaluation' },
-  assessment_evaluated: { text: 'Assessment Evaluated', color: 'status-assessment-evaluated' },
-  assessment_questionnaire_creation: { text: 'Assessment Questionnaire Creation', color: 'status-assessment-questionnaire-creation' },
-  assessment_ready: { text: 'Assessment Ready', color: 'status-assessment-ready' },
-  assessment_failed: { text: 'Assessment Failed', color: 'status-assessment-failed' },
-  demo_creation: { text: 'Demo Creation', color: 'status-demo-creation' },
-  demo_ready: { text: 'Demo Ready', color: 'status-demo-ready' },
-  demo_in_progress: { text: 'Demo In Progress', color: 'status-demo-in-progress' },
-  demo_in_evaluation: { text: 'Demo In Evaluation', color: 'status-demo-in-evaluation' },
-  demo_evaluated: { text: 'Demo Evaluated', color: 'status-demo-evaluated' },
-  demo_failed: { text: 'Demo Failed', color: 'status-demo-failed' },
-  interview_in_progress: { text: 'Interview In Progress', color: 'status-interview-in-progress' },
-  interview_ready: { text: 'Interview Ready', color: 'status-interview-ready' },
-  paused: { text: 'Paused', color: 'status-paused' },
-  completed: { text: 'Completed', color: 'status-completed' },
-  suspended: { text: 'Suspended', color: 'status-suspended' },
-  appealed: { text: 'Appealed', color: 'status-appealed' },
-  withdrawn: { text: 'Withdrawn', color: 'status-withdrawn' },
-  offered: { text: 'Offered', color: 'status-offered' },
+  in_progress: { text: 'In Progress', color: statusColors.in_progress },
+  application_submitted: { text: 'Application Submitted', color: statusColors.application_submitted },
+  assessment_in_progress: { text: 'Assessment In Progress', color: statusColors.assessment_in_progress },
+  assessment_in_evaluation: { text: 'Assessment In Evaluation', color: statusColors.assessment_in_evaluation },
+  assessment_evaluated: { text: 'Assessment Evaluated', color: statusColors.assessment_evaluated },
+  assessment_questionnaire_creation: { text: 'Assessment Questionnaire Creation', color: statusColors.assessment_questionnaire_creation },
+  assessment_ready: { text: 'Assessment Ready', color: statusColors.assessment_ready },
+  assessment_failed: { text: 'Assessment Failed', color: statusColors.assessment_failed },
+  demo_creation: { text: 'Demo Creation', color: statusColors.demo_creation },
+  demo_ready: { text: 'Demo Ready', color: statusColors.demo_ready },
+  demo_in_progress: { text: 'Demo In Progress', color: statusColors.demo_in_progress },
+  demo_in_evaluation: { text: 'Demo In Evaluation', color: statusColors.demo_in_evaluation },
+  demo_evaluated: { text: 'Demo Evaluated', color: statusColors.demo_evaluated },
+  demo_failed: { text: 'Demo Failed', color: statusColors.demo_failed },
+  interview_in_progress: { text: 'Interview In Progress', color: statusColors.interview_in_progress },
+  interview_ready: { text: 'Interview Ready', color: statusColors.interview_ready },
+  paused: { text: 'Paused', color: statusColors.paused },
+  completed: { text: 'Completed', color: statusColors.completed },
+  suspended: { text: 'Suspended', color: statusColors.suspended },
+  appealed: { text: 'Appealed', color: statusColors.appealed },
+  withdrawn: { text: 'Withdrawn', color: statusColors.withdrawn },
+  offered: { text: 'Offered', color: statusColors.offered },
 } as const
 
 // Fetchers

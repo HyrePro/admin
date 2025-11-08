@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CandidateInfo as CandidateInfoComponent } from "@/components/candidate-info";
 import { MCQAssessment } from "@/components/mcq-assessment";
+import { VideoAssessment } from "@/components/video-assessment";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
@@ -44,7 +45,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   const [applicationStage, setApplicationStage] = useState<ApplicationStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState<"info" | "assessment" | "video-assessment">("info");
   const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
 
@@ -402,6 +403,17 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           >
             MCQ Assessment
           </button>
+          <button
+            onClick={() => setActiveTab("video-assessment")}
+            className={cn(
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              activeTab === "video-assessment"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+            )}
+          >
+            Video Assessment
+          </button>
         </div>
 
         {/* Tab Content - Scrollable Area */}
@@ -411,6 +423,9 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           )}
           {activeTab === "assessment" && applicationStage && (
             <MCQAssessment applicationStage={applicationStage} />
+          )}
+          {activeTab === "video-assessment" && applicationStage && (
+            <VideoAssessment applicationStage={applicationStage} />
           )}
         </div>
       </div>

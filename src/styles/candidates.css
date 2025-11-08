@@ -287,7 +287,7 @@
 }
 
 .status-assessment-failed {
-  background-color: rgb(239 68 68); /* bg-red-500 */
+  background-color: rgb(239 68 68)!important; /* bg-red-500 */
   color: white;
 }
 
@@ -327,7 +327,7 @@
 }
 
 .status-interview-ready {
-  background-color: rgb(37 99 235); /* bg-blue-600 */
+  background-color: rgb(37 99 235)!important; /* bg-blue-600 */
   color: white;
 }
 

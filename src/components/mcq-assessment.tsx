@@ -18,7 +18,7 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-2 px-4 pt-4 flex-shrink-0">
+      <div className="flex gap-2 px-4 pt-4 flex-shrink-0 mb-4">
         <Badge
           variant={activeTab === "overview" ? "default" : "outline"}
           className={cn(

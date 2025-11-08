@@ -120,11 +120,10 @@
   font-weight: 400;
   font-size: 0.875rem;
   padding: 0.5rem;
-  background-color: white;
 }
 
 .table-head-border {
-  border-right: 1px solid rgb(229 231 235);
+  border-right: 1px solid rgb(4, 52, 149);
 }
 
 .table-head-actions {
