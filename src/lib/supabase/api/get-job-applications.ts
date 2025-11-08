@@ -82,7 +82,7 @@ export async function getJobApplications(
     }
 
     const { data, error } = await supabase.rpc("get_job_applications", {
-      p_job_id: 'c235c73c-1d0c-4bd0-a875-6d3bc4ca7c9d',
+      p_job_id: jobId,
       p_start_index: validatedStartIndex,
       p_end_index: validatedEndIndex,
       p_search: searchText.trim(),

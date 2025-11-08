@@ -1,0 +1,26 @@
+// utils/statusColors.ts
+
+export const statusColors: Record<string, string> = {
+  in_progress: "bg-blue-500",
+  application_submitted: "bg-sky-500",
+  assessment_in_progress: "bg-yellow-500",
+  assessment_in_evaluation: "bg-amber-500",
+  assessment_evaluated: "bg-green-500",
+  assessment_questionnaire_creation: "bg-cyan-500",
+  assessment_ready: "bg-teal-500",
+  assessment_failed: "bg-red-500",
+  demo_creation: "bg-cyan-400",
+  demo_ready: "bg-teal-400",
+  demo_in_progress: "bg-yellow-400",
+  demo_in_evaluation: "bg-amber-400",
+  demo_evaluated: "bg-green-400",
+  demo_failed: "bg-red-400",
+  interview_in_progress: "bg-indigo-500",
+  interview_ready: "bg-blue-600",
+  paused: "bg-gray-400",
+  completed: "bg-green-600",
+  suspended: "bg-zinc-500",
+  appealed: "bg-purple-500",
+  withdrawn: "bg-gray-500",
+  offered: "bg-violet-500",
+};

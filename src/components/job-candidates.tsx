@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download } from "lucide-react";
+import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download, ChevronLeft } from "lucide-react";
 import { getJobApplications, type JobApplication } from "@/lib/supabase/api/get-job-applications";
+import { createClient } from '@/lib/supabase/api/client';
 import { downloadFile, forceDownload } from "@/lib/utils";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -31,8 +32,34 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const [totalApplications, setTotalApplications] = useState(0);
   const [downloadingResumes, setDownloadingResumes] = useState<Set<string>>(new Set());
   const pageSize = 10;
+
+  const fetchTotalApplications = async (search: string = "") => {
+    try {
+      const supabase = createClient();
+      
+      let query = supabase
+        .from("job_applications")
+        .select("*", { count: "exact", head: true })
+        .eq("job_id", job_id);
+      
+      if (search) {
+        // This is a simplified search - you might need to adjust based on your actual search logic
+        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+      
+      const { count, error } = await query;
+      
+      if (error) throw error;
+      
+      return count || 0;
+    } catch (err) {
+      console.error("Error fetching total applications count:", err);
+      return 0;
+    }
+  };
 
   const fetchApplications = async (search: string = "", page: number = 0) => {
     setLoading(true);
@@ -62,11 +89,16 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       });
 
       setApplications(validApplications);
+      
+      // Fetch total count
+      const totalCount = await fetchTotalApplications(search);
+      setTotalApplications(totalCount);
     } catch (err) {
       console.error("Error fetching applications:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch applications");
       // Set empty array on error to prevent rendering issues
       setApplications([]);
+      setTotalApplications(0);
     } finally {
       setLoading(false);
     }
@@ -126,6 +158,19 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     }
   };
 
+  const handleNextPage = () => {
+    const maxPage = Math.ceil(totalApplications / pageSize) - 1;
+    if (currentPage < maxPage) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
   // Error Component
   const ErrorState = () => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -161,7 +206,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       <div className="bg-gray-50 rounded-full p-4 mb-4">
         <Users className="h-8 w-8 text-gray-400" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found {job_id}</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found</h3>
       <p className="text-gray-600 text-center mb-6 max-w-md">
         {debouncedSearchText
           ? `No candidates match your search for "${debouncedSearchText}". Try adjusting your search terms.`
@@ -237,8 +282,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
           <TableCell>
             <div className="space-y-1">
               <div className="font-medium">
-                {application.demo_score ??"N/A"
-                }
+                {application.demo_score ?? "N/A"}
               </div>
             </div>
           </TableCell>
@@ -300,7 +344,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       console.error('Error rendering application row:', renderError, application);
       return (
         <TableRow key={application.application_id || Math.random()} className="hover:bg-gray-50">
-          <TableCell colSpan={6} className="text-center py-4">
+          <TableCell colSpan={8} className="text-center py-4">
             <div className="text-gray-500">Error displaying candidate data</div>
           </TableCell>
         </TableRow>
@@ -309,7 +353,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 flex flex-col h-full">
       <ToastContainer position="top-right" autoClose={3000} />
       {/* Search Bar */}
       <div className="mb-6">
@@ -338,52 +382,56 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
           {applications.length === 0 ? (
             <EmptyState />
           ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader className="bg-gray-50 sticky top-0 z-10">
-                    <TableRow >
-                      <TableHead className="w-1/5 font-normal">Candidate</TableHead>
-                      <TableHead className="w-1/6 font-normal">Subjects</TableHead>
-                      <TableHead className="w-1/6 font-normal">Score</TableHead>
-                      <TableHead className="w-1/6 font-normal">AI Demo Score</TableHead>
-                      <TableHead className="w-1/6 font-normal">Interview Score</TableHead>
-                      <TableHead className="w-1/6 font-normal">Status</TableHead>
-                      <TableHead className="w-1/12 font-normal">Resume</TableHead>
-                      <TableHead className="w-12 font-normal"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {applications.map(renderApplicationRow)}
-                  </TableBody>
-                </Table>
+            <div className="flex flex-col flex-grow overflow-hidden">
+              <div className="rounded-md border flex-grow flex flex-col overflow-hidden">
+                <div className="overflow-x-auto flex-grow">
+                  <Table>
+                    <TableHeader className="bg-gray-50 sticky top-0 z-10">
+                      <TableRow>
+                        <TableHead className="w-1/5 font-normal">Candidate</TableHead>
+                        <TableHead className="w-1/6 font-normal">Subjects</TableHead>
+                        <TableHead className="w-1/6 font-normal">Score</TableHead>
+                        <TableHead className="w-1/6 font-normal">AI Demo Score</TableHead>
+                        <TableHead className="w-1/6 font-normal">Interview Score</TableHead>
+                        <TableHead className="w-1/6 font-normal">Status</TableHead>
+                        <TableHead className="w-1/12 font-normal">Resume</TableHead>
+                        <TableHead className="w-12 font-normal"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="overflow-y-auto">
+                      {applications.map(renderApplicationRow)}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-gray-600">
-                  Showing {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, applications.length)} of {applications.length} candidates
+                  Showing {currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalApplications)} of {totalApplications} candidates
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    onClick={handlePreviousPage}
                     disabled={currentPage === 0}
                   >
+                    <ChevronLeft className="h-4 w-4" />
                     Previous
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={applications.length < pageSize}
+                    onClick={handleNextPage}
+                    disabled={currentPage >= Math.ceil(totalApplications / pageSize) - 1}
                   >
                     Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </>
       )}

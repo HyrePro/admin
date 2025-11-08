@@ -20,7 +20,7 @@ export async function getAssessmentMonitoringLogs(applicationId: string) {
     const { data, error } = await supabase
       .from("assessment_monitoring_logs")
       .select("*")
-      .eq("job_application_id", applicationId)
+      .eq("application_id", applicationId)
       .order("created_at", { ascending: false });
 
     if (error) {

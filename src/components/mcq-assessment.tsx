@@ -16,9 +16,9 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "questions" | "incidents">("overview");
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 px-4 pt-4 flex-shrink-0">
         <Badge
           variant={activeTab === "overview" ? "default" : "outline"}
           className={cn(
@@ -57,19 +57,20 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
         </Badge>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <MCQOverview applicationStage={applicationStage} />
-      )}
-      
-      {activeTab === "questions" && (
-        <MCQQuestions applicationStage={applicationStage} />
-      )}
-      
-      {activeTab === "incidents" && (
-        <MCQIncidents applicationStage={applicationStage} />
-      )}
+      {/* Tab Content - Scrollable Area */}
+      <div className="flex-grow overflow-y-auto min-h-0 px-4 pb-4">
+        {activeTab === "overview" && (
+          <MCQOverview applicationStage={applicationStage} />
+        )}
+        
+        {activeTab === "questions" && (
+          <MCQQuestions applicationStage={applicationStage} />
+        )}
+        
+        {activeTab === "incidents" && (
+          <MCQIncidents applicationStage={applicationStage} />
+        )}
+      </div>
     </div>
   );
 }
-

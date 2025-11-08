@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { JobOverview } from "@/components/job-overview";
 import { JobCandidates } from "@/components/job-candidates";
 import { JobAnalytics } from "@/components/job-analytics";
 import { EditJobDetailsDialog } from "@/components/edit-job-details-dialog";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 interface JobDetailsPageProps {
   params: Promise<{
@@ -97,7 +98,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
     if (selectedStatus === newStatus) {
       return;
     }
-    
+
     // Set the pending status and open the confirmation dialog
     setPendingStatus(newStatus);
     setIsConfirmDialogOpen(true);
@@ -105,7 +106,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
 
   const confirmStatusChange = async () => {
     if (!pendingStatus || !jobId) return;
-    
+
     try {
       // Make API call to update the job status
       const supabase = createClient();
@@ -113,16 +114,16 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
         .from('jobs')
         .update({ status: pendingStatus })
         .eq('id', jobId);
-      
+
       if (error) {
         console.error('Error updating job status:', error);
         // TODO: Show error message to user
         return;
       }
-      
+
       // Update the status in the UI
       setSelectedStatus(pendingStatus);
-      
+
       // Update the job object if it exists
       if (job) {
         setJob({
@@ -130,13 +131,13 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           status: pendingStatus
         });
       }
-      
+
       // Close the dialog
       setIsConfirmDialogOpen(false);
-      
+
       // Clear the pending status
       setPendingStatus(null);
-      
+
       // Show success message
       console.log("Job status updated successfully");
     } catch (err) {
@@ -199,7 +200,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
     console.log("Saving job details:", updatedJob);
     // This is a placeholder for the actual API call
     // When the API is ready, we'll implement the update here
-    
+
     // For now, just update the local state
     if (job) {
       setJob({
@@ -251,16 +252,14 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
           </Button>
           <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-gray-500" />
             <h1 className="text-2xl font-bold tracking-tight">Job Details</h1>
           </div>
         </div>
@@ -275,17 +274,15 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
         {/* Header with Back Button */}
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
           </Button>
           <div className="flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-gray-500" />
-            <h1 className="text-2xl font-bold tracking-tight">Job Details</h1>
           </div>
         </div>
         <ErrorState />
@@ -306,7 +303,6 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-gray-500" />
             <h1 className="text-2xl font-bold tracking-tight">Job Details</h1>
           </div>
         </div>
@@ -354,18 +350,32 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Add the EditJobDetailsDialog component */}
-      <EditJobDetailsDialog 
-        job={job} 
-        open={isEditDialogOpen} 
+      <EditJobDetailsDialog
+        job={job}
+        open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={handleSaveJobDetails}
       />
-      
-      <div className="flex-shrink-0">
+
+      <div className="flex-shrink-0 mt-4">
         {/* Header with job title and action buttons */}
-        <div className="mt-6">
+        {/* add breadcrumb here */}
+        <Breadcrumb className="px-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <Link href="/jobs" scroll={false}>
+                <BreadcrumbLink>Jobs</BreadcrumbLink>
+              </Link>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{job?.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <div className="mt-2">
           <div className="flex items-start justify-between gap-6 px-4">
             <div className="flex flex-row gap-2">
               <h2 className="text-2xl font-bold leading-tight">
@@ -383,8 +393,8 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 className="h-8 px-3 text-xs"
                 onClick={() => setIsEditDialogOpen(true)}
@@ -392,11 +402,11 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
                 <Edit className="h-3.5 w-3.5 mr-1.5" />
                 Edit Details
               </Button>
-              
+
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="h-8 px-3 text-xs"
                   >
@@ -423,9 +433,9 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 size="sm"
                 className="h-8 px-3 text-xs"
                 onClick={handleCopyLink}
@@ -444,7 +454,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               </Button>
             </div>
           </div>
-         
+
           {/* Tab navigation */}
           <div className="w-full">
             <div className="flex border-b border-gray-200 px-4 mt-4">

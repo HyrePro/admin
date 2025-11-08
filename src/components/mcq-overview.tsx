@@ -32,7 +32,7 @@ export function MCQOverview({ applicationStage }: MCQOverviewProps) {
   const isAssessmentInProgress = !applicationStage.overall;
 
   return (
-    <div className="space-y-4">
+    <div className="h-full overflow-y-auto">
       {/* Assessment in Progress Message */}
       {isAssessmentInProgress && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">

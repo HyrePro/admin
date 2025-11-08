@@ -47,17 +47,28 @@ const CACHE_TIME = 60000
 const STALE_TIME = 30000
 
 const STATUS_CONFIG = {
-  in_progress: { text: 'New', color: 'status-new' },
-  reviewed: { text: 'Reviewed', color: 'status-reviewed' },
-  interview: { text: 'Interview', color: 'status-interview' },
-  offer: { text: 'Offer', color: 'status-offer' },
-  rejected: { text: 'Rejected', color: 'status-rejected' },
+  in_progress: { text: 'In Progress', color: 'status-in-progress' },
+  application_submitted: { text: 'Application Submitted', color: 'status-application-submitted' },
+  assessment_in_progress: { text: 'Assessment In Progress', color: 'status-assessment-in-progress' },
+  assessment_in_evaluation: { text: 'Assessment In Evaluation', color: 'status-assessment-in-evaluation' },
+  assessment_evaluated: { text: 'Assessment Evaluated', color: 'status-assessment-evaluated' },
+  assessment_questionnaire_creation: { text: 'Assessment Questionnaire Creation', color: 'status-assessment-questionnaire-creation' },
+  assessment_ready: { text: 'Assessment Ready', color: 'status-assessment-ready' },
+  assessment_failed: { text: 'Assessment Failed', color: 'status-assessment-failed' },
+  demo_creation: { text: 'Demo Creation', color: 'status-demo-creation' },
   demo_ready: { text: 'Demo Ready', color: 'status-demo-ready' },
-  demo_evaluated: { text: 'Demo Evaluated', color: 'status-demo-evaluated' },
+  demo_in_progress: { text: 'Demo In Progress', color: 'status-demo-in-progress' },
   demo_in_evaluation: { text: 'Demo In Evaluation', color: 'status-demo-in-evaluation' },
-  appealed: { text: 'Appealed', color: 'status-appealed' },
-  assessment_in_progress: { text: 'Assessment In Progress', color: 'status-assessment' },
+  demo_evaluated: { text: 'Demo Evaluated', color: 'status-demo-evaluated' },
+  demo_failed: { text: 'Demo Failed', color: 'status-demo-failed' },
+  interview_in_progress: { text: 'Interview In Progress', color: 'status-interview-in-progress' },
+  interview_ready: { text: 'Interview Ready', color: 'status-interview-ready' },
+  paused: { text: 'Paused', color: 'status-paused' },
+  completed: { text: 'Completed', color: 'status-completed' },
   suspended: { text: 'Suspended', color: 'status-suspended' },
+  appealed: { text: 'Appealed', color: 'status-appealed' },
+  withdrawn: { text: 'Withdrawn', color: 'status-withdrawn' },
+  offered: { text: 'Offered', color: 'status-offered' },
 } as const
 
 // Fetchers

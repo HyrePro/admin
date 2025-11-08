@@ -138,7 +138,7 @@ export function MCQIncidents({ applicationStage }: MCQIncidentsProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full overflow-y-auto space-y-4">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Assessment Incidents</h3>

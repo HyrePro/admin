@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   User,
   Calendar,
   AlertCircle,
@@ -16,14 +16,18 @@ import {
   Edit3,
   FileText
 } from "lucide-react";
-import { 
-  getJobApplication, 
-  type CandidateInfo, 
-  type ApplicationStage 
+import {
+  getJobApplication,
+  type CandidateInfo,
+  type ApplicationStage
 } from "@/lib/supabase/api/get-job-application";
 import { cn } from "@/lib/utils";
 import { CandidateInfo as CandidateInfoComponent } from "@/components/candidate-info";
 import { MCQAssessment } from "@/components/mcq-assessment";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/api/client";
+import { statusColors } from "../../../../../../utils/statusColor";
 
 interface ApplicationDetailsPageProps {
   params: Promise<{
@@ -35,12 +39,14 @@ interface ApplicationDetailsPageProps {
 export default function ApplicationDetailsPage({ params }: ApplicationDetailsPageProps) {
   const router = useRouter();
   const { jobId, applicationId } = React.use(params);
-  
+
   const [candidateInfo, setCandidateInfo] = useState<CandidateInfo | null>(null);
   const [applicationStage, setApplicationStage] = useState<ApplicationStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("info");
+  const [jobTitle, setJobTitle] = useState<string | null>(null);
+  const [loadingJobTitle, setLoadingJobTitle] = useState(false);
 
   const handleGoBack = () => {
     router.back();
@@ -61,17 +67,48 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
     console.log("Add note for application:", applicationId);
   };
 
+  const fetchJobTitle = async () => {
+    if (!jobId) {
+      setJobTitle(null);
+      return;
+    }
+
+    setLoadingJobTitle(true);
+    try {
+      // Create a Supabase client instance
+      const supabase = createClient();
+      // Query the jobs table directly by ID to get the title
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('title')
+        .eq('id', jobId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching job data:", error);
+        setJobTitle("Job Details");
+      } else {
+        setJobTitle(data?.title || "Job Details");
+      }
+    } catch (err) {
+      console.error("Error fetching job title:", err);
+      setJobTitle("Job Details");
+    } finally {
+      setLoadingJobTitle(false);
+    }
+  };
+
   const fetchApplicationData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await getJobApplication(applicationId);
-      
+
       if (result.error) {
         throw new Error(result.error);
       }
-      
+
       setCandidateInfo(result.candidateInfo);
       setApplicationStage(result.applicationStage);
     } catch (err) {
@@ -85,6 +122,10 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   useEffect(() => {
     fetchApplicationData();
   }, [applicationId]);
+
+  useEffect(() => {
+    fetchJobTitle();
+  }, [jobId]);
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
@@ -140,11 +181,11 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-4 px-4 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -155,18 +196,20 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
           </div>
         </div>
-        <LoadingSkeleton />
+        <div className="flex-1 overflow-y-auto p-6">
+          <LoadingSkeleton />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-4 px-4 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -177,18 +220,20 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
           </div>
         </div>
-        <ErrorState />
+        <div className="flex-1 overflow-y-auto p-6">
+          <ErrorState />
+        </div>
       </div>
     );
   }
 
   if (!candidateInfo || !applicationStage) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+      <div className="h-full flex flex-col">
+        <div className="flex items-center gap-4 px-4 pt-4">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -199,29 +244,44 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
           </div>
         </div>
-        <div className="text-center py-12">
-          <p className="text-gray-600">Application not found</p>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="text-center py-12">
+            <p className="text-gray-600">Application not found</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="h-full flex flex-col">
       {/* Header with Back Button */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleGoBack}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+      <div className="flex pt-4">
+        <Breadcrumb className="px-4 mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <Link href="/jobs" scroll={false}>
+                <BreadcrumbLink>Jobs</BreadcrumbLink>
+              </Link>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+
+            <BreadcrumbItem>
+              <Link href={`/jobs/${jobId}`} scroll={false}>
+                <BreadcrumbLink>{loadingJobTitle ? "Loading..." : (jobTitle || "Job Details")}</BreadcrumbLink>
+              </Link>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+
+            <BreadcrumbItem>
+              <BreadcrumbPage>{candidateInfo?.first_name} {candidateInfo?.last_name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       {/* Application Title and Basic Info */}
-      <div className="space-y-4">
+      <div className="space-y-4 px-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar */}
@@ -229,7 +289,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
               {(candidateInfo?.first_name?.[0] || '').toUpperCase()}
               {(candidateInfo?.last_name?.[0] || '').toUpperCase() || 'U'}
             </div>
-            
+
             {/* Candidate Info */}
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-900">
@@ -252,28 +312,27 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
               </div>
             </div>
           </div>
-          
+
           {/* Status Badge and Quick Actions */}
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={
-                applicationStage?.status === "demo_ready"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : applicationStage?.status === "demo_creation"
-                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+              className={cn(
+                "capitalize font-medium text-sm",
+                statusColors[applicationStage?.status as keyof typeof statusColors] 
+                  ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
                   : "bg-gray-50 text-gray-700 border-gray-200"
-              }
+              )}
             >
               {applicationStage?.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
             </Badge>
-            
+
             {/* Quick Actions Popover */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
                   aria-label="Quick actions"
                 >
@@ -318,9 +377,9 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
       </div>
 
       {/* Tab Navigation */}
-      <div className="w-full">
+      <div className="w-full flex-1 flex flex-col min-h-0 mt-4">
         {/* Tab Buttons */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 px-4">
           <button
             onClick={() => setActiveTab("info")}
             className={cn(
@@ -345,8 +404,8 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           </button>
         </div>
 
-        {/* Tab Content */}
-        <div className="mt-6">
+        {/* Tab Content - Scrollable Area */}
+        <div className="flex-grow overflow-y-auto min-h-0">
           {activeTab === "info" && candidateInfo && (
             <CandidateInfoComponent candidateInfo={candidateInfo} />
           )}

@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
+import { ItemDescription, ItemTitle } from '@/components/ui/item';
 
 interface NotificationSettings {
   // Admin Notifications
@@ -164,88 +165,22 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Notifications</h3>
-        <p className="text-sm text-muted-foreground">
-          Configure who gets what alerts
-        </p>
-      </div>
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border p-4">
+        <div className="space-y-4">
+          <div>
+            <ItemTitle>Notifications</ItemTitle>
+            <ItemDescription>
+              Configure who gets what alerts.
+            </ItemDescription>
       
-      {/* Admin Notifications Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Admin Notifications</CardTitle>
-          <CardDescription>
-            Choose which notifications admins receive
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
+    </div>
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base">New teacher application</Label>
-                <p className="text-sm text-muted-foreground">When a new teacher application is submitted</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={settings.newTeacherApplication}
-                  onChange={(e) => handleToggleChange('newTeacherApplication', e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base">Interview scheduled</Label>
-                <p className="text-sm text-muted-foreground">When an interview is scheduled</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={settings.interviewScheduled}
-                  onChange={(e) => handleToggleChange('interviewScheduled', e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base">Assessment completed</Label>
-                <p className="text-sm text-muted-foreground">When an assessment is completed</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={settings.assessmentCompleted}
-                  onChange={(e) => handleToggleChange('assessmentCompleted', e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Email & SMS Preferences Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Email & SMS Preferences</CardTitle>
-          <CardDescription>
-            Configure your email and SMS notification preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-base">Receive daily summary emails</Label>
+                <Label htmlFor="receiveDailySummary" className="text-sm font-medium">
+                                  Receive daily summary emails
+                               </Label>
                 <p className="text-sm text-muted-foreground">Get a daily summary of activities</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -261,7 +196,7 @@ export default function NotificationsPage() {
             
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base">Send applicant updates automatically</Label>
+                 <Label htmlFor="sentApplicationUpdate" className="text-sm font-medium">Send applicant updates automatically</Label>
                 <p className="text-sm text-muted-foreground">Automatically send updates to applicants</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -274,52 +209,62 @@ export default function NotificationsPage() {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Push Notifications Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Push Notifications</CardTitle>
-          <CardDescription>
-            Configure browser push notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base">Allow browser notifications</Label>
-                <p className="text-sm text-muted-foreground">
-                  Enable real-time browser notifications (browser support required)
-                </p>
+                 <Label htmlFor="receiveDailySummary" className="text-sm font-medium">New teacher application</Label>
+                <p className="text-sm text-muted-foreground">When a new teacher application is submitted</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={settings.allowBrowserNotifications}
-                  onChange={(e) => handleToggleChange('allowBrowserNotifications', e.target.checked)}
+                  checked={settings.newTeacherApplication}
+                  onChange={(e) => handleToggleChange('newTeacherApplication', e.target.checked)}
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Browser notifications require your browser&apos;s permission and may not work in all environments.
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                 <Label htmlFor="receiveDailySummary" className="text-sm font-medium">Interview scheduled</Label>
+                <p className="text-sm text-muted-foreground">When an interview is scheduled</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.interviewScheduled}
+                  onChange={(e) => handleToggleChange('interviewScheduled', e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-          </div>
-          
-          <div className="flex justify-end">
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="assessmentCompleted" className="text-sm font-medium">Assessment completed</Label>
+                <p className="text-sm text-muted-foreground">When an assessment is completed</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={settings.assessmentCompleted}
+                  onChange={(e) => handleToggleChange('assessmentCompleted', e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            <div className="flex justify-end">
             <Button onClick={handleSaveSettings} disabled={saving}>
               {saving ? 'Saving...' : 'Save Preferences'}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      
+    </div>
     </div>
   );
 }
