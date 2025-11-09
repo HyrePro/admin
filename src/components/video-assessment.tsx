@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { type ApplicationStage } from "@/lib/supabase/api/get-job-application";
-import { getVideoAssessmentByApplicationId, type VideoAssessmentData } from "@/lib/supabase/api/get-video-assessment";
+import { getVideoAssessmentByApplicationId, type VideoAssessmentData, type RubricsData } from "@/lib/supabase/api/get-video-assessment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -86,7 +86,7 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
   }
 
   // Parse rubrics if it's a JSON string
-  let rubricsData: any = null;
+  let rubricsData: RubricsData | null = null;
   if (videoAssessment.rubrics) {
     try {
       rubricsData = typeof videoAssessment.rubrics === 'string' 
