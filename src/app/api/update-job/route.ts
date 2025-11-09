@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest) {
       'job_description'
     ]
 
-    const filteredUpdateData: Record<string, any> = {}
+    const filteredUpdateData: Record<string, string | number | boolean | Date | null | undefined> = {}
     
     // Only include allowed fields in the update
     Object.keys(updateData).forEach(key => {

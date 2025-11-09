@@ -19,19 +19,15 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Check if candidate has completed the video assessment
-  if (applicationStage.demo_score === null || applicationStage.demo_score === undefined) {
-    return (
-      <div className="text-center py-12">
-        <div className="bg-gray-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-          <Video className="h-8 w-8 text-gray-500" />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-1">Video Assessment Not Completed</h3>
-        <p className="text-gray-500">Candidate hasn't completed the video assessment.</p>
-      </div>
-    );
-  }
+  const isAssessmentCompleted = applicationStage.demo_score !== null && applicationStage.demo_score !== undefined;
 
   useEffect(() => {
+    // Early return if assessment is not completed
+    if (!isAssessmentCompleted) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     
     const fetchVideoAssessmentData = async () => {
@@ -64,7 +60,19 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
     return () => {
       cancelled = true;
     };
-  }, [applicationStage.application_id]);
+  }, [applicationStage.application_id, isAssessmentCompleted]);
+
+  if (!isAssessmentCompleted) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-gray-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+          <Video className="h-8 w-8 text-gray-500" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-1">Video Assessment Not Completed</h3>
+        <p className="text-gray-500">Candidate hasn&apos;t completed the video assessment.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
