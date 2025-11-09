@@ -107,27 +107,17 @@ export function JobOverview({ job }: JobOverviewProps) {
               </div>
             </div>
             <div className="flex flex-row gap-2">
-              <div className="text-sm text-gray-900">Location: </div>
-              <div className="text-sm font-semibold capitalize">
-                {job.location || 'Not specified'}
-              </div>
-            </div>
-            <div className="flex flex-row gap-2">
               <div className="text-sm text-gray-900">Experience: </div>
               <div className="text-sm font-semibold capitalize">
                 {job.mode || 'Not specified'}
               </div>
             </div>
             <div className="flex flex-row gap-2">
-              <div className="text-sm text-gray-900">Board: </div>
-              <div className="text-sm font-semibold capitalize">
-                {job.board || 'Not specified'}
-              </div>
-            </div>
-            <div className="flex flex-row gap-2">
               <div className="text-sm text-gray-900">Subjects: </div>
               <div className="text-sm font-semibold capitalize">
-                {job.subjects || 'Not specified'}
+                {Array.isArray(job.subjects) && job.subjects.length > 0 
+                  ? job.subjects.join(", ") 
+                  : 'Not specified'}
               </div>
             </div>
             <div className="flex flex-row gap-2">

@@ -16,13 +16,39 @@ import {
 import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download, ChevronLeft } from "lucide-react";
 import { getJobApplications, type JobApplication } from "@/lib/supabase/api/get-job-applications";
 import { createClient } from '@/lib/supabase/api/client';
-import { downloadFile, forceDownload } from "@/lib/utils";
+import { forceDownload } from "@/lib/utils";
 import { ToastContainer } from "react-toastify";
+import { statusColors } from "../../utils/statusColor";
 import "react-toastify/dist/ReactToastify.css";
 
 interface JobCandidatesProps {
   job_id: string;
 }
+
+const STATUS_CONFIG = {
+  in_progress: { text: 'In Progress', color: statusColors.in_progress },
+  application_submitted: { text: 'Application Submitted', color: statusColors.application_submitted },
+  assessment_in_progress: { text: 'Assessment In Progress', color: statusColors.assessment_in_progress },
+  assessment_in_evaluation: { text: 'Assessment In Evaluation', color: statusColors.assessment_in_evaluation },
+  assessment_evaluated: { text: 'Assessment Evaluated', color: statusColors.assessment_evaluated },
+  assessment_questionnaire_creation: { text: 'Assessment Questionnaire Creation', color: statusColors.assessment_questionnaire_creation },
+  assessment_ready: { text: 'Assessment Ready', color: statusColors.assessment_ready },
+  assessment_failed: { text: 'Assessment Failed', color: statusColors.assessment_failed },
+  demo_creation: { text: 'Demo Creation', color: statusColors.demo_creation },
+  demo_ready: { text: 'Demo Ready', color: statusColors.demo_ready },
+  demo_in_progress: { text: 'Demo In Progress', color: statusColors.demo_in_progress },
+  demo_in_evaluation: { text: 'Demo In Evaluation', color: statusColors.demo_in_evaluation },
+  demo_evaluated: { text: 'Demo Evaluated', color: statusColors.demo_evaluated },
+  demo_failed: { text: 'Demo Failed', color: statusColors.demo_failed },
+  interview_in_progress: { text: 'Interview In Progress', color: statusColors.interview_in_progress },
+  interview_ready: { text: 'Interview Ready', color: statusColors.interview_ready },
+  paused: { text: 'Paused', color: statusColors.paused },
+  completed: { text: 'Completed', color: statusColors.completed },
+  suspended: { text: 'Suspended', color: statusColors.suspended },
+  appealed: { text: 'Appealed', color: statusColors.appealed },
+  withdrawn: { text: 'Withdrawn', color: statusColors.withdrawn },
+  offered: { text: 'Offered', color: statusColors.offered },
+} as const
 
 export function JobCandidates({ job_id }: JobCandidatesProps) {
   const router = useRouter();
@@ -296,15 +322,10 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
           <TableCell>
             <Badge
               variant="outline"
-              className={
-                application.status === "demo_ready"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : application.status === "demo_creation"
-                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                  : "bg-gray-50 text-gray-700 border-gray-200"
-              }
+              className={`${statusColors[application.status] || "bg-gray-50 text-gray-700 border-gray-200"} text-xs text-white capitalize`}
             >
               {application.status ? 
+                STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG]?.text ||
                 application.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) :
                 "Unknown"
               }

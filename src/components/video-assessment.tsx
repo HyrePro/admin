@@ -18,6 +18,19 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if candidate has completed the video assessment
+  if (applicationStage.demo_score === null || applicationStage.demo_score === undefined) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-gray-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+          <Video className="h-8 w-8 text-gray-500" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-1">Video Assessment Not Completed</h3>
+        <p className="text-gray-500">Candidate hasn't completed the video assessment.</p>
+      </div>
+    );
+  }
+
   useEffect(() => {
     let cancelled = false;
     
@@ -123,7 +136,6 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Video className="h-5 w-5" />
                   Teaching Demo Video
                 </CardTitle>
               </CardHeader>
@@ -161,7 +173,6 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
                   Feedback
                 </CardTitle>
               </CardHeader>
@@ -203,20 +214,6 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Notes */}
-          {rubricsData && rubricsData.meta?.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-medium text-gray-900">Evaluator Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  {rubricsData.meta.notes}
-                </p>
               </CardContent>
             </Card>
           )}

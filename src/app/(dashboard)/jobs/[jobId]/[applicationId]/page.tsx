@@ -128,15 +128,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
     fetchJobTitle();
   }, [jobId]);
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
 
   // Error Component
   const ErrorState = () => (
@@ -185,7 +176,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
       <div className="h-full flex flex-col">
         <div className="flex items-center gap-4 px-4 pt-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
@@ -193,7 +184,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-gray-500" />
             <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
           </div>
         </div>
@@ -209,7 +199,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
       <div className="h-full flex flex-col">
         <div className="flex items-center gap-4 px-4 pt-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleGoBack}
             className="flex items-center gap-2"
@@ -217,7 +207,6 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-gray-500" />
             <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
           </div>
         </div>

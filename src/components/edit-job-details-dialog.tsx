@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -19,6 +19,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 // Define the Job type locally since we can't import it from the page component
 type Job = {
@@ -34,8 +36,6 @@ type Job = {
   openings?: number;
   salary_range?: string;
   job_description?: string;
-  responsibilities?: string;
-  requirements?: string;
   created_at?: string;
   school_id?: string;
   number_of_questions?: number;
@@ -67,6 +67,29 @@ interface EditJobDetailsDialogProps {
   onSave: (updatedJob: Partial<Job>) => void;
 }
 
+const subjects = [
+  "Mathematics", "Science", "English", "Social Studies", "Hindi",
+  "Computer Science", "Physical Education", "Art", "Music", "Other",
+];
+
+const gradeLevels = [
+  "Pre-Primary",
+  "Primary (1-5)",
+  "Middle (6-8)",
+  "Secondary (9-10)",
+  "Senior Secondary (11-12)"
+];
+
+const employmentTypes = ["full-time", "part-time", "contract", "substitute"];
+const experienceOptions = [
+  { value: "any", label: "Any" },
+  { value: "0-1", label: "0–1 years (Fresher)" },
+  { value: "1-3", label: "1–3 years" },
+  { value: "3-5", label: "3–5 years" },
+  { value: "5-10", label: "5–10 years" },
+  { value: "10+", label: "10+ years" },
+];
+
 export function EditJobDetailsDialog({ 
   job, 
   open, 
@@ -75,38 +98,103 @@ export function EditJobDetailsDialog({
 }: EditJobDetailsDialogProps) {
   const [title, setTitle] = useState(job?.title || "");
   const [jobType, setJobType] = useState(job?.job_type || "");
-  const [location, setLocation] = useState(job?.location || "");
   const [mode, setMode] = useState(job?.mode || "");
-  const [board, setBoard] = useState(job?.board || "");
   const [openings, setOpenings] = useState(job?.openings?.toString() || "");
   const [salaryRange, setSalaryRange] = useState(job?.salary_range || "");
-  const [description, setDescription] = useState(job?.job_description || "");
-  const [responsibilities, setResponsibilities] = useState(job?.responsibilities || "");
-  const [requirements, setRequirements] = useState(job?.requirements || "");
+  const [jobDescription, setJobDescription] = useState(job?.job_description || "");
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(job?.subjects || []);
+  const [selectedGradeLevels, setSelectedGradeLevels] = useState<string[]>(job?.grade_levels || []);
+  const [otherSubjectInput, setOtherSubjectInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    const updatedJob: Partial<Job> = {
-      title,
-      job_type: jobType,
-      location,
-      mode,
-      board,
-      openings: openings ? parseInt(openings) : undefined,
-      salary_range: salaryRange,
-      job_description: description,
-      responsibilities,
-      requirements
-    };
-    
-    onSave(updatedJob);
-    onOpenChange(false);
+  // Handle subjects selection
+  const handleSubjectChange = (subject: string) => {
+    if (selectedSubjects.includes(subject)) {
+      setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
+      if (subject === "Other") {
+        setOtherSubjectInput("");
+      }
+    } else {
+      setSelectedSubjects([...selectedSubjects, subject]);
+    }
   };
+
+  // Handle grade level selection
+  const handleGradeLevelChange = (grade: string) => {
+    if (selectedGradeLevels.includes(grade)) {
+      setSelectedGradeLevels(selectedGradeLevels.filter(g => g !== grade));
+    } else {
+      setSelectedGradeLevels([...selectedGradeLevels, grade]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!job?.id) {
+      toast.error("Job ID is missing");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const updatedJobData = {
+        jobId: job.id,
+        title,
+        job_type: jobType,
+        mode,
+        openings: openings ? parseInt(openings) : undefined,
+        salary_range: salaryRange,
+        job_description: jobDescription,
+        subjects: selectedSubjects,
+        grade_levels: selectedGradeLevels
+      };
+
+      const response = await fetch("/api/update-job", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedJobData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update job");
+      }
+
+      // Call the onSave prop to update the UI
+      onSave(result.job);
+      
+      toast.success("Job updated successfully");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error updating job:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update job");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initialize state when job prop changes
+  useEffect(() => {
+    if (job) {
+      setTitle(job.title || "");
+      setJobType(job.job_type || "");
+      setMode(job.mode || "");
+      setOpenings(job.openings?.toString() || "");
+      setSalaryRange(job.salary_range || "");
+      setJobDescription(job.job_description || "");
+      setSelectedSubjects(job.subjects || []);
+      setSelectedGradeLevels(job.grade_levels || []);
+    }
+  }, [job]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl overflow-y-auto"
+        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col"
       >
         <SheetHeader>
           <SheetTitle>Edit Job Details</SheetTitle>
@@ -115,126 +203,171 @@ export function EditJobDetailsDialog({
           </SheetDescription>
         </SheetHeader>
         
-        <div className="grid gap-4 p-4">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Job Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter job title"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="jobType">Job Type</Label>
-            <Select value={jobType} onValueChange={setJobType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select job type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="full-time">Full Time</SelectItem>
-                <SelectItem value="part-time">Part Time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Enter job location"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="mode">Work Mode</Label>
-            <Select value={mode} onValueChange={setMode}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select work mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="remote">Remote</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
-                <SelectItem value="onsite">On-site</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="board">Board</Label>
-            <Input
-              id="board"
-              value={board}
-              onChange={(e) => setBoard(e.target.value)}
-              placeholder="Enter board name"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="openings">Openings</Label>
-            <Input
-              id="openings"
-              type="number"
-              value={openings}
-              onChange={(e) => setOpenings(e.target.value)}
-              placeholder="Enter number of openings"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="salaryRange">Salary Range</Label>
-            <Input
-              id="salaryRange"
-              value={salaryRange}
-              onChange={(e) => setSalaryRange(e.target.value)}
-              placeholder="Enter salary range"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="description">Job Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter job description"
-              rows={4}
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="responsibilities">Responsibilities</Label>
-            <Textarea
-              id="responsibilities"
-              value={responsibilities}
-              onChange={(e) => setResponsibilities(e.target.value)}
-              placeholder="Enter job responsibilities"
-              rows={4}
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="requirements">Requirements</Label>
-            <Textarea
-              id="requirements"
-              value={requirements}
-              onChange={(e) => setRequirements(e.target.value)}
-              placeholder="Enter job requirements"
-              rows={4}
-            />
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Job Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter job title"
+              />
+            </div>
+            
+            {/* Job Description */}
+            <div className="grid gap-2">
+              <Label htmlFor="jobDescription">Job Description</Label>
+              <Textarea
+                id="jobDescription"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Describe the job role, expectations, or any other details (optional)"
+                rows={3}
+              />
+            </div>
+            
+            {/* Subjects */}
+            <div className="grid gap-2">
+              <Label>Subjects to Teach</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-48 overflow-y-auto">
+                {subjects.map((subj) => (
+                  <label
+                    key={subj}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
+                      selectedSubjects.includes(subj)
+                        ? "bg-blue-50 border-blue-300 text-blue-800"
+                        : "hover:bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedSubjects.includes(subj)}
+                      onCheckedChange={() => handleSubjectChange(subj)}
+                      className="focus-visible:ring-blue-500 focus-visible:ring-1 bg-white"
+                    />
+                    <span className="text-sm">{subj}</span>
+                  </label>
+                ))}
+              </div>
+              
+              {/* Other Subject Input Field */}
+              {selectedSubjects.includes("Other") && (
+                <div className="mt-3">
+                  <Label htmlFor="otherSubject">
+                    Please specify other subject
+                  </Label>
+                  <div className="mt-2">
+                    <Input
+                      id="otherSubject"
+                      value={otherSubjectInput}
+                      onChange={(e) => setOtherSubjectInput(e.target.value)}
+                      placeholder="Enter the subject name"
+                      className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Grade Levels */}
+            <div className="grid gap-2">
+              <Label>Grade Levels</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {gradeLevels.map((grade) => (
+                  <label
+                    key={grade}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
+                      selectedGradeLevels.includes(grade)
+                        ? "bg-blue-50 border-blue-300 text-blue-800"
+                        : "hover:bg-gray-50 border-gray-200"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedGradeLevels.includes(grade)}
+                      onCheckedChange={() => handleGradeLevelChange(grade)}
+                      className="focus-visible:ring-blue-500 focus-visible:ring-1"
+                    />
+                    <span className="text-sm">{grade}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Job Type and Mode */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex flex-col w-full">
+                <Label>Job Type</Label>
+                <div className="mt-2">
+                  <Select value={jobType} onValueChange={setJobType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select job type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employmentTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace("-", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col w-full">
+                <Label>Work Mode</Label>
+                <div className="mt-2">
+                  <Select value={mode} onValueChange={setMode}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select work mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="remote">Remote</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                      <SelectItem value="onsite">On-site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Openings and Salary */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex flex-col w-full">
+                <Label>Number of Openings</Label>
+                <div className="mt-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={openings}
+                    onChange={(e) => setOpenings(e.target.value)}
+                    placeholder="Enter number of openings"
+                    className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col w-full">
+                <Label>Salary Range</Label>
+                <div className="mt-2">
+                  <Input
+                    value={salaryRange}
+                    onChange={(e) => setSalaryRange(e.target.value)}
+                    placeholder="Enter salary range"
+                    className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -1,6 +1,7 @@
 import { createClient } from "./client";
 
 export interface ApplicationInfo {
+  demo_score: number | undefined;
   application_id: string;
   first_name: string;
   last_name: string;
@@ -90,6 +91,7 @@ export interface ApplicationStage {
   video_url?: string | null;
   created_at?: string;
   updated_at?: string;
+  demo_score?: number;
 }
 
 export async function getJobApplication(applicationId: string) {
@@ -137,6 +139,7 @@ export async function getJobApplication(applicationId: string) {
       video_url: applicationData.video_url,
       created_at: applicationData.created_at,
       updated_at: applicationData.updated_at,
+      demo_score: applicationData.demo_score,
     };
 
     return { 
