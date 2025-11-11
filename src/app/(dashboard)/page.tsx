@@ -225,7 +225,7 @@ export default function Page() {
                 Progress and Activity
               </CardTitle>
               <CardAction>
-                <Button variant="link" onClick={() => router.push('/jobs')}>{"See all analytics >"}             </Button>
+                <Button variant="link" onClick={() => router.push('/analytics')}>{"See all analytics >"}             </Button>
               </CardAction>
             </div>
             <div className="flex gap-4 flex-col lg:flex-row">

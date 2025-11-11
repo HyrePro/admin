@@ -17,6 +17,7 @@ export const statusColors: Record<string, string> = {
   demo_failed: "bg-red-400",
   interview_in_progress: "bg-indigo-500",
   interview_ready: "bg-blue-600",
+  interview_scheduled: "bg-green-500",
   paused: "bg-gray-400",
   completed: "bg-green-600",
   suspended: "bg-zinc-500",

@@ -26,10 +26,13 @@ import {
   UserPlus,
   Video,
   Mic,
-  Phone
+  Phone,
+  Loader2
 } from "lucide-react";
 import { createClient } from '@/lib/supabase/api/client';
 import { useAuthStore } from '@/store/auth-store';
+import { useAuth } from '@/context/auth-context';
+import { toast } from "sonner";
 
 interface Candidate {
     application_id: string;
@@ -38,6 +41,7 @@ interface Candidate {
     email: string;
     job_title: string;
     created_at: string;
+    job_id: string;
 }
 
 interface SavedPanelist {
@@ -58,7 +62,7 @@ interface ScheduleInterviewForm {
   time: string;
   duration: string;
   meetingType: "offline" | "online";
-  meetingPlatform: "google" | "teams" | "zoom" | "";
+  meetingPlatform: "google" | "";
   location: string;
   panelists: string;
   notes: string;
@@ -77,11 +81,13 @@ export function ScheduleInterviewDialog({
   candidate,
   onClose
 }: ScheduleInterviewDialogProps) {
-  const { schoolId } = useAuthStore();
+  const { user } = useAuth(); // Get user from auth context
+  const { schoolId: storeSchoolId } = useAuthStore(); // Get schoolId from store
+  const [schoolId, setSchoolId] = useState<string | null>(storeSchoolId); // Local state for schoolId
   const [scheduleForm, setScheduleForm] = useState<ScheduleInterviewForm>({
     date: '',
-    time: '',
-    duration: '',
+    time: '09:00',
+    duration: '30',
     meetingType: 'offline',
     meetingPlatform: '',
     location: '',
@@ -92,9 +98,48 @@ export function ScheduleInterviewDialog({
   const [filteredPanelists, setFilteredPanelists] = useState<SavedPanelist[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const panelistInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [panelistDropdownPosition, setPanelistDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  // Fetch schoolId if not available in store
+  useEffect(() => {
+    const fetchSchoolId = async () => {
+      if (storeSchoolId) {
+        setSchoolId(storeSchoolId);
+        return;
+      }
+      
+      if (!user?.id) return;
+      
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('admin_user_info')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching school ID:', error);
+          toast.error("Failed to fetch school information");
+          return;
+        }
+        
+        if (data?.school_id) {
+          setSchoolId(data.school_id);
+          // Update the store as well
+          useAuthStore.getState().setSchoolId(data.school_id);
+        }
+      } catch (error) {
+        console.error('Error fetching school ID:', error);
+        toast.error("Failed to fetch school information");
+      }
+    };
+    
+    fetchSchoolId();
+  }, [user?.id, storeSchoolId]);
 
   // Fetch school information
   useEffect(() => {
@@ -122,6 +167,7 @@ export function ScheduleInterviewDialog({
         }
       } catch (error) {
         console.error('Error fetching school info:', error);
+        toast.error("Failed to fetch school information");
       }
     };
     
@@ -145,6 +191,7 @@ export function ScheduleInterviewDialog({
         setSavedPanelists(data || []);
       } catch (error) {
         console.error('Error fetching saved panelists:', error);
+        toast.error("Failed to fetch panelists");
       }
     };
     
@@ -259,22 +306,8 @@ export function ScheduleInterviewDialog({
         ...prev,
         meetingType: value,
         // Clear location when switching to online, set school address for offline
-        location: value === "online" ? "" : (schoolInfo?.address || ""),
-        meetingPlatform: value === "online" ? "google" : ""
-      };
-      return updatedForm;
-    });
-  };
-
-  // Function to handle meeting platform change
-  const handleMeetingPlatformChange = (platform: "google" | "teams" | "zoom" | "") => {
-    setScheduleForm(prev => {
-      const updatedForm: ScheduleInterviewForm = {
-        ...prev,
-        meetingPlatform: platform,
-        location: platform === "google" ? "Google Meet link will be generated automatically" : 
-                 platform === "teams" ? "Microsoft Teams link will be generated automatically" : 
-                 platform === "zoom" ? "Zoom link will be generated automatically" : ""
+        location: value === "online" ? "Google Meet link will be generated automatically" : (schoolInfo?.address || ""),
+        meetingPlatform: value === "online" ? "google" : ""  // Always set to google for online
       };
       return updatedForm;
     });
@@ -323,20 +356,100 @@ export function ScheduleInterviewDialog({
   };
 
   // Function to handle saving the interview schedule
-  const handleSaveSchedule = () => {
-    // Here you would typically make an API call to save the schedule
-    console.log('Scheduling interview for:', candidate);
-    console.log('Schedule details:', scheduleForm);
-    
-    // If it's an online meeting, generate the Google Meet link
-    if (scheduleForm.meetingType === "online" && candidate) {
-      const meetLink = generateGoogleMeetLink();
-      console.log('Generated Google Meet link:', meetLink);
-      // In a real implementation, you would send this link to the candidate and panelists via email
+  const handleSaveSchedule = async () => {
+    if (!candidate || !schoolId) {
+      toast.error("Missing required information. Please try again.");
+      return;
     }
     
-    // Close the dialog after saving
-    onClose();
+    // Validate required fields with trimmed values
+    const date = scheduleForm.date?.trim();
+    const time = scheduleForm.time?.trim();
+    const duration = scheduleForm.duration?.trim();
+    
+    if (!date) {
+      toast.error("Please select a date for the interview");
+      return;
+    }
+    
+    if (!time) {
+      toast.error("Please select a time for the interview");
+      return;
+    }
+    
+    if (!duration) {
+      toast.error("Please enter the duration for the interview");
+      return;
+    }
+    
+    // Validate that duration is a valid number
+    const durationNum = parseInt(duration);
+    if (isNaN(durationNum) || durationNum <= 0) {
+      toast.error("Please enter a valid duration (positive number)");
+      return;
+    }
+    
+    // Validate date and time format
+    const dateTimeString = `${date}T${time}`;
+    const startDate = new Date(dateTimeString);
+    if (isNaN(startDate.getTime())) {
+      toast.error("Please enter a valid date and time");
+      return;
+    }
+    
+    // Set loading state
+    setIsSaving(true);
+    
+    try {
+      // Save to interview_schedule table
+      const supabase = createClient();
+      const { data: insertData, error: insertError } = await supabase
+        .from('interview_schedule')
+        .insert({
+          school_id: schoolId,
+          candidate_email: candidate.email,
+          job_id: candidate.job_id || '',
+          panelists: panelistEmails.map(email => ({ email })),
+          interview_date: date,
+          interview_time: time,
+          duration_minutes: durationNum,
+          type: scheduleForm.meetingType,
+          meet_link: null,
+          status: scheduleForm.meetingType === 'online' ? 'pending' : 'scheduled'
+        });
+      
+      if (insertError) {
+        console.error('Error saving to interview_schedule:', insertError);
+        toast.error(`Error saving interview schedule: ${insertError.message}`);
+        return;
+      }
+      
+      // Update job_application status to interview_scheduled
+      const { error: updateError } = await supabase
+        .from('job_applications')
+        .update({ status: 'interview_scheduled' })
+        .eq('id', candidate.application_id);
+      
+      if (updateError) {
+        console.error('Error updating job application status:', updateError);
+        toast.error(`Error updating job application status: ${updateError.message}`);
+        // Note: The interview schedule was saved successfully, but the status update failed
+      } else {
+        console.log('Job application status updated to interview_scheduled');
+      }
+      
+      toast.success("Interview scheduled successfully!");
+      console.log('Interview scheduled successfully:', insertData);
+      
+      // Close the dialog after saving
+      onClose();
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      toast.error(`Error scheduling interview: ${error}`);
+    } finally {
+      // Reset loading state
+      setIsSaving(false);
+    }
   };
 
   // Format date for display
@@ -361,7 +474,7 @@ export function ScheduleInterviewDialog({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl overflow-y-auto"
+        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col"
       >
         <SheetHeader>
           <SheetTitle>Schedule Interview</SheetTitle>
@@ -372,7 +485,7 @@ export function ScheduleInterviewDialog({
         
         {/* Candidate Details Section */}
         {candidate && (
-          <div className="border rounded-lg p-4 mb-6 bg-gray-50">
+          <div className="rounded-lg px-4">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                 {getInitials(candidate.first_name, candidate.last_name)}
@@ -401,120 +514,73 @@ export function ScheduleInterviewDialog({
           </div>
         )}
         
-        <div className="grid gap-4 p-4">
-          {/* Date, Time, and Duration in one row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={scheduleForm.date}
-                onChange={(e) => handleFormChange('date', e.target.value)}
-              />
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid gap-4">
+            {/* Date, Time, and Duration in one row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={scheduleForm.date}
+                  onChange={(e) => handleFormChange('date', e.target.value)}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="time">Time</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={scheduleForm.time}
+                  onChange={(e) => handleFormChange('time', e.target.value)}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duration (minutes)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={scheduleForm.duration}
+                  onChange={(e) => handleFormChange('duration', e.target.value)}
+                  placeholder="Enter duration in minutes"
+                />
+              </div>
             </div>
             
+            {/* Meeting Type Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="time">Time</Label>
-              <Input
-                id="time"
-                type="time"
-                value={scheduleForm.time}
-                onChange={(e) => handleFormChange('time', e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
-              <Input
-                id="duration"
-                type="number"
-                value={scheduleForm.duration}
-                onChange={(e) => handleFormChange('duration', e.target.value)}
-                placeholder="Enter duration in minutes"
-              />
-            </div>
-          </div>
-          
-          {/* Meeting Type Selection */}
-          <div className="grid gap-2">
-            <Label htmlFor="meetingType">Meeting Type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={scheduleForm.meetingType === "offline" ? "default" : "outline"}
-                className="flex items-center gap-2"
-                onClick={() => handleMeetingTypeChange("offline")}
-              >
-                <Building className="w-4 h-4" />
-                Offline
-              </Button>
-              <Button
-                type="button"
-                variant={scheduleForm.meetingType === "online" ? "default" : "outline"}
-                className="flex items-center gap-2"
-                onClick={() => handleMeetingTypeChange("online")}
-              >
-                <Monitor className="w-4 h-4" />
-                Online
-              </Button>
-            </div>
-          </div>
-          
-          {/* Online Meeting Platform Selection */}
-          {scheduleForm.meetingType === "online" && (
-            <div className="grid gap-2">
-              <Label>Meeting Platform</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <Label htmlFor="meetingType">Meeting Type</Label>
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   type="button"
-                  variant={scheduleForm.meetingPlatform === "google" ? "default" : "outline"}
-                  className="flex flex-col items-center gap-1 h-auto py-3"
-                  onClick={() => handleMeetingPlatformChange("google")}
+                  variant={scheduleForm.meetingType === "offline" ? "default" : "outline"}
+                  className="flex items-center gap-2"
+                  onClick={() => handleMeetingTypeChange("offline")}
                 >
-                  <Video className="w-5 h-5" />
-                  <span className="text-xs">Google Meet</span>
+                  <Building className="w-4 h-4" />
+                  Offline
                 </Button>
                 <Button
                   type="button"
-                  variant={scheduleForm.meetingPlatform === "teams" ? "default" : "outline"}
-                  className="flex flex-col items-center gap-1 h-auto py-3"
-                  onClick={() => handleMeetingPlatformChange("teams")}
+                  variant={scheduleForm.meetingType === "online" ? "default" : "outline"}
+                  className="flex items-center gap-2"
+                  onClick={() => handleMeetingTypeChange("online")}
                 >
-                  <Mic className="w-5 h-5" />
-                  <span className="text-xs">Microsoft Teams</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={scheduleForm.meetingPlatform === "zoom" ? "default" : "outline"}
-                  className="flex flex-col items-center gap-1 h-auto py-3"
-                  onClick={() => handleMeetingPlatformChange("zoom")}
-                >
-                  <Phone className="w-5 h-5" />
-                  <span className="text-xs">Zoom</span>
+                  <Monitor className="w-4 h-4" />
+                  Online
                 </Button>
               </div>
             </div>
-          )}
-          
-          {/* Location/Meeting Link Input */}
-          <div className="grid gap-2">
-            <Label htmlFor="location">
-              {scheduleForm.meetingType === "online" ? "Meeting Link" : "Location"}
-            </Label>
-            <div className="relative">
-              {scheduleForm.meetingType === "online" ? (
-                <>
-                  <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="location"
-                    className="pl-10"
-                    value={scheduleForm.location}
-                    readOnly
-                  />
-                </>
-              ) : (
-                <>
+            
+            {/* Location/Meeting Link Input */}
+            {scheduleForm.meetingType === "offline" && (
+              <div className="grid gap-2">
+                <Label htmlFor="location">Location</Label>
+                <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     id="location"
@@ -523,123 +589,137 @@ export function ScheduleInterviewDialog({
                     onChange={(e) => handleFormChange('location', e.target.value)}
                     placeholder="Enter interview location"
                   />
-                </>
-              )}
-            </div>
-            {scheduleForm.meetingType === "online" && scheduleForm.meetingPlatform && (
-              <p className="text-sm text-gray-500">
-                {scheduleForm.meetingPlatform === "google" && "Google Meet link will be generated automatically and sent to candidate and panelists"}
-                {scheduleForm.meetingPlatform === "teams" && "Microsoft Teams link will be generated automatically and sent to candidate and panelists"}
-                {scheduleForm.meetingPlatform === "zoom" && "Zoom link will be generated automatically and sent to candidate and panelists"}
-              </p>
+                </div>
+                {schoolInfo?.address && (
+                  <p className="text-sm text-gray-500">
+                    Default location from school address
+                  </p>
+                )}
+              </div>
             )}
-            {scheduleForm.meetingType === "offline" && schoolInfo?.address && (
-              <p className="text-sm text-gray-500">
-                Default location from school address
-              </p>
+            
+            {scheduleForm.meetingType === "online" && (
+              <div className="grid gap-2">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-blue-800 font-medium">Google Meet</p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    Google Meet link will be generated automatically and sent to candidate and panelists
+                  </p>
+                </div>
+              </div>
             )}
-          </div>
-          
-          {/* Panelists Input with Autocomplete */}
-          <div className="grid gap-2 relative" ref={suggestionsRef}>
-            <Label htmlFor="panelists">Panelists</Label>
-            <div className="relative">
-              <Input
-                ref={panelistInputRef}
-                id="panelists"
-                value={scheduleForm.panelists}
-                onChange={(e) => handlePanelistInputChange(e.target.value)}
-                placeholder="Enter panelist emails separated by commas"
-                onFocus={(e) => {
-                  updateDropdownPosition();
-                  if (savedPanelists.length > 0) {
-                    const lastEmail = scheduleForm.panelists.split(',').pop()?.trim() || '';
-                    if (lastEmail.length > 0) {
-                      // Filter out already selected panelists
+            
+            {/* Panelists Input with Autocomplete */}
+            <div className="grid gap-2 relative" ref={suggestionsRef}>
+              <Label htmlFor="panelists">Panelists</Label>
+              <div className="relative">
+                <Input
+                  ref={panelistInputRef}
+                  id="panelists"
+                  value={scheduleForm.panelists}
+                  onChange={(e) => handlePanelistInputChange(e.target.value)}
+                  placeholder="Enter panelist emails separated by commas"
+                  onFocus={(e) => {
+                    updateDropdownPosition();
+                    if (savedPanelists.length > 0) {
+                      const lastEmail = scheduleForm.panelists.split(',').pop()?.trim() || '';
+                      if (lastEmail.length > 0) {
+                        // Filter out already selected panelists
+                        const selectedEmails = parsePanelistEmails();
+                        const availablePanelists = savedPanelists.filter(
+                          panelist => !selectedEmails.includes(panelist.email)
+                        );
+                        
+                        const filtered = availablePanelists.filter(panelist => 
+                          panelist.email.toLowerCase().includes(lastEmail.toLowerCase()) ||
+                          panelist.name.toLowerCase().includes(lastEmail.toLowerCase())
+                        );
+                        setFilteredPanelists(filtered);
+                        setShowSuggestions(filtered.length > 0);
+                      }
+                    }
+                  }}
+                  onClick={updateDropdownPosition}
+                />
+                {savedPanelists.length > 0 && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => {
+                      // Focus on input and show all panelists (excluding already selected ones)
+                      panelistInputRef.current?.focus();
+                      updateDropdownPosition();
                       const selectedEmails = parsePanelistEmails();
                       const availablePanelists = savedPanelists.filter(
                         panelist => !selectedEmails.includes(panelist.email)
                       );
-                      
-                      const filtered = availablePanelists.filter(panelist => 
-                        panelist.email.toLowerCase().includes(lastEmail.toLowerCase()) ||
-                        panelist.name.toLowerCase().includes(lastEmail.toLowerCase())
-                      );
-                      setFilteredPanelists(filtered);
-                      setShowSuggestions(filtered.length > 0);
-                    }
-                  }
-                }}
-                onClick={updateDropdownPosition}
-              />
-              {savedPanelists.length > 0 && (
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => {
-                    // Focus on input and show all panelists (excluding already selected ones)
-                    panelistInputRef.current?.focus();
-                    updateDropdownPosition();
-                    const selectedEmails = parsePanelistEmails();
-                    const availablePanelists = savedPanelists.filter(
-                      panelist => !selectedEmails.includes(panelist.email)
-                    );
-                    setFilteredPanelists(availablePanelists);
-                    setShowSuggestions(true);
-                  }}
-                >
-                  <UserPlus className="w-4 h-4" />
-                </button>
-              )}
+                      setFilteredPanelists(availablePanelists);
+                      setShowSuggestions(true);
+                    }}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-500">
+                Enter multiple email addresses separated by commas
+              </p>
             </div>
             
-            <p className="text-sm text-gray-500">
-              Enter multiple email addresses separated by commas
-            </p>
-          </div>
-          
-          {/* Panelists Display */}
-          {panelistEmails.length > 0 && (
-            <div className="grid gap-2">
-              <Label>Panelists</Label>
-              <div className="flex flex-wrap gap-2">
-                {panelistEmails.map((email, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center gap-2 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>{email}</span>
-                    <button 
-                      type="button"
-                      onClick={() => removePanelist(email)}
-                      className="text-blue-800 hover:text-blue-900"
+            {/* Panelists Display */}
+            {panelistEmails.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Panelists</Label>
+                <div className="flex flex-wrap gap-2">
+                  {panelistEmails.map((email, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center gap-2 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                      <Mail className="w-4 h-4" />
+                      <span>{email}</span>
+                      <button 
+                        type="button"
+                        onClick={() => removePanelist(email)}
+                        className="text-blue-800 hover:text-blue-900"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+            
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={scheduleForm.notes}
+                onChange={(e) => handleFormChange('notes', e.target.value)}
+                placeholder="Add any additional notes for the interview"
+                rows={4}
+              />
             </div>
-          )}
-          
-          <div className="grid gap-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={scheduleForm.notes}
-              onChange={(e) => handleFormChange('notes', e.target.value)}
-              placeholder="Add any additional notes for the interview"
-              rows={4}
-            />
           </div>
         </div>
         
-        <div className="flex justify-end gap-2 mt-4 p-4">
-          <Button variant="outline" onClick={onClose}>
+        {/* Sticky footer */}
+        <div className="flex justify-end gap-2 p-4 border-t bg-white">
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSaveSchedule}>Schedule Interview</Button>
+          <Button onClick={handleSaveSchedule} disabled={isSaving || !schoolId}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scheduling...
+              </>
+            ) : (
+              "Schedule Interview"
+            )}
+          </Button>
         </div>
       </SheetContent>
       

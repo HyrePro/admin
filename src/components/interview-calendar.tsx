@@ -1,6 +1,31 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Clock, User, Briefcase } from 'lucide-react';
+import { getInterviewSchedule } from '@/lib/supabase/api/get-interview-schedule';
+import { useAuthStore } from '@/store/auth-store';
+import { createClient } from '@/lib/supabase/api/client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface InterviewSchedule {
+  first_name: string;
+  last_name: string;
+  start_time: string;
+  interview_date: string;
+  created_by: string;
+  panelists: Array<{
+    id: string;
+    name: string;
+    email: string;
+  }> | null;
+  interview_type: string;
+  status: string;
+}
 
 interface Interview {
   id: number;
@@ -11,6 +36,8 @@ interface Interview {
   position: string;
   type: string;
   color: string;
+  created_by: string;
+  is_online: boolean;
 }
 
 interface EventPosition {
@@ -18,93 +45,32 @@ interface EventPosition {
   height: number;
 }
 
-// Sample interview data
-const sampleInterviews: Interview[] = [
-  {
-    id: 1,
-    title: 'John Smith',
-    start: new Date(2025, 9, 28, 10, 0),
-    end: new Date(2025, 9, 28, 11, 0),
-    interviewer: 'Sarah Johnson',
-    position: 'Senior Frontend Developer',
-    type: 'Technical Round',
-    color: '#3b82f6'
-  },
-  {
-    id: 2,
-    title: 'Emily Davis',
-    start: new Date(2025, 9, 28, 14, 0),
-    end: new Date(2025, 9, 28, 15, 30),
-    interviewer: 'Michael Chen',
-    position: 'Backend Developer',
-    type: 'Technical Round',
-    color: '#3b82f6'
-  },
-  {
-    id: 3,
-    title: 'Alex Wong',
-    start: new Date(2025, 9, 29, 9, 0),
-    end: new Date(2025, 9, 29, 10, 0),
-    interviewer: 'Jennifer Lee',
-    position: 'Senior Product Manager',
-    type: 'Behavioral Round',
-    color: '#8b5cf6'
-  },
-  {
-    id: 4,
-    title: 'Maria Garcia',
-    start: new Date(2025, 9, 29, 15, 0),
-    end: new Date(2025, 9, 29, 16, 30),
-    interviewer: 'David Park',
-    position: 'UI/UX Designer',
-    type: 'Portfolio Review',
-    color: '#ec4899'
-  },
-  {
-    id: 5,
-    title: 'Robert Taylor',
-    start: new Date(2025, 9, 30, 11, 0),
-    end: new Date(2025, 9, 30, 12, 30),
-    interviewer: 'Lisa Anderson',
-    position: 'Senior Data Scientist',
-    type: 'Technical Round',
-    color: '#3b82f6'
-  },
-  {
-    id: 6,
-    title: 'James Wilson',
-    start: new Date(2025, 9, 31, 10, 30),
-    end: new Date(2025, 9, 31, 11, 30),
-    interviewer: 'Tom Martinez',
-    position: 'DevOps Engineer',
-    type: 'System Design',
-    color: '#14b8a6'
-  },
-  {
-    id: 7,
-    title: 'Sophie Brown',
-    start: new Date(2025, 9, 31, 14, 0),
-    end: new Date(2025, 9, 31, 15, 0),
-    interviewer: 'Rachel Kim',
-    position: 'Marketing Manager',
-    type: 'Final Round',
-    color: '#f59e0b'
-  },
-  {
-    id: 8,
-    title: 'Chris Johnson',
-    start: new Date(2025, 10, 1, 9, 30),
-    end: new Date(2025, 10, 1, 11, 0),
-    interviewer: 'Sarah Johnson',
-    position: 'Full Stack Developer',
-    type: 'Coding Challenge',
-    color: '#10b981'
-  }
-];
+// Add new interface for positioned events
+interface PositionedEvent {
+  event: Interview;
+  position: EventPosition;
+  left: number;
+  width: number;
+}
+
+// The interviews state is now populated with real data from the API
 
 const InterviewCalendar: React.FC = () => {
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date(2025, 9, 27)); // Oct 27, 2025 (Monday)
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    const monday = new Date(today);
+    monday.setDate(diff);
+    return monday;
+  });
   const [selectedEvent, setSelectedEvent] = useState<Interview | null>(null);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<number>(1); // 1: All, 2: Organizer, 3: Panelist
+  const userId = useAuthStore(state => state.user?.id);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const { schoolId } = useAuthStore();
 
   const hours: number[] = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
 
@@ -139,7 +105,7 @@ const InterviewCalendar: React.FC = () => {
   };
 
   const getEventsForDay = (date: Date): Interview[] => {
-    return sampleInterviews.filter(event => isSameDay(event.start, date));
+    return interviews.filter(event => isSameDay(event.start, date));
   };
 
   const getEventPosition = (event: Interview): EventPosition => {
@@ -154,6 +120,160 @@ const InterviewCalendar: React.FC = () => {
 
     return { top, height };
   };
+
+  // New function to detect and position overlapping events
+  const getPositionedEventsForDay = (date: Date): PositionedEvent[] => {
+    const dayEvents = interviews.filter(event => isSameDay(event.start, date));
+    
+    // Sort events by start time
+    dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+    
+    // Track which events have been processed
+    const processed = new Set<number>();
+    const positionedEvents: PositionedEvent[] = [];
+    
+    // Process events and handle overlaps
+    dayEvents.forEach(event => {
+      // Skip if already processed
+      if (processed.has(event.id)) return;
+      
+      // Find all overlapping events
+      const overlappingGroup: Interview[] = [event];
+      
+      dayEvents.forEach(otherEvent => {
+        if (event.id === otherEvent.id) return;
+        if (processed.has(otherEvent.id)) return;
+        
+        // Check if events overlap in time
+        if (event.start < otherEvent.end && event.end > otherEvent.start) {
+          overlappingGroup.push(otherEvent);
+        }
+      });
+      
+      // Mark all events in group as processed
+      overlappingGroup.forEach(e => processed.add(e.id));
+      
+      // Calculate positions
+      const widthPerEvent = 100 / overlappingGroup.length;
+      
+      overlappingGroup.forEach((e, index) => {
+        positionedEvents.push({
+          event: e,
+          position: getEventPosition(e),
+          left: index * widthPerEvent,
+          width: widthPerEvent
+        });
+      });
+    });
+    
+    return positionedEvents;
+  };
+
+  // Fetch interview data
+  useEffect(() => {
+    const fetchInterviews = async () => {
+      if (!schoolId) return;
+      
+      setLoading(true);
+      try {
+        // Get start and end dates for the current week
+        const startDate = weekDays[0].toISOString().split('T')[0];
+        const endDate = weekDays[6].toISOString().split('T')[0];
+        
+        const response = await getInterviewSchedule(schoolId, startDate, endDate, filterType, userId, jobId);
+        
+        if (response.data) {
+          // Convert the response data to Interview format
+          const formattedInterviews: Interview[] = response.data.map((item, index) => {
+            const interviewDate = new Date(`${item.interview_date}T${item.start_time}`);
+            // Create a 1-hour duration interview
+            const endTime = new Date(interviewDate);
+            endTime.setHours(endTime.getHours() + 1);
+            
+            // Determine if meeting is online or offline based on interview type or other criteria
+            // For now, we'll use a simple heuristic - you may need to adjust this based on your data
+            const isOnline = item.interview_type.toLowerCase().includes('online') || 
+                            item.interview_type.toLowerCase().includes('virtual') || 
+                            item.interview_type.toLowerCase().includes('video');
+            
+            // Color coding logic:
+            // 1. Online (#3b82f6)
+            // 2. Offline (#8b5cf6)
+            // 3. Created_By + Online (#ec4899)
+            // 4. Created_By + Offline (#14b8a6)
+            
+            let color = '#3b82f6'; // Default to online color
+            
+            if (item.created_by === userId) {
+              // User is the creator
+              if (isOnline) {
+                color = '#ec4899'; // Created_By + Online
+              } else {
+                color = '#14b8a6'; // Created_By + Offline
+              }
+            } else {
+              // User is not the creator
+              if (isOnline) {
+                color = '#3b82f6'; // Online
+              } else {
+                color = '#8b5cf6'; // Offline
+              }
+            }
+            
+            return {
+              id: index + 1,
+              title: `${item.first_name} ${item.last_name}`,
+              start: interviewDate,
+              end: endTime,
+              interviewer: item.panelists && item.panelists.length > 0 
+                ? item.panelists[0].name 
+                : 'Not Assigned',
+              position: '', // Position data not available in current API
+              type: item.interview_type,
+              color: color,
+              created_by: item.created_by,
+              is_online: isOnline
+            };
+          });
+          
+          setInterviews(formattedInterviews);
+        }
+      } catch (error) {
+        console.error('Error fetching interviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInterviews();
+    
+    // Set up real-time listener for interview_schedule table
+    if (schoolId) {
+      const supabase = createClient();
+      
+      const channel = supabase
+        .channel('interview_schedule_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'interview_schedule',
+            filter: `school_id=eq.${schoolId}`
+          },
+          () => {
+            // Refetch the interviews when there are changes
+            fetchInterviews();
+          }
+        )
+        .subscribe();
+      
+      // Clean up the subscription
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [currentWeekStart, schoolId, filterType, userId, jobId]);
 
   const nextWeek = (): void => {
     const newDate = new Date(currentWeekStart);
@@ -191,6 +311,16 @@ const InterviewCalendar: React.FC = () => {
             <p className="text-slate-600 mt-1">Week of {formatDate(weekDays[0])} - {formatDate(weekDays[6])}</p>
           </div>
           <div className="flex gap-3 items-center">
+            <Select value={filterType.toString()} onValueChange={(value) => setFilterType(Number(value))}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Meetings" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">All Meetings</SelectItem>
+                <SelectItem value="2">Organizer</SelectItem>
+                <SelectItem value="3">Panelist</SelectItem>
+              </SelectContent>
+            </Select>
             <button
               onClick={goToToday}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition"
@@ -256,32 +386,33 @@ const InterviewCalendar: React.FC = () => {
               {/* Events overlay */}
               <div className="absolute inset-0 pointer-events-none">
                 <div className="relative h-full pointer-events-auto">
-                  {getEventsForDay(day).map((event) => {
-                    const { top, height } = getEventPosition(event);
-                    return (
-                      <div
-                        key={event.id}
-                        onClick={() => setSelectedEvent(event)}
-                        className="absolute left-1 right-1 rounded-lg p-2 cursor-pointer hover:opacity-80 transition overflow-hidden"
-                        style={{
-                          top: `${top}px`,
-                          height: `${height}px`,
-                          backgroundColor: event.color,
-                          minHeight: '40px'
-                        }}
-                      >
-                        <div className="text-white text-xs font-semibold truncate">
-                          {event.title}
-                        </div>
-                        <div className="text-white text-xs opacity-90 truncate">
-                          {formatTime(event.start)}
-                        </div>
-                        <div className="text-white text-xs opacity-80 truncate">
-                          {event.type}
-                        </div>
+                  {getPositionedEventsForDay(day).map(({ event, position, left, width }) => (
+                    <div
+                      key={event.id}
+                      onClick={() => setSelectedEvent(event)}
+                      className="absolute rounded-lg p-2 cursor-pointer hover:opacity-80 transition overflow-hidden"
+                      style={{
+                        top: `${position.top}px`,
+                        height: `${position.height}px`,
+                        left: `${left}%`,
+                        width: `${width}%`,
+                        backgroundColor: event.color,
+                        minHeight: '40px',
+                        marginLeft: '1%',
+                        marginRight: '1%'
+                      }}
+                    >
+                      <div className="text-white text-xs font-semibold truncate">
+                        {event.title}
                       </div>
-                    );
-                  })}
+                      <div className="text-white text-xs opacity-90 truncate">
+                        {formatTime(event.start)}
+                      </div>
+                      <div className="text-white text-xs opacity-80 truncate">
+                        {event.type}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -289,10 +420,19 @@ const InterviewCalendar: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading indicator */}
+      {loading && (
+        <div className="absolute inset-0 flex top-100 left-100 z-50 ">
+          <div className="bg-white p-4 rounded-lg shadow-lg h-12">
+            <p>Loading interviews...</p>
+          </div>
+        </div>
+      )}
+
       {/* Event Details Modal */}
       {selectedEvent && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm bg-black-600 bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedEvent(null)}
         >
           <div
@@ -322,7 +462,7 @@ const InterviewCalendar: React.FC = () => {
                 <Briefcase className="w-5 h-5 text-slate-600 mt-0.5" />
                 <div>
                   <label className="text-sm font-semibold text-slate-600">Position</label>
-                  <p className="text-slate-800">{selectedEvent.position}</p>
+                  <p className="text-slate-800">{selectedEvent.position || 'Not specified'}</p>
                 </div>
               </div>
 

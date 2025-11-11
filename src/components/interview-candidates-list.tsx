@@ -24,6 +24,9 @@ interface Candidate {
     email: string;
     job_title: string;
     created_at: string;
+    job_id: string;
+    
+    
 }
 
 // Fetcher functions
@@ -52,7 +55,7 @@ const fetchApplications = async (
         p_start_index: startIndex,
         p_end_index: endIndex,
         p_search: '',
-        p_status: 'ALL'
+        p_status: 'interview_ready'
     });
 
     if (error) throw error;
@@ -79,7 +82,7 @@ const CandidatesList: React.FC = () => {
     );
 
     // Fetch candidates data
-    const { data: newCandidates, error: candidatesError, isValidating } = useSWR(
+    const { data: newCandidates, error: candidatesError, isValidating, mutate } = useSWR(
         schoolId ? ['applications', schoolId, page] : null,
         ([_, schoolId]) => fetchApplications(schoolId, page * 10, (page + 1) * 10)
     );
@@ -101,6 +104,33 @@ const CandidatesList: React.FC = () => {
             }
         }
     }, [newCandidates, page]);
+
+    // Set up real-time listener for job applications
+    useEffect(() => {
+        if (!schoolId) return;
+
+        const supabase = createClient();
+        
+        const channel = supabase
+            .channel('interview_candidates_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'job_applications',
+                },
+                () => {
+                    // Refetch the candidates when there are changes
+                    mutate();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [schoolId, mutate]);
 
     // Infinite scrolling implementation
     const loadMore = useCallback(() => {

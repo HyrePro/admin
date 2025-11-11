@@ -64,6 +64,7 @@ const STATUS_CONFIG = {
   demo_failed: { text: 'Demo Failed', color: statusColors.demo_failed },
   interview_in_progress: { text: 'Interview In Progress', color: statusColors.interview_in_progress },
   interview_ready: { text: 'Interview Ready', color: statusColors.interview_ready },
+  interview_scheduled: { text: 'Interview Scheduled', color: statusColors.interview_scheduled },
   paused: { text: 'Paused', color: statusColors.paused },
   completed: { text: 'Completed', color: statusColors.completed },
   suspended: { text: 'Suspended', color: statusColors.suspended },

@@ -66,10 +66,10 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
     };
 
     return (
-        <Card className={`hover:shadow-lg transition-shadow duration-300 gap-2 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer`} onClick={handleCardClick}>
+        <Card className={`hover:shadow-lg transition-shadow duration-300 gap-0 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer`} onClick={handleCardClick}>
             {/* Header */}
-            <div className="flex justify-between items-start mb-2">
-                <div className="text-orange-500 font-semibold text-sm">
+            <div className="flex justify-between items-start">
+                <div className="text-orange-500 font-semibold text-sm ">
                     {plan}
                 </div>
                 <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
@@ -78,15 +78,15 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
             </div>
 
             {/* Title and Description */}
-            <CardTitle>
+            <CardTitle className='p-0 m-0'>
                 {title}
             </CardTitle>
-            <CardDescription className='text-gray-600 mb-6'>
+            <CardDescription className='text-gray-600 mb-4 mt-1'>
                 {description || 'No description available'}
             </CardDescription>
 
             {/* Applicants and Stats */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
                 {/* Applicant Avatars */}
                 <div className="flex -space-x-2">
                     {recentApplicants.slice(0, 3).map((applicant, index) => (

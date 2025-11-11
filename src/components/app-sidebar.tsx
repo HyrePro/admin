@@ -13,6 +13,7 @@ import {
   LifeBuoy,
   Settings,
   TvMinimalIcon,
+  BarChartIcon,
 } from "lucide-react"
 
 import { NavUser } from "@/components/nav-user"
@@ -42,6 +43,7 @@ const mainLinks = [
   { title: "Jobs", href: "/jobs", Icon: FileText },
   { title: "Candidates", href: "/candidates", Icon: UserIcon },
   { title: "Interviews", href: "/interviews", Icon: TvMinimalIcon },
+  { title: "Analytics", href: "/analytics", Icon: BarChartIcon },
   { title: "Settings", href: "/settings", Icon: Settings },
 ]
 
