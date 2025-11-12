@@ -26,7 +26,6 @@ interface Candidate {
     created_at: string;
     job_id: string;
     
-    
 }
 
 // Fetcher functions

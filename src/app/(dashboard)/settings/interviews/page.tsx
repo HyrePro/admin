@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { ItemDescription, ItemTitle } from '@/components/ui/item';
+import { InterviewRubricsSettings } from '@/components/interview-rubrics-settings';
 
 interface Panelist {
   id: string;
@@ -40,6 +41,9 @@ export default function InterviewSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
+  
+  // Sidebar state
+  const [activeSection, setActiveSection] = useState<'meeting' | 'rubrics'>('meeting');
   
   // Interview settings state
   const [interviewSettings, setInterviewSettings] = useState<InterviewSettingsData>({
@@ -299,246 +303,288 @@ export default function InterviewSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Interview Settings</h3>
-        <p className="text-sm text-muted-foreground">
-          Control the default interview workflow for new job posts
-        </p>
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-64 border-r border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium">Interview Settings</h3>
+        </div>
+        <nav className="flex-1 p-2 overflow-y-auto">
+          <button
+            onClick={() => setActiveSection('meeting')}
+            className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium mb-1 ${
+              activeSection === 'meeting'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            Meeting
+          </button>
+          <button
+            onClick={() => setActiveSection('rubrics')}
+            className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+              activeSection === 'rubrics'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            Rubrics
+          </button>
+        </nav>
       </div>
       
-      {/* Interview Type & Duration Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Interview Type & Duration</CardTitle>
-          <CardDescription>
-            Configure the default interview type and duration for new job posts
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="default_interview_type">Default Interview Type</Label>
-              <Select 
-                value={interviewSettings.default_interview_type} 
-                onValueChange={(value) => handleSettingsChange('default_interview_type', value as unknown as string)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select interview type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="in-person">In-person</SelectItem>
-                  <SelectItem value="online">Online (Google Meet / Zoom)</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Meeting Content */}
+        {activeSection === 'meeting' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium">Meeting Settings</h3>
+              <p className="text-sm text-muted-foreground">
+                Control the default interview workflow for new job posts
+              </p>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="default_duration">Default Interview Duration (minutes)</Label>
-              <Input
-                id="default_duration"
-                type="number"
-                min="1"
-                value={interviewSettings.default_duration}
-                onChange={(e) => handleSettingsChange('default_duration', e.target.value)}
-                className={settingsErrors.default_duration ? 'border-red-500' : ''}
-              />
-              {settingsErrors.default_duration && (
-                <p className="text-sm text-red-600">{settingsErrors.default_duration}</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Scheduling Window Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduling Window</CardTitle>
-          <CardDescription>
-            Configure scheduling preferences for interviews
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="buffer_time">Buffer Between Interviews (minutes)</Label>
-              <Input
-                id="buffer_time"
-                type="number"
-                min="0"
-                value={interviewSettings.buffer_time}
-                onChange={(e) => handleSettingsChange('buffer_time', e.target.value)}
-                className={settingsErrors.buffer_time ? 'border-red-500' : ''}
-              />
-              {settingsErrors.buffer_time && (
-                <p className="text-sm text-red-600">{settingsErrors.buffer_time}</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="working_hours_start">Working Hours Start</Label>
-              <Input
-                id="working_hours_start"
-                type="time"
-                value={interviewSettings.working_hours_start}
-                onChange={(e) => handleSettingsChange('working_hours_start', e.target.value)}
-                className={settingsErrors.working_hours_start ? 'border-red-500' : ''}
-              />
-              {settingsErrors.working_hours_start && (
-                <p className="text-sm text-red-600">{settingsErrors.working_hours_start}</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="working_hours_end">Working Hours End</Label>
-              <Input
-                id="working_hours_end"
-                type="time"
-                value={interviewSettings.working_hours_end}
-                onChange={(e) => handleSettingsChange('working_hours_end', e.target.value)}
-                className={settingsErrors.working_hours_end ? 'border-red-500' : ''}
-              />
-              {settingsErrors.working_hours_end && (
-                <p className="text-sm text-red-600">{settingsErrors.working_hours_end}</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Reminders & Instructions Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reminders & Instructions</CardTitle>
-          <CardDescription>
-            Configure reminder settings and custom instructions for interviews
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="candidate_reminder_hours">Send Reminder to Candidate (hours before)</Label>
-              <Input
-                id="candidate_reminder_hours"
-                type="number"
-                min="0"
-                value={interviewSettings.candidate_reminder_hours}
-                onChange={(e) => handleSettingsChange('candidate_reminder_hours', e.target.value)}
-                className={settingsErrors.candidate_reminder_hours ? 'border-red-500' : ''}
-              />
-              {settingsErrors.candidate_reminder_hours && (
-                <p className="text-sm text-red-600">{settingsErrors.candidate_reminder_hours}</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="interviewer_reminder_hours">Send Reminder to Interviewer (hours before)</Label>
-              <Input
-                id="interviewer_reminder_hours"
-                type="number"
-                min="0"
-                value={interviewSettings.interviewer_reminder_hours}
-                onChange={(e) => handleSettingsChange('interviewer_reminder_hours', e.target.value)}
-                className={settingsErrors.interviewer_reminder_hours ? 'border-red-500' : ''}
-              />
-              {settingsErrors.interviewer_reminder_hours && (
-                <p className="text-sm text-red-600">{settingsErrors.interviewer_reminder_hours}</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="custom_instructions">Custom Instructions</Label>
-            <Textarea
-              id="custom_instructions"
-              placeholder="Message shown to candidate before interview"
-              value={interviewSettings.custom_instructions}
-              onChange={(e) => handleSettingsChange('custom_instructions', e.target.value)}
-              rows={4}
-            />
-            <p className="text-sm text-muted-foreground">
-              This message will be shown to candidates before their interview
-            </p>
-          </div>
-          
-          <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Default Panelists Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Default Panelists</CardTitle>
-          <CardDescription>
-            Add panelists who are frequently involved in interviews. They will be available for quick selection when scheduling interviews.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Add new panelist form */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newPanelist.name}
-                onChange={(e) => setNewPanelist(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Panelist name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newPanelist.email}
-                onChange={(e) => setNewPanelist(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Panelist email"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleAddPanelist} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Panelist
-              </Button>
-            </div>
-          </div>
-          
-          {/* Panelists list */}
-          <div className="space-y-2">
-            <h4 className="font-medium">Saved Panelists</h4>
-            {loading ? (
-              <p>Loading panelists...</p>
-            ) : defaultPanelists.length === 0 ? (
-              <p className="text-muted-foreground">No panelists added yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {defaultPanelists.map((panelist) => (
-                  <div 
-                    key={panelist.id} 
-                    className="flex items-center gap-2 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>{panelist.name} ({panelist.email})</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleRemovePanelist(panelist.id)}
-                      className="text-blue-800 hover:text-blue-900"
+            {/* Interview Type & Duration Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Interview Type & Duration</CardTitle>
+                <CardDescription>
+                  Configure the default interview type and duration for new job posts
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_interview_type">Default Interview Type</Label>
+                    <Select 
+                      value={interviewSettings.default_interview_type} 
+                      onValueChange={(value) => handleSettingsChange('default_interview_type', value as unknown as string)}
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select interview type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in-person">In-person</SelectItem>
+                        <SelectItem value="online">Online (Google Meet / Zoom)</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                ))}
-              </div>
-            )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="default_duration">Default Interview Duration (minutes)</Label>
+                    <Input
+                      id="default_duration"
+                      type="number"
+                      min="1"
+                      value={interviewSettings.default_duration}
+                      onChange={(e) => handleSettingsChange('default_duration', e.target.value)}
+                      className={settingsErrors.default_duration ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.default_duration && (
+                      <p className="text-sm text-red-600">{settingsErrors.default_duration}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Scheduling Window Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Scheduling Window</CardTitle>
+                <CardDescription>
+                  Configure scheduling preferences for interviews
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="buffer_time">Buffer Between Interviews (minutes)</Label>
+                    <Input
+                      id="buffer_time"
+                      type="number"
+                      min="0"
+                      value={interviewSettings.buffer_time}
+                      onChange={(e) => handleSettingsChange('buffer_time', e.target.value)}
+                      className={settingsErrors.buffer_time ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.buffer_time && (
+                      <p className="text-sm text-red-600">{settingsErrors.buffer_time}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="working_hours_start">Working Hours Start</Label>
+                    <Input
+                      id="working_hours_start"
+                      type="time"
+                      value={interviewSettings.working_hours_start}
+                      onChange={(e) => handleSettingsChange('working_hours_start', e.target.value)}
+                      className={settingsErrors.working_hours_start ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.working_hours_start && (
+                      <p className="text-sm text-red-600">{settingsErrors.working_hours_start}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="working_hours_end">Working Hours End</Label>
+                    <Input
+                      id="working_hours_end"
+                      type="time"
+                      value={interviewSettings.working_hours_end}
+                      onChange={(e) => handleSettingsChange('working_hours_end', e.target.value)}
+                      className={settingsErrors.working_hours_end ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.working_hours_end && (
+                      <p className="text-sm text-red-600">{settingsErrors.working_hours_end}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Reminders & Instructions Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Reminders & Instructions</CardTitle>
+                <CardDescription>
+                  Configure reminder settings and custom instructions for interviews
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="candidate_reminder_hours">Send Reminder to Candidate (hours before)</Label>
+                    <Input
+                      id="candidate_reminder_hours"
+                      type="number"
+                      min="0"
+                      value={interviewSettings.candidate_reminder_hours}
+                      onChange={(e) => handleSettingsChange('candidate_reminder_hours', e.target.value)}
+                      className={settingsErrors.candidate_reminder_hours ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.candidate_reminder_hours && (
+                      <p className="text-sm text-red-600">{settingsErrors.candidate_reminder_hours}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="interviewer_reminder_hours">Send Reminder to Interviewer (hours before)</Label>
+                    <Input
+                      id="interviewer_reminder_hours"
+                      type="number"
+                      min="0"
+                      value={interviewSettings.interviewer_reminder_hours}
+                      onChange={(e) => handleSettingsChange('interviewer_reminder_hours', e.target.value)}
+                      className={settingsErrors.interviewer_reminder_hours ? 'border-red-500' : ''}
+                    />
+                    {settingsErrors.interviewer_reminder_hours && (
+                      <p className="text-sm text-red-600">{settingsErrors.interviewer_reminder_hours}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="custom_instructions">Custom Instructions</Label>
+                  <Textarea
+                    id="custom_instructions"
+                    placeholder="Message shown to candidate before interview"
+                    value={interviewSettings.custom_instructions}
+                    onChange={(e) => handleSettingsChange('custom_instructions', e.target.value)}
+                    rows={4}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    This message will be shown to candidates before their interview
+                  </p>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Default Panelists Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Default Panelists</CardTitle>
+                <CardDescription>
+                  Add panelists who are frequently involved in interviews. They will be available for quick selection when scheduling interviews.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add new panelist form */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={newPanelist.name}
+                      onChange={(e) => setNewPanelist(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Panelist name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newPanelist.email}
+                      onChange={(e) => setNewPanelist(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Panelist email"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={handleAddPanelist} className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Panelist
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Panelists list */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Saved Panelists</h4>
+                  {loading ? (
+                    <p>Loading panelists...</p>
+                  ) : defaultPanelists.length === 0 ? (
+                    <p className="text-muted-foreground">No panelists added yet.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {defaultPanelists.map((panelist) => (
+                        <div 
+                          key={panelist.id} 
+                          className="flex items-center gap-2 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
+                        >
+                          <Mail className="w-4 h-4" />
+                          <span>{panelist.name} ({panelist.email})</span>
+                          <button 
+                            type="button"
+                            onClick={() => handleRemovePanelist(panelist.id)}
+                            className="text-blue-800 hover:text-blue-900"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        )}
+        
+        {/* Rubrics Content - Using the new component */}
+        {activeSection === 'rubrics' && (
+          <InterviewRubricsSettings />
+        )}
+      </div>
     </div>
   );
 }

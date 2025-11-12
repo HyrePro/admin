@@ -234,7 +234,7 @@ export default function SchoolInformationPage() {
   }
 
   if (isLoading) {
-    return <div className="space-y-4">
+    return <div className="space-y-4 p-4">
       <div className="bg-white rounded-lg border p-4">
         <div className="space-y-4">
           <div>
@@ -271,7 +271,7 @@ export default function SchoolInformationPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <div className="bg-white rounded-lg border p-4">
         <div className="space-y-4">
           <div>

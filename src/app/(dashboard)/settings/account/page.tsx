@@ -177,7 +177,7 @@ export default function AccountPage() {
     };
 
     if (isLoading) {
-        return <div className="space-y-4">
+        return <div className="space-y-4 p-4">
             <div className="bg-white rounded-lg border p-4">
                 <div className="space-y-4">
                     <div>
@@ -227,7 +227,7 @@ export default function AccountPage() {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 p-4">
             <div className="bg-white rounded-lg border p-4">
                 <div className="space-y-4">
                     <div>

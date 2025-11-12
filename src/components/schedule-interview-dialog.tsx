@@ -338,23 +338,6 @@ export function ScheduleInterviewDialog({
     }
   };
 
-  // Function to generate Google Meet link (simulated)
-  const generateGoogleMeetLink = () => {
-    // In a real implementation, this would call an API to create a Google Meet link
-    // For now, we'll generate a placeholder link
-    if (scheduleForm.meetingType === "online" && candidate) {
-      // This would typically be an API call to your backend which would:
-      // 1. Use Google Calendar API or Google Meet API to create a meeting
-      // 2. Include the candidate's email and panelists in the meeting invitation
-      // 3. Return the meeting link
-      
-      // Simulated link for demonstration
-      const meetingId = `hyrepro-${Date.now()}`;
-      return `https://meet.google.com/${meetingId}`;
-    }
-    return "";
-  };
-
   // Function to handle saving the interview schedule
   const handleSaveSchedule = async () => {
     if (!candidate || !schoolId) {
@@ -415,6 +398,7 @@ export function ScheduleInterviewDialog({
           duration_minutes: durationNum,
           type: scheduleForm.meetingType,
           meet_link: null,
+          candidate_id: candidate.application_id,
           status: scheduleForm.meetingType === 'online' ? 'pending' : 'scheduled'
         });
       

@@ -66,7 +66,7 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
     };
 
     return (
-        <Card className={`hover:shadow-lg transition-shadow duration-300 gap-0 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer`} onClick={handleCardClick}>
+        <Card className={`hover:shadow-lg transition-shadow duration-300 gap-0 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer h-full`} onClick={handleCardClick}>
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div className="text-orange-500 font-semibold text-sm ">
@@ -81,7 +81,7 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
             <CardTitle className='p-0 m-0'>
                 {title}
             </CardTitle>
-            <CardDescription className='text-gray-600 mb-4 mt-1'>
+            <CardDescription className='text-gray-600 mb-4 mt-1 line-clamp-2 flex-grow'>
                 {description || 'No description available'}
             </CardDescription>
 

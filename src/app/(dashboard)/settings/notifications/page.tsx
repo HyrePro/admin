@@ -148,7 +148,7 @@ export default function NotificationsPage() {
   // Show loading state if schoolId is not available yet
   if (!schoolId) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 p-4" >
         <div>
           <h3 className="text-lg font-medium">Notifications</h3>
           <p className="text-sm text-muted-foreground">
@@ -165,7 +165,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <div className="bg-white rounded-lg border p-4">
         <div className="space-y-4">
           <div>
