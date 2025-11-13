@@ -1,9 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
+// IMPORTANT: Use service role key to bypass RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
 export async function POST(req: NextRequest) {
@@ -20,30 +27,37 @@ export async function POST(req: NextRequest) {
     // Fetch token from database
     const { data: tokenData, error: tokenError } = await supabase
       .from('evaluation_tokens')
-      .select(`
-        *,
-        job_applications (
-          id,
-          job_id,
-          applicant_id,
-          applicant_info (
-            full_name,
-            email
-          ),
-          jobs (
-            title,
-            description
-          )
-        )
-      `)
+      .select('*')
       .eq('token', token)
       .single();
 
     if (tokenError || !tokenData) {
+      console.error('Token fetch error:', tokenError);
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { error: 'Invalid token', details: tokenError?.message },
         { status: 404 }
       );
+    }
+
+    // Fetch application details separately
+    const { data: applicationData, error: appError } = await supabase
+      .from('job_applications')
+      .select(`
+        *,
+        applicant_info (
+          full_name,
+          email
+        ),
+        jobs (
+          title,
+          description
+        )
+      `)
+      .eq('id', tokenData.job_application_id)
+      .single();
+
+    if (appError) {
+      console.error('Application fetch error:', appError);
     }
 
     // Check if token is expired
@@ -69,7 +83,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       valid: true,
       token: tokenData,
-      application: tokenData.job_applications,
+      application: applicationData,
       panelist_email: tokenData.panelist_email,
     });
   } catch (error) {
