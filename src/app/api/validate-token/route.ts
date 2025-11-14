@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
 
     // Fetch rubrics if we have a school_id
     let rubrics = null;
-    let selectedRubric = null;
     
     if (schoolId) {
       const { data: rubricsData, error: rubricsError } = await supabase
