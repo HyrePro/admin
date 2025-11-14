@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define proper interfaces for the data structures
 interface Job {
+  id: string;
   title: string;
   description: string;
 }
@@ -14,17 +18,49 @@ interface Application {
   job_id: string;
   applicant_id: string;
   applicant_info: {
-    full_name: string;
+    first_name: string;
     email: string;
+    last_name: string;
   };
   jobs: Job;
+}
+
+interface School {
+  id: string;
+  name: string;
+  logo_url: string;
+}
+
+// Updated RubricCriterion interface to match the new structure
+interface RubricCriterion {
+  id: string;
+  school_id: string;
+  criterion_id: string | null;
+  name: string;
+  description: string;
+  type: string;
+  out_of: number;
+  value: boolean;
+  text: string;
 }
 
 interface TokenData {
   valid: boolean;
   token: string;
   application: Application;
+  school: School;
+  rubric: RubricCriterion[];
   panelist_email: string;
+}
+
+// Define the structure of our scores object
+interface Score {
+  id: string;
+  score: number | string;
+}
+
+interface Scores {
+  [key: string]: Score;
 }
 
 export default function EvaluatePage() {
@@ -37,15 +73,11 @@ export default function EvaluatePage() {
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
-  const [scores, setScores] = useState({
-    technical_skills: 0,
-    communication: 0,
-    problem_solving: 0,
-    cultural_fit: 0,
-    experience: 0,
-  });
-  
+  const [scores, setScores] = useState<Scores>({});
   const [comments, setComments] = useState('');
+  const [strengths, setStrengths] = useState('');
+  const [areasForImprovement, setAreasForImprovement] = useState('');
+  const [recommendation, setRecommendation] = useState('');
 
   useEffect(() => {
     validateToken();
@@ -62,14 +94,27 @@ export default function EvaluatePage() {
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('Token validation failed:', data);
         setError(data.error || 'Invalid or expired token');
         setLoading(false);
         return;
       }
 
+      console.log('Token validated successfully:', data);
       setTokenData(data);
+      
+      // Initialize scores based on rubric criteria
+      if (data.rubric) {
+        const initialScores: Scores = {};
+        data.rubric.forEach((criterion: RubricCriterion) => {
+          initialScores[criterion.name] = { id: criterion.id, score: 0 };
+        });
+        setScores(initialScores);
+      }
+      
       setLoading(false);
     } catch (err) {
+      console.error('Token validation error:', err);
       setError('Failed to validate token');
       setLoading(false);
     }
@@ -79,6 +124,12 @@ export default function EvaluatePage() {
     e.preventDefault();
     setSubmitting(true);
 
+    // Convert scores object to array format
+    const scoresArray = Object.values(scores).map(scoreObj => ({
+      id: scoreObj.id,
+      score: scoreObj.score
+    }));
+
     try {
       const response = await fetch('/api/validate-token', {
         method: 'PUT',
@@ -86,10 +137,15 @@ export default function EvaluatePage() {
         body: JSON.stringify({
           token,
           evaluation_data: {
-            scores,
+            job_id: tokenData?.application?.jobs?.id,
+            scores: scoresArray,
             comments,
+            strengths,
+            areas_for_improvement: areasForImprovement,
+            recommendation,
             panelist_email: tokenData?.panelist_email,
             submitted_at: new Date().toISOString(),
+            school_id: tokenData?.school?.id,
           },
         }),
       });
@@ -97,9 +153,11 @@ export default function EvaluatePage() {
       if (response.ok) {
         router.push('/evaluate/success');
       } else {
-        setError('Failed to submit evaluation');
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to submit evaluation');
       }
     } catch (err) {
+      console.error('Submission error:', err);
       setError('Failed to submit evaluation');
     } finally {
       setSubmitting(false);
@@ -134,10 +192,13 @@ export default function EvaluatePage() {
   }
 
   const application = tokenData?.application;
+  const school = tokenData?.school;
+  const rubric = tokenData?.rubric;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+
         {/* Header */}
         <div className="bg-white shadow-xl rounded-lg overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
@@ -148,15 +209,21 @@ export default function EvaluatePage() {
           <div className="px-8 py-6 bg-gray-50 border-b">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-semibold text-gray-500 uppercase">Candidate</p>
+                <p className="text-sm font-semibold text-gray-500">Candidate</p>
                 <p className="text-lg font-bold text-gray-900 mt-1">
-                  {application?.applicant_info?.full_name || 'N/A'}
+                  {application?.applicant_info?.first_name || 'Not Available'} {application?.applicant_info?.last_name || 'Not Available'}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-500 uppercase">Position</p>
+                <p className="text-sm font-semibold text-gray-500">Position</p>
                 <p className="text-lg font-bold text-gray-900 mt-1">
-                  {application?.jobs?.title || 'N/A'}
+                  {application?.jobs?.title || 'Not Available'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-500">School</p>
+                <p className="text-lg font-bold text-gray-900 mt-1">
+                  {school?.name || 'Not Available'}
                 </p>
               </div>
             </div>
@@ -166,60 +233,175 @@ export default function EvaluatePage() {
         {/* Evaluation Form */}
         <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-lg overflow-hidden">
           <div className="px-8 py-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Evaluation Rubrics</h2>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Evaluation Rubrics</h2>
+            </div>
             
+            {/* Dynamic Rubrics */}
             <div className="space-y-6">
-              {Object.entries(scores).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 capitalize">
-                    {key.replace(/_/g, ' ')}
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <input
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={value}
-                      onChange={(e) => setScores({ ...scores, [key]: parseInt(e.target.value) })}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold text-lg">
-                      {value}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Poor</span>
-                    <span>Excellent</span>
-                  </div>
-                </div>
-              ))}
+              {(() => {
+                const criteria = tokenData?.rubric || [];
+                const elements = [];
+                for (let i = 0; i < criteria.length; i++) {
+                  const criterion = criteria[i];
+                  const score = scores[criterion.name] || 0;
+                  elements.push(
+                    <div key={criterion.id}>
+                      {criterion.type === 'boolean' ? (
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <label className="block text-sm font-semibold text-gray-700 mb-1 capitalize">
+                              {criterion.name.replace(/_/g, ' ')}
+                            </label>
+                            <p className="text-sm text-gray-600 mb-3">{criterion.description}</p>
+                          </div>
+                          <Checkbox
+                            checked={scores[criterion.name]?.score === 1}
+                            onCheckedChange={(checked) => setScores({ 
+                              ...scores, 
+                              [criterion.name]: { 
+                                id: criterion.id, 
+                                score: checked ? 1 : 0 
+                              } 
+                            })}
+                            className="h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1 capitalize">
+                            {criterion.name.replace(/_/g, ' ')}
+                          </label>
+                          <p className="text-sm text-gray-600 mb-3">{criterion.description}</p>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-1 pt-2">
+                              {criterion.type === 'text' ? (
+                                <textarea
+                                  value={scores[criterion.name]?.score || ''}
+                                  onChange={(e) => setScores({ 
+                                    ...scores, 
+                                    [criterion.name]: { 
+                                      id: criterion.id, 
+                                      score: e.target.value 
+                                    } 
+                                  })}
+                                  rows={3}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                  placeholder="Enter your feedback..."
+                                />
+                              ) : (
+                                <>
+                                  <Slider
+                                    min={0}
+                                    max={criterion.out_of || 10}
+                                    step={1}
+                                    value={[typeof scores[criterion.name]?.score === 'number' ? scores[criterion.name]?.score as number : 0]}
+                                    onValueChange={(value) => setScores({ 
+                                      ...scores, 
+                                      [criterion.name]: { 
+                                        id: criterion.id, 
+                                        score: value[0] || 0 
+                                      } 
+                                    })}
+                                    className="w-full mb-1"
+                                  />
+                                  <div className="flex justify-between text-xs text-gray-500">
+                                    <span>0</span>
+                                    <span>{criterion.out_of || 10}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            {criterion.type === 'numeric' && (
+                              <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-700 font-bold text-lg">
+                                {typeof scores[criterion.name]?.score === 'number' ? scores[criterion.name]?.score as number : 0}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                }
+                return elements;
+              })()}
             </div>
 
-            <div className="mt-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Additional Comments
-              </label>
-              <textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                placeholder="Share your detailed feedback about the candidate..."
-              />
+            {/* Additional Feedback Sections */}
+            <div className="mt-10 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Key Strengths
+                </label>
+                <textarea
+                  value={strengths}
+                  onChange={(e) => setStrengths(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  placeholder="What are the candidate's main strengths?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Areas for Improvement
+                </label>
+                <textarea
+                  value={areasForImprovement}
+                  onChange={(e) => setAreasForImprovement(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  placeholder="What areas could the candidate develop further?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Overall Comments
+                </label>
+                <textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  placeholder="Share your detailed feedback about the candidate..."
+                  
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Hiring Recommendation
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { value: 'strongly_recommend', label: 'Strongly Recommend', color: 'green' },
+                    { value: 'recommend', label: 'Recommend', color: 'blue' },
+                    { value: 'neutral', label: 'Neutral', color: 'yellow' },
+                    { value: 'not_recommend', label: 'Do Not Recommend', color: 'red' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setRecommendation(option.value)}
+                      className={`px-4 py-3 rounded-lg border-2 font-semibold transition ${
+                        recommendation === option.value
+                          ? `border-${option.color}-600 bg-${option.color}-50 text-${option.color}-700`
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="px-8 py-6 bg-gray-50 border-t flex justify-end space-x-4">
             <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition"
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !recommendation}
               className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {submitting ? (
