@@ -26,6 +26,7 @@ import { CandidateInfo as CandidateInfoComponent } from "@/components/candidate-
 import { MCQAssessment } from "@/components/mcq-assessment";
 import { VideoAssessment } from "@/components/video-assessment";
 import { PanelistReview } from "@/components/panelist-review";
+import { AIRecommendation } from "@/components/ai-recommendation";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
@@ -46,7 +47,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   const [applicationStage, setApplicationStage] = useState<ApplicationStage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"info" | "assessment" | "video-assessment" | "panelist-review">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "assessment" | "video-assessment" | "panelist-review" | "ai-recommendation">("info");
   const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
 
@@ -315,7 +316,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
                   : "bg-gray-50 text-gray-700 border-gray-200"
               )}
             >
-              {applicationStage?.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              {applicationStage?.status.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
             </Badge>
 
             {/* Quick Actions Popover */}
@@ -415,6 +416,18 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           >
             Panelist Review
           </button>
+          {/* Add AI Recommendation tab */}
+          <button
+            onClick={() => setActiveTab("ai-recommendation")}
+            className={cn(
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              activeTab === "ai-recommendation"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+            )}
+          >
+            AI Recommendation
+          </button>
         </div>
 
         {/* Tab Content - Scrollable Area */}
@@ -431,7 +444,10 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           {activeTab === "panelist-review" && (
             <PanelistReview jobApplicationId={applicationId} />
           )}
-          {/*  */}
+          {/* Add AI Recommendation tab content */}
+          {activeTab === "ai-recommendation" && (
+            <AIRecommendation jobApplicationId={applicationId} />
+          )}
         </div>
       </div>
     </div>

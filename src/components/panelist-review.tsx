@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Lock, Edit3 } from "lucide-react";
+import { createClient } from "@/lib/supabase/api/client";
 
 interface Rubric {
   rubric_id: string;
@@ -13,7 +14,8 @@ interface Rubric {
 }
 
 interface ScoreEntry {
-  rubric_id: string;
+  rubric_id?: string;
+  id?: string;
   score: number | string;
 }
 
@@ -25,7 +27,6 @@ interface Panelist {
   strengths?: string;
   areas_for_improvement?: string;
   recommendation?: string;
-  rubrics?: Rubric[];
 }
 
 interface PanelistReviewProps {
@@ -44,69 +45,28 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
         setLoading(true);
         setError(null);
 
-        // Simulated data for demonstration
-        const data = {
-          rubrics: [
-            {"name":"Subject Knowledge","type":"numeric","out_of":10,"criterion":"subject-knowledge","rubric_id":"dc25a19d-1844-4c53-979d-0dfabfc2ffe8"},
-            {"name":"Communication Clarity","type":"numeric","out_of":10,"criterion":"communication-clarity","rubric_id":"45d30a09-78b9-43d1-aac6-aa525b5db245"},
-            {"name":"Pedagogical Approach","type":"numeric","out_of":10,"criterion":"pedagogical-approach","rubric_id":"32e24946-1f5c-4421-8fe5-b43aec4b2bf5"},
-            {"name":"Engagement & Interaction","type":"numeric","out_of":10,"criterion":"engagement-interaction","rubric_id":"e9c2b9f9-93b3-4af5-818a-582a69af133f"},
-            {"name":"Confidence & Professional Demeanor","type":"numeric","out_of":10,"criterion":"confidence-professionalism","rubric_id":"53703197-cd3f-48d3-9757-797679744363"},
-            {"name":"Use of Teaching Aids / Technology","type":"numeric","out_of":10,"criterion":"teaching-aids","rubric_id":"4358352b-e5c7-492c-8a22-3f9abfd252a5"},
-            {"name":"Language Proficiency","type":"numeric","out_of":10,"criterion":"language-proficiency","rubric_id":"fee52392-7954-4094-8dd6-fa6d27313b4e"},
-            {"name":"Adaptability & Responsiveness","type":"numeric","out_of":10,"criterion":"adaptability-responsiveness","rubric_id":"4a2e9509-f630-433f-86e2-64d3131daa7d"},
-            {"name":"Overall Teaching Effectiveness","type":"numeric","out_of":10,"criterion":"teaching-effectiveness","rubric_id":"81cde521-10d0-462b-9a59-a932c33de2ac"},
-            {"name":"Classroom Management","type":"boolean","out_of":10,"criterion":"classroom-management","rubric_id":"1248fa4f-2269-4727-8dba-edb39396f513"},
-            {"name":"Subject Knowledge","type":"numeric","out_of":10,"criterion":null,"rubric_id":"4f176c8b-d2e7-4097-9a09-741c3de0cc84"},
-            {"name":"Communication Clarity","type":"numeric","out_of":10,"criterion":null,"rubric_id":"333fe8ca-8bca-4f35-9302-1153ed5329a4"},
-            {"name":"Pedagogical Approach","type":"numeric","out_of":10,"criterion":null,"rubric_id":"8b1f0512-4963-4913-926c-4fdcddcace04"},
-            {"name":"Engagement & Interaction","type":"numeric","out_of":10,"criterion":null,"rubric_id":"d3cd201c-15cc-4bfc-90ea-9055245f5e50"},
-            {"name":"Confidence & Professional Demeanor","type":"numeric","out_of":10,"criterion":null,"rubric_id":"36013c8c-e1b2-47ec-8e6a-ca278df61667"},
-            {"name":"Use of Teaching Aids / Technology","type":"numeric","out_of":10,"criterion":null,"rubric_id":"4a52faae-06cf-408b-a6aa-64ce307b8dea"},
-            {"name":"Language Proficiency","type":"numeric","out_of":10,"criterion":null,"rubric_id":"e39c92ca-346c-4c50-974f-8783dfd378e3"},
-            {"name":"Adaptability & Responsiveness","type":"numeric","out_of":10,"criterion":null,"rubric_id":"5f3ba42f-eed1-4314-9238-75214f53c528"},
-            {"name":"Overall Teaching Effectiveness","type":"numeric","out_of":10,"criterion":null,"rubric_id":"dad9d687-7be9-4bf3-b5d2-f2138ef687dd"},
-            {"name":"New","type":"numeric","out_of":10,"criterion":null,"rubric_id":"340ee5ac-b63a-405d-a810-b6c0326ad456"},
-            {"name":"Classroom Management","type":"boolean","out_of":10,"criterion":null,"rubric_id":"2581c301-b3ba-41f8-9329-77c733c17c37"}
-          ],
-          panelists: [
-            {
-              scores: [
-                {"score":9,"rubric_id":"4f176c8b-d2e7-4097-9a09-741c3de0cc84"},
-                {"score":9,"rubric_id":"333fe8ca-8bca-4f35-9302-1153ed5329a4"},
-                {"score":8,"rubric_id":"8b1f0512-4963-4913-926c-4fdcddcace04"},
-                {"score":9,"rubric_id":"d3cd201c-15cc-4bfc-90ea-9055245f5e50"},
-                {"score":10,"rubric_id":"36013c8c-e1b2-47ec-8e6a-ca278df61667"},
-                {"score":10,"rubric_id":"4a52faae-06cf-408b-a6aa-64ce307b8dea"},
-                {"score":10,"rubric_id":"e39c92ca-346c-4c50-974f-8783dfd378e3"},
-                {"score":10,"rubric_id":"5f3ba42f-eed1-4314-9238-75214f53c528"},
-                {"score":10,"rubric_id":"dad9d687-7be9-4bf3-b5d2-f2138ef687dd"},
-                {"score":10,"rubric_id":"340ee5ac-b63a-405d-a810-b6c0326ad456"},
-                {"score":1,"rubric_id":"2581c301-b3ba-41f8-9329-77c733c17c37"}
-              ],
-              comments: "Great presentation skills",
-              strengths: "Excellent subject knowledge and communication",
-              submitted: true,
-              panelist_email: "rahuljainrj1329@gmail.com",
-              recommendation: "strongly_recommend",
-              areas_for_improvement: "Could improve on classroom management"
-            }
-          ]
-        };
+        // Create Supabase client
+        const supabase = createClient();
+        
+        // Fetch panelist review data using RPC
+        const { data, error } = await supabase.rpc('get_panelist_review', {
+          p_job_application_id: jobApplicationId
+        });
 
-        const rawRubrics = data.rubrics || [];
-        const p = data.panelists || [];
+        if (error) {
+          throw new Error(error.message);
+        }
 
-        // Get all rubric IDs that have scores
-        const scoredRubricIds = new Set(
-          p.flatMap(panelist => panelist.scores.map(s => s.rubric_id))
-        );
+        console.log(data?.panelists); // For debugging
+        console.log(data?.rubrics); // For debugging
 
-        // Filter rubrics to only include those that have scores
-        const filteredRubrics = rawRubrics.filter(r => scoredRubricIds.has(r.rubric_id));
-
-        setRubrics(filteredRubrics);
-        setPanelists(p);
+        if (data?.panelists && data?.rubrics) {
+          setRubrics(data.rubrics);
+          setPanelists(data.panelists);
+        } else {
+          setRubrics([]);
+          setPanelists([]);
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Unknown error');
       } finally {
@@ -214,7 +174,8 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                         // Only sum scores from numeric rubrics
                         const panelistTotal = p.scores
                           .filter(scoreObj => {
-                            const rubric = rubrics.find(r => r.rubric_id === scoreObj.rubric_id);
+                            const rubricId = scoreObj.rubric_id || scoreObj.id;
+                            const rubric = rubrics.find(r => r.rubric_id === rubricId);
                             return rubric && rubric.type === 'numeric';
                           })
                           .reduce((scoreSum, s) => scoreSum + Number(s.score || 0), 0);
@@ -230,7 +191,8 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                   {panelists.map((p) => {
                     // Calculate total score only for numeric rubrics
                     const numericScores = p.scores.filter(scoreObj => {
-                      const rubric = rubrics.find(r => r.rubric_id === scoreObj.rubric_id);
+                      const rubricId = scoreObj.rubric_id || scoreObj.id;
+                      const rubric = rubrics.find(r => r.rubric_id === rubricId);
                       return rubric && rubric.type === 'numeric';
                     });
                     
@@ -248,7 +210,7 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                   })}
                 </tr>
 
-                {/* Rubric Score Rows */}
+                {/* Rubric Score Rows - Only show rubrics from the main rubrics array */}
                 {rubrics.map((rubric) => (
                   <tr key={rubric.rubric_id} className="hover:bg-gray-50">
                     <td className="sticky left-0 z-10 bg-white hover:bg-gray-50 px-6 py-4 text-sm font-medium text-gray-900 border-r-2 border-gray-300">
@@ -274,7 +236,10 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                         if (submittedPanelists.length === 0) return '-';
                         
                         const rubricScores = submittedPanelists.map(p => {
-                          const scoreObj = p.scores.find(s => s.rubric_id === rubric.rubric_id);
+                          // Find score by either rubric_id or id field
+                          const scoreObj = p.scores.find(
+                            (s) => (s.rubric_id || s.id) === rubric.rubric_id
+                          );
                           return scoreObj ? Number(scoreObj.score || 0) : 0;
                         });
                         
@@ -283,11 +248,12 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                       })()}
                     </td>
                     {panelists.map((p) => {
+                      // Find score by either rubric_id or id field
                       const scoreObj = p.scores.find(
-                        (s) => s.rubric_id === rubric.rubric_id
+                        (s) => (s.rubric_id || s.id) === rubric.rubric_id
                       );
                       const score = scoreObj?.score;
-                      
+                    
                       return (
                         <td
                           key={`${p.panelist_email}-${rubric.rubric_id}`}
@@ -350,18 +316,32 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                         <div className="max-w-xs text-xs">
                           {panelists
                             .filter(p => p.submitted && p[row.key as keyof Panelist])
-                            .map(p => p[row.key as keyof Panelist])
-                            .filter(Boolean)
+                            .filter(p => {
+                              const value = p[row.key as keyof Panelist];
+                              return value !== undefined && value !== null && value !== '';
+                            })
                             .slice(0, 3)
-                            .map((value, i) => (
-                              <div key={i} className="truncate" title={String(value)}>
-                                • {String(value)}
-                              </div>
-                            ))}
-                          {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).length > 3 && (
-                            <div>...and {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).length - 3} more</div>
+                            .map((p, i) => {
+                              const value = p[row.key as keyof Panelist];
+                              return (
+                                <div key={i} className="truncate" title={String(value)}>
+                                  • {String(value)}
+                                </div>
+                              );
+                            })}
+                          {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).filter(p => {
+                            const value = p[row.key as keyof Panelist];
+                            return value !== undefined && value !== null && value !== '';
+                          }).length > 3 && (
+                            <div>...and {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).filter(p => {
+                              const value = p[row.key as keyof Panelist];
+                              return value !== undefined && value !== null && value !== '';
+                            }).length - 3} more</div>
                           )}
-                          {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).length === 0 && '-'}
+                          {panelists.filter(p => p.submitted && p[row.key as keyof Panelist]).filter(p => {
+                            const value = p[row.key as keyof Panelist];
+                            return value !== undefined && value !== null && value !== '';
+                          }).length === 0 && '-'}
                         </div>
                       )}
                     </td>
@@ -373,6 +353,9 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                         value = String(value).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                       }
                       
+                      // Handle empty string values
+                      const isEmpty = value === undefined || value === null || value === '';
+                      
                       return (
                         <td
                           key={`${p.panelist_email}-${row.key}`}
@@ -380,10 +363,10 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
                         >
                           {Array.isArray(value) ? (
                             <span>{JSON.stringify(value)}</span>
-                          ) : value ? (
-                            String(value)
-                          ) : (
+                          ) : isEmpty ? (
                             '-'
+                          ) : (
+                            String(value)
                           )}
                         </td>
                       );
