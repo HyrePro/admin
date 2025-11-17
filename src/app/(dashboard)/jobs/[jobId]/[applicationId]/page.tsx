@@ -31,6 +31,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
 import { statusColors } from "../../../../../../utils/statusColor";
+import { MakeOfferDialog } from "@/components/make-offer-dialog";
 
 interface ApplicationDetailsPageProps {
   params: Promise<{
@@ -50,6 +51,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   const [activeTab, setActiveTab] = useState<"info" | "assessment" | "video-assessment" | "panelist-review" | "ai-recommendation">("info");
   const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
+  const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
 
   const handleGoBack = () => {
     router.back();
@@ -68,6 +70,27 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   const handleAddNote = () => {
     // TODO: Implement add note functionality
     console.log("Add note for application:", applicationId);
+  };
+
+  const handleOffer = () => {
+    // Open the offer dialog
+    setIsOfferDialogOpen(true);
+  };
+
+  const handleReject = () => {
+    // TODO: Implement reject functionality
+    console.log("Reject candidate:", applicationId);
+  };
+
+  const handleHold = () => {
+    // TODO: Implement hold functionality
+    console.log("Hold candidate:", applicationId);
+  };
+
+  const handleOfferMade = () => {
+    // TODO: Implement any post-offer logic
+    console.log("Offer made for application:", applicationId);
+    // You might want to refresh the application data or update the status
   };
 
   const fetchJobTitle = async () => {
@@ -284,10 +307,55 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
             {/* Candidate Info */}
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {candidateInfo?.first_name} {candidateInfo?.last_name}
-              </h2>
-              <div className="flex items-center gap-4 text-base text-gray-600">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {candidateInfo?.first_name} {candidateInfo?.last_name}
+                </h2>
+                
+                {/* Status Badge moved here */}
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "capitalize font-medium text-sm",
+                    statusColors[applicationStage?.status as keyof typeof statusColors] 
+                      ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
+                      : "bg-gray-50 text-gray-700 border-gray-200"
+                  )}
+                >
+                  {applicationStage?.status.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                </Badge>
+                
+                {/* Decision Buttons - Visible when status is ai_recommendation_completed */}
+                {applicationStage?.status === "ai_recommendation_completed" && (
+                  <div className="flex gap-2 ml-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50 h-8"
+                      onClick={handleHold}
+                    >
+                      Hold
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-red-600 text-red-600 hover:bg-red-50 h-8"
+                      onClick={handleReject}
+                    >
+                      Reject
+                    </Button>
+                    <Button 
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white h-8"
+                      onClick={handleOffer}
+                    >
+                      Offer
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-4 text-base text-gray-600 mt-1">
                 <span>{candidateInfo?.email}</span>
                 {candidateInfo?.city && candidateInfo?.state && (
                   <>
@@ -305,21 +373,8 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             </div>
           </div>
 
-          {/* Status Badge and Quick Actions */}
+          {/* Quick Actions Popover (moved here but keeping same functionality) */}
           <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                "capitalize font-medium text-sm",
-                statusColors[applicationStage?.status as keyof typeof statusColors] 
-                  ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
-                  : "bg-gray-50 text-gray-700 border-gray-200"
-              )}
-            >
-              {applicationStage?.status.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-            </Badge>
-
-            {/* Quick Actions Popover */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -368,6 +423,8 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
       </div>
 
+      {/* Removing the previous decision bar since it's now integrated above */}
+      
       {/* Tab Navigation */}
       <div className="w-full flex-1 flex flex-col min-h-0 mt-4">
         {/* Tab Buttons */}
@@ -450,6 +507,21 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           )}
         </div>
       </div>
+      
+      {/* Make Offer Dialog */}
+      {candidateInfo && jobTitle && (
+        <MakeOfferDialog
+          open={isOfferDialogOpen}
+          onOpenChange={setIsOfferDialogOpen}
+          candidateInfo={candidateInfo}
+          jobInfo={{
+            title: jobTitle,
+            id: jobId
+          }}
+          jobApplicationId={applicationId}
+          onOfferMade={handleOfferMade}
+        />
+      )}
     </div>
   );
 }

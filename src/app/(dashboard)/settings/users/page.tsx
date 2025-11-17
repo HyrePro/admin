@@ -409,7 +409,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="space-y-4 h-full flex flex-col p-4">
       <div className="bg-white rounded-lg border flex flex-col flex-grow">
         <div className="p-4 space-y-4 flex-shrink-0">
           <div className="flex justify-between items-center">
