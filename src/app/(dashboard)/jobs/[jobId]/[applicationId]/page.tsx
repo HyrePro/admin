@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import {
   getJobApplication,
+  getAIEvaluation,
   type CandidateInfo,
-  type ApplicationStage
+  type ApplicationStage,
+  type AIEvaluation
 } from "@/lib/supabase/api/get-job-application";
 import { cn } from "@/lib/utils";
 import { CandidateInfo as CandidateInfoComponent } from "@/components/candidate-info";
@@ -32,6 +34,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
 import { statusColors } from "../../../../../../utils/statusColor";
 import { MakeOfferDialog } from "@/components/make-offer-dialog";
+import { RejectCandidateDialog } from "@/components/reject-candidate-dialog";
+import { toast } from "sonner";
 
 interface ApplicationDetailsPageProps {
   params: Promise<{
@@ -46,12 +50,14 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
   const [candidateInfo, setCandidateInfo] = useState<CandidateInfo | null>(null);
   const [applicationStage, setApplicationStage] = useState<ApplicationStage | null>(null);
+  const [aiEvaluation, setAIEvaluation] = useState<AIEvaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"info" | "assessment" | "video-assessment" | "panelist-review" | "ai-recommendation">("info");
   const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
 
   const handleGoBack = () => {
     router.back();
@@ -78,19 +84,47 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   };
 
   const handleReject = () => {
-    // TODO: Implement reject functionality
-    console.log("Reject candidate:", applicationId);
+    // Open the reject dialog
+    setIsRejectDialogOpen(true);
   };
 
-  const handleHold = () => {
-    // TODO: Implement hold functionality
-    console.log("Hold candidate:", applicationId);
+  const handleHold = async () => {
+    try {
+      const supabase = createClient();
+      
+      // Update job application status to "hold"
+      const { error: updateError } = await supabase
+        .from('job_applications')
+        .update({ 
+          status: 'hold'
+        })
+        .eq('id', applicationId);
+
+      if (updateError) {
+        throw new Error(`Failed to update application status: ${updateError.message}`);
+      }
+
+      toast.success("Candidate put on hold successfully");
+      // Refresh the application data to show the updated status
+      fetchApplicationData();
+    } catch (error: unknown) {
+      console.error("Error putting candidate on hold:", error);
+      toast.error((error as Error | undefined)?.message || "Failed to put candidate on hold. Please try again.");
+    }
   };
 
   const handleOfferMade = () => {
     // TODO: Implement any post-offer logic
     console.log("Offer made for application:", applicationId);
     // You might want to refresh the application data or update the status
+  };
+
+  const handleRejectConfirmed = () => {
+    // TODO: Implement any post-reject logic
+    console.log("Candidate rejected for application:", applicationId);
+    // You might want to refresh the application data or update the status
+    // For now, we'll just show a toast and close the dialog
+    fetchApplicationData();
   };
 
   const fetchJobTitle = async () => {
@@ -137,6 +171,14 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
 
       setCandidateInfo(result.candidateInfo);
       setApplicationStage(result.applicationStage);
+      
+      // Fetch AI evaluation if status is ai_recommendation_completed
+      if (result.applicationStage?.status === "ai_recommendation_completed") {
+        const aiResult = await getAIEvaluation(applicationId);
+        if (!aiResult.error) {
+          setAIEvaluation(aiResult.aiEvaluation);
+        }
+      }
     } catch (err) {
       console.error("Error fetching application data:", err);
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
@@ -312,47 +354,22 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
                   {candidateInfo?.first_name} {candidateInfo?.last_name}
                 </h2>
                 
-                {/* Status Badge moved here */}
+                {/* Status Badge - Show AI recommendation if available, otherwise show regular status */}
                 <Badge
                   variant="outline"
                   className={cn(
                     "capitalize font-medium text-sm",
-                    statusColors[applicationStage?.status as keyof typeof statusColors] 
-                      ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
-                      : "bg-gray-50 text-gray-700 border-gray-200"
+                    aiEvaluation?.final_recommendation
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent"
+                      : statusColors[applicationStage?.status as keyof typeof statusColors] 
+                        ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
+                        : "bg-gray-50 text-gray-700 border-gray-200"
                   )}
                 >
-                  {applicationStage?.status.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  {aiEvaluation?.final_recommendation 
+                    ? aiEvaluation.final_recommendation.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+                    : applicationStage?.status?.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                 </Badge>
-                
-                {/* Decision Buttons - Visible when status is ai_recommendation_completed */}
-                {applicationStage?.status === "ai_recommendation_completed" && (
-                  <div className="flex gap-2 ml-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50 h-8"
-                      onClick={handleHold}
-                    >
-                      Hold
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-red-600 text-red-600 hover:bg-red-50 h-8"
-                      onClick={handleReject}
-                    >
-                      Reject
-                    </Button>
-                    <Button 
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white h-8"
-                      onClick={handleOffer}
-                    >
-                      Offer
-                    </Button>
-                  </div>
-                )}
               </div>
               
               <div className="flex items-center gap-4 text-base text-gray-600 mt-1">
@@ -373,58 +390,79 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
             </div>
           </div>
 
-          {/* Quick Actions Popover (moved here but keeping same functionality) */}
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  aria-label="Quick actions"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-48 p-0">
-                <div className="space-y-1 p-1">
+          {/* Decision Buttons - Visible when status is ai_recommendation_completed */}
+          
+            <div className="flex gap-2">
+              {applicationStage?.status === "ai_recommendation_completed" && (
+                <div className="flex gap-2">
+             
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-red-600 text-red-600 hover:bg-red-50 h-8"
+                onClick={handleReject}
+              >
+                Reject
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white h-8"
+                onClick={handleOffer}
+              >
+                Offer
+              </Button>
+              </div>
+          )}
+
+              {/* Quick Actions Popover */}
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start h-9 px-3 text-sm"
-                    onClick={handleMessageCandidate}
+                    className="h-8 w-8 p-0 hover:bg-gray-100"
+                    aria-label="Quick actions"
                   >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Message Candidate
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start h-9 px-3 text-sm"
-                    onClick={handleChangeStatus}
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Change Status
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start h-9 px-3 text-sm"
-                    onClick={handleAddNote}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-48 p-0">
+                  <div className="space-y-1 p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-9 px-3 text-sm"
+                      onClick={handleMessageCandidate}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Message Candidate
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-9 px-3 text-sm"
+                      onClick={handleChangeStatus}
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Change Status
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-9 px-3 text-sm"
+                      onClick={handleAddNote}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Add Note
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
         </div>
 
       </div>
 
-      {/* Removing the previous decision bar since it's now integrated above */}
-      
       {/* Tab Navigation */}
       <div className="w-full flex-1 flex flex-col min-h-0 mt-4">
         {/* Tab Buttons */}
@@ -520,6 +558,20 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           }}
           jobApplicationId={applicationId}
           onOfferMade={handleOfferMade}
+        />
+      )}
+
+      {/* Reject Candidate Dialog */}
+      {candidateInfo && jobTitle && (
+        <RejectCandidateDialog
+          open={isRejectDialogOpen}
+          onOpenChange={setIsRejectDialogOpen}
+          candidateInfo={candidateInfo}
+          jobInfo={{
+            title: jobTitle
+          }}
+          jobApplicationId={applicationId}
+          onReject={handleRejectConfirmed}
         />
       )}
     </div>

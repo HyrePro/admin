@@ -42,4 +42,5 @@ export const statusColors: Record<string, string> = {
   ai_recommendation_completed: "bg-green-700",
 
   hired: "bg-emerald-700",
+  hold: "bg-amber-700",
 };

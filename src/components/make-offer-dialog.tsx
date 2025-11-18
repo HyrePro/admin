@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from '@/context/auth-context';
 import { useAuthStore } from '@/store/auth-store';
 import { createClient } from '@/lib/supabase/api/client';
+import { User } from '@supabase/supabase-js';
 
 interface CandidateInfo {
   first_name: string;
@@ -45,6 +46,19 @@ interface MakeOfferDialogProps {
   onOfferMade: () => void;
 }
 
+interface UserInfo {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+}
+
+interface ExtendedUser extends User {
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 export function MakeOfferDialog({ 
   open, 
   onOpenChange,
@@ -63,11 +77,18 @@ export function MakeOfferDialog({
   React.useEffect(() => {
     // For now, we'll use a generic approach since we don't know the exact user structure
     if (user) {
-      // Assuming user might have firstName/lastName or first_name/last_name properties
-      const firstName = (user as any).firstName || (user as any).first_name || '';
-      const lastName = (user as any).lastName || (user as any).last_name || '';
+      // Extract user info from user metadata or user object
+      const typedUser = user as ExtendedUser;
+      const userInfo: UserInfo = {
+        first_name: user.user_metadata?.first_name || typedUser.firstName || typedUser.first_name || '',
+        last_name: user.user_metadata?.last_name || typedUser.lastName || typedUser.last_name || '',
+        email: user.email || ''
+      };
+      
+      const firstName = userInfo.first_name || '';
+      const lastName = userInfo.last_name || '';
       const fullName = `${firstName} ${lastName}`.trim();
-      setUserName(fullName || (user as any).email || "Hiring Manager");
+      setUserName(fullName || userInfo.email || "Hiring Manager");
     }
     
     // Fetch schoolId if not available in store
@@ -254,9 +275,9 @@ ${updatedUserName}`);
       toast.success("Offer sent successfully!");
       onOfferMade();
       onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error making offer:", error);
-      toast.error(error.message || "Failed to send offer. Please try again.");
+    } catch (error: unknown) {
+      console.error("Error making offer:", error as unknown as Error);
+      toast.error((error as Error | undefined)?.message || "Failed to make offer. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

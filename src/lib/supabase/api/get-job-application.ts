@@ -94,6 +94,17 @@ export interface ApplicationStage {
   demo_score?: number;
 }
 
+// Add the AI evaluation interface
+export interface AIEvaluation {
+  id: string;
+  application_id: string;
+  final_recommendation: string;
+  strengths: Text[];
+  areas_for_improvement: Text[];
+  raw_payload: Text[];
+  created_at: string;
+}
+
 export async function getJobApplication(applicationId: string) {
   try {
     // Create a Supabase client instance
@@ -154,6 +165,33 @@ export async function getJobApplication(applicationId: string) {
       candidateInfo: null,
       applicationStage: null,
       fullData: null,
+      error: err instanceof Error ? err.message : "An unexpected error occurred",
+    };
+  }
+}
+
+// Add the new function to fetch AI evaluation
+export async function getAIEvaluation(applicationId: string) {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('application_ai_evaluations')
+      .select('*')
+      .eq('application_id', applicationId)
+      .single();
+
+    if (error) {
+      throw new Error(error.message || "Failed to fetch AI evaluation");
+    }
+
+    return {
+      aiEvaluation: data as AIEvaluation,
+      error: null
+    };
+  } catch (err) {
+    console.error("Error fetching AI evaluation:", err);
+    return {
+      aiEvaluation: null,
       error: err instanceof Error ? err.message : "An unexpected error occurred",
     };
   }
