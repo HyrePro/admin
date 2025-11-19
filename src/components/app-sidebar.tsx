@@ -16,7 +16,6 @@ import {
   BarChartIcon,
 } from "lucide-react"
 
-import { NavUser } from "@/components/nav-user"
 
 import {
   Sidebar,
@@ -30,6 +29,7 @@ import {
   SidebarGroupLabel,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from '@/context/auth-context';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "./ui/item"
@@ -51,6 +51,7 @@ const mainLinks = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar(); // Add this hook to control mobile sidebar state
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"; // only exact match for home
@@ -79,7 +80,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     isActive={active}
                     className={`${active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined} hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 `}
                   >
-                    <Link href={href} scroll={false}>
+                    <Link 
+                      href={href} 
+                      scroll={false}
+                      onClick={() => {
+                        // Close mobile sidebar when a link is clicked
+                        setOpenMobile(false);
+                      }}
+                    >
                         <Icon className={active ? "text-white" : undefined} />
                         <span className={`${active ? "text-white" : 'text-blue'} hover: text-blue`}>
                           {title}

@@ -311,9 +311,9 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Header with Back Button */}
-      <div className="flex pt-4">
+      <div className="flex pt-4 flex-shrink-0">
         <Breadcrumb className="px-4 mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -338,7 +338,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
       </div>
 
       {/* Application Title and Basic Info */}
-      <div className="space-y-4 px-4">
+      <div className="space-y-4 px-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Avatar */}
@@ -372,105 +372,122 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
                 </Badge>
               </div>
               
-              <div className="flex items-center gap-4 text-base text-gray-600 mt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-base text-gray-600 mt-1">
                 <span>{candidateInfo?.email}</span>
-                {candidateInfo?.city && candidateInfo?.state && (
+                {(candidateInfo?.city && candidateInfo?.state) && (
                   <>
-                    <span>|</span>
+                    <span className="hidden sm:inline">|</span>
                     <span>{candidateInfo.city}, {candidateInfo.state}</span>
-                  </>
-                )}
-                {candidateInfo?.phone && (
-                  <>
-                    <span>•</span>
-                    <span>{candidateInfo.phone}</span>
                   </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Decision Buttons - Visible when status is ai_recommendation_completed */}
-          
-            <div className="flex gap-2">
+          {/* Action Buttons and Popover */}
+          <div className="flex items-center gap-2">
+            {/* Desktop Action Buttons */}
+            <div className="hidden md:flex gap-2">
               {applicationStage?.status === "ai_recommendation_completed" && (
-                <div className="flex gap-2">
-             
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="border-red-600 text-red-600 hover:bg-red-50 h-8"
+                    onClick={handleReject}
+                  >
+                    Reject
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white h-8"
+                    onClick={handleOffer}
+                  >
+                    Offer
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Quick Actions Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                  aria-label="Quick actions"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-0">
+                <div className="space-y-1 p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleMessageCandidate}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Message Candidate
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleChangeStatus}
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Change Status
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-9 px-3 text-sm"
+                    onClick={handleAddNote}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        {/* Mobile Action Buttons - Moved above tabs for mobile */}
+        <div className="md:hidden flex gap-2 mt-4">
+          {applicationStage?.status === "ai_recommendation_completed" && (
+            <>
               <Button 
                 variant="outline" 
                 size="sm"
-                className="border-red-600 text-red-600 hover:bg-red-50 h-8"
+                className="border-red-600 text-red-600 hover:bg-red-50 h-8 flex-1"
                 onClick={handleReject}
               >
                 Reject
               </Button>
               <Button 
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white h-8"
+                className="bg-green-600 hover:bg-green-700 text-white h-8 flex-1"
                 onClick={handleOffer}
               >
                 Offer
               </Button>
-              </div>
+            </>
           )}
-
-              {/* Quick Actions Popover */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
-                    aria-label="Quick actions"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-48 p-0">
-                  <div className="space-y-1 p-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleMessageCandidate}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Message Candidate
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleChangeStatus}
-                    >
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Change Status
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleAddNote}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Add Note
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
         </div>
-
       </div>
 
-      {/* Tab Navigation */}
-      <div className="w-full flex-1 flex flex-col min-h-0 mt-4">
+      {/* Tab Navigation and Content - Scrollable Area */}
+      <div className="flex-1 flex flex-col mt-4 min-h-0">
         {/* Tab Buttons */}
-        <div className="flex border-b border-gray-200 px-4">
+        <div className="flex border-b border-gray-200 px-4 overflow-x-auto flex-shrink-0 hide-scrollbar">
           <button
             onClick={() => setActiveTab("info")}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
               activeTab === "info"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
@@ -481,7 +498,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           <button
             onClick={() => setActiveTab("assessment")}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
               activeTab === "assessment"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
@@ -492,7 +509,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           <button
             onClick={() => setActiveTab("video-assessment")}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
               activeTab === "video-assessment"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
@@ -503,7 +520,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           <button
             onClick={() => setActiveTab("panelist-review")}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
               activeTab === "panelist-review"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
@@ -515,7 +532,7 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
           <button
             onClick={() => setActiveTab("ai-recommendation")}
             className={cn(
-              "px-4 py-3 text-sm font-medium transition-all duration-200 relative",
+              "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
               activeTab === "ai-recommendation"
                 ? "text-blue-600 border-b-2 border-blue-600"
                 : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
@@ -526,23 +543,25 @@ export default function ApplicationDetailsPage({ params }: ApplicationDetailsPag
         </div>
 
         {/* Tab Content - Scrollable Area */}
-        <div className="flex-grow overflow-y-auto min-h-0">
-          {activeTab === "info" && candidateInfo && (
-            <CandidateInfoComponent candidateInfo={candidateInfo} />
-          )}
-          {activeTab === "assessment" && applicationStage && (
-            <MCQAssessment applicationStage={applicationStage} />
-          )}
-          {activeTab === "video-assessment" && applicationStage && (
-            <VideoAssessment applicationStage={applicationStage} />
-          )}
-          {activeTab === "panelist-review" && (
-            <PanelistReview jobApplicationId={applicationId} />
-          )}
-          {/* Add AI Recommendation tab content */}
-          {activeTab === "ai-recommendation" && (
-            <AIRecommendation jobApplicationId={applicationId} />
-          )}
+        <div className="flex-1 overflow-y-auto">
+          <div>
+            {activeTab === "info" && candidateInfo && (
+              <CandidateInfoComponent candidateInfo={candidateInfo} />
+            )}
+            {activeTab === "assessment" && applicationStage && (
+              <MCQAssessment applicationStage={applicationStage} />
+            )}
+            {activeTab === "video-assessment" && applicationStage && (
+              <VideoAssessment applicationStage={applicationStage} />
+            )}
+            {activeTab === "panelist-review" && (
+              <PanelistReview jobApplicationId={applicationId} />
+            )}
+            {/* Add AI Recommendation tab content */}
+            {activeTab === "ai-recommendation" && (
+              <AIRecommendation jobApplicationId={applicationId} />
+            )}
+          </div>
         </div>
       </div>
       

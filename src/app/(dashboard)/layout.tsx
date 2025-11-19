@@ -170,7 +170,7 @@ export default function DashboardShellLayout({
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>
-          <div className="flex px-2 flex-col ms-2">
+          <div className="flex px-2 flex-col ms-2 min-w-0">
             <div className="font-regular text-gray-900 text-sm">Welcome</div>
             <div className="font-medium text-gray-900 text-md truncate">
               {schoolInfo ? `${schoolInfo.name}, ${schoolInfo.location}` : "Loading school info..."}

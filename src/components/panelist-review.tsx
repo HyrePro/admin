@@ -113,7 +113,7 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
   ];
 
   return (
-    <div className="p-6">
+    <div className="flex flex-col h-full">
       {noData ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No panelist review data available</p>
@@ -122,8 +122,8 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow">
-          <div className="overflow-x-auto relative">
+        <div className="bg-white rounded-lg flex-1 overflow-y-auto p-6">
+          <div className="overflow-x-auto relative h-full">
             <table className="min-w-full divide-y divide-gray-200" style={{ width: 'max-content' }}>
               <thead className="bg-gray-50">
                 <tr>

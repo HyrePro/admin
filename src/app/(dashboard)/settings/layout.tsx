@@ -29,7 +29,7 @@ export default function SettingsLayout({
       </div>
       
       <div className="border-b border-gray-200">
-        <nav className="flex overflow-x-auto px-2" aria-label="Tabs">
+        <nav className="flex overflow-x-auto px-2 hide-scrollbar" aria-label="Tabs">
           {tabs.map((tab) => (
             <Link
               key={tab.name}

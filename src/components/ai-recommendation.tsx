@@ -92,8 +92,8 @@ export const AIRecommendation: React.FC<AIRecommendationProps> = ({ jobApplicati
   }
 
   return (
-    <div className="p-6">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg overflow-hidden">
+    <div className="flex flex-col h-full p-4">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg overflow-hidden flex-1 overflow-y-auto p-6">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-white/20 p-2 rounded-lg">

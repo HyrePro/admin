@@ -305,7 +305,7 @@ export default function InterviewSettingsPage() {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <div className="w-64 border-r border-gray-200 flex flex-col">
+      <div className="w-2/5 border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
           <h3 className="text-lg font-medium">Interview Settings</h3>
         </div>

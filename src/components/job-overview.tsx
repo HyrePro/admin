@@ -48,9 +48,12 @@ interface JobOverviewProps {
 }
 
 export function JobOverview({ job }: JobOverviewProps) {
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const [isMcqExpanded, setIsMcqExpanded] = useState(false);
   const [isDemoExpanded, setIsDemoExpanded] = useState(false);
   const [isInterviewExpanded, setIsInterviewExpanded] = useState(false);
+
+  const shouldTruncate = job.job_description && job.job_description.split('\n').length > 7;
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -95,7 +98,17 @@ export function JobOverview({ job }: JobOverviewProps) {
 
         <div className="rounded-lg p-4 border border-gray-200 bg-white">
           <div className="text-sm font-bold mb-2">Job Description</div>
-          <div className="text-sm text-gray-900 whitespace-pre-wrap">{job.job_description}</div>
+          <div className={`text-sm text-gray-900 whitespace-pre-wrap ${shouldTruncate && !showFullDescription ? 'line-clamp-7' : ''}`}>
+            {job.job_description}
+          </div>
+          {shouldTruncate && (
+            <button 
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-blue-600 hover:text-blue-800 text-sm mt-2 font-medium"
+            >
+              {showFullDescription ? 'View Less' : 'View More'}
+            </button>
+          )}
         </div>
         <div className="flex flex-col rounded-lg p-4 border border-gray-200 bg-white min-w-[220px]">
           <div className="text-sm font-bold mb-2">Job Details</div>

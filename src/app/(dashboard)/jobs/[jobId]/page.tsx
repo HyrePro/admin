@@ -376,7 +376,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="mt-2">
-          <div className="flex items-start justify-between gap-6 px-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4">
             <div className="flex flex-row gap-2">
               <h2 className="text-2xl font-bold leading-tight">
                 {job?.title}
@@ -392,7 +392,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"

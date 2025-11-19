@@ -134,9 +134,9 @@ export function VideoAssessment({ applicationStage }: VideoAssessmentProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div className="flex flex-col h-full">
       {/* Two-column layout when we have video or rubrics data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-y-auto p-4">
         {/* Left Section - 2/3 width */}
         <div className="lg:col-span-2 space-y-6">
           {/* Video Section - only show if we have a video URL */}

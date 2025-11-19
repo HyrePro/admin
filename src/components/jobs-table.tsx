@@ -236,23 +236,25 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map(option => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {onRefresh && (
-          <Button variant="outline" onClick={onRefresh}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex gap-4">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="flex-grow sm:w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {onRefresh && (
+            <Button variant="outline" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table Container - Using the same structure as candidates page */}
