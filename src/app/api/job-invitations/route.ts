@@ -124,12 +124,10 @@ export async function POST(request: NextRequest) {
       // Handle duplicate key violation
       if (error.code === '23505') {
         // Extract information about which emails already exist
-        const existingEmails = await getExistingInvitations(supabaseService, jobId, emails);
         return NextResponse.json(
           { 
             error: 'Some invitations already exist',
-            existingEmails: existingEmails,
-            message: `Invitations already exist for: ${existingEmails.join(', ')}`
+            message: `Invitations already exist for: ${emails.join(', ')}`
           },
           { status: 409 }
         )
@@ -156,20 +154,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// Helper function to get existing invitations
-async function getExistingInvitations(supabaseService: any, jobId: string, emails: string[]) {
-  const { data, error } = await supabaseService
-    .from('job_invitations')
-    .select('candidate_email')
-    .eq('job_id', jobId)
-    .in('candidate_email', emails);
-  
-  if (error) {
-    console.error('Error fetching existing invitations:', error);
-    return [];
-  }
-  
-  return data.map((item: any) => item.candidate_email) || [];
 }
