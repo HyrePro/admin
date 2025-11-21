@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import '@/styles/candidates.css'
 import { statusColors } from '../../../../utils/statusColor'
+import { InviteCandidateDialog } from '@/components/invite-candidate-dialog'
+import { toast } from "sonner"
 
 // Types
 interface Application {
@@ -138,6 +140,7 @@ export default function CandidatesPage() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
   
   const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY)
 
@@ -235,6 +238,46 @@ export default function CandidatesPage() {
     router.push(`/jobs/${jobId}/${applicationId}`)
   }, [router])
 
+  const handleInviteCandidates = async (emails: string[], jobId: string) => {
+    try {
+      const response = await fetch("/api/job-invitations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ emails, jobId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(`${emails.length} candidate(s) invited successfully`, {
+          description: "Invitations have been sent and saved to the database",
+        });
+      } else {
+        // Handle the specific case of existing invitations
+        if (response.status === 409 && result.existingEmails) {
+          toast.error("Some invitations already exist", {
+            description: `Invitations already exist for: ${result.existingEmails.join(', ')}`,
+          });
+        } else {
+          toast.error("Failed to invite candidates", {
+            description: result.error || "Please try again later",
+          });
+        }
+        // Re-throw the error so the dialog knows there was an issue
+        throw new Error(result.error || "Failed to invite candidates");
+      }
+    } catch (error) {
+      console.error("Error inviting candidates:", error);
+      toast.error("Failed to invite candidates", {
+        description: "Please check your connection and try again",
+      });
+      // Re-throw the error so the dialog knows there was an issue
+      throw error;
+    }
+  };
+
   const showLoading = isLoading || !schoolId
   const showValidating = isValidating && !isLoading
 
@@ -244,7 +287,7 @@ export default function CandidatesPage() {
         <h1 className="candidates-title">Candidates</h1>
         <Button
           variant="outline"
-          onClick={() => router.push('/jobs')}
+          onClick={() => setIsInviteDialogOpen(true)}
           className='btn-invite'
         >
           <Plus className="btn-icon" />
@@ -342,6 +385,12 @@ export default function CandidatesPage() {
       )}
 
       <AssessmentLegend />
+      
+      <InviteCandidateDialog 
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        onInvite={handleInviteCandidates}
+      />
     </div>
   )
 }

@@ -102,11 +102,11 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
   };
 
   const handleCopyLink = async (jobId: string) => {
-    const jobLink = `https://www.hyrepro.in/apply/${jobId}`;
+    const jobLink = `https://www.hyriki.com/apply/${jobId}`;
     try {
       await navigator.clipboard.writeText(jobLink);
       toast.success("Job link copied to clipboard");
-    } catch (err) {
+    } catch (err) { 
       console.error("Failed to copy link:", err);
       toast.error("Failed to copy job link");
     }

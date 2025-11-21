@@ -10,7 +10,7 @@ export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
 
   useEffect(() => {
     if (!jobId) return;
-    const link = `${'https://hyrepro.in'}/apply/${jobId}`
+    const link = `${'https://hyriki.com'}/apply/${jobId}`
     setJobLink(link)
   }, [jobId])
 

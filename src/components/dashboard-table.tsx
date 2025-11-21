@@ -98,7 +98,7 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
   }, [schoolId, currentPage]);
 
   const handleViewJob = (jobId: string) => {
-    const jobLink = `https://www.hyrepro.in/apply/${jobId}`;
+    const jobLink = `https://www.hyriki.com/apply/${jobId}`;
     window.open(jobLink, '_blank');
   };
 
@@ -107,7 +107,7 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
   };
 
   const handleCopyLink = async (jobId: string) => {
-    const jobLink = `https://www.hyrepro.in/apply/${jobId}`;
+    const jobLink = `https://www.hyriki.com/apply/${jobId}`;
     try {
       await navigator.clipboard.writeText(jobLink);
       setCopiedJobId(jobId);

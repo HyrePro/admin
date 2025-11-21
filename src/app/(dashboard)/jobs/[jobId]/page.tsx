@@ -152,7 +152,7 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
   };
 
   const handleCopyLink = async () => {
-    const jobLink = `https://www.hyrepro.in/apply/${jobId}`;
+    const jobLink = `https://www.hyriki.com/apply/${jobId}`;
     try {
       await navigator.clipboard.writeText(jobLink);
       setCopied(true);
