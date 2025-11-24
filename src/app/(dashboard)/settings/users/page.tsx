@@ -134,6 +134,11 @@ export default function UsersPage() {
     email: '',
     role: 'viewer'
   });
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  // Destructure form fields for easier access
+  const { name, email, role } = inviteForm;
 
   // Reset to first page when schoolId changes
   useEffect(() => {
@@ -264,77 +269,54 @@ export default function UsersPage() {
   };
 
   // Handle invite user
-  const handleInviteUser = async () => {
-    if (!schoolId) {
-      toast.error('Organization information not available. Please try again.');
-      return;
-    }
-
-    if (!inviteForm.name.trim() || !inviteForm.email.trim()) {
-      toast.error('Please enter both name and email');
-      return;
-    }
-
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(inviteForm.email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteLoading(true);
+    setMessage('');
 
     try {
       const supabase = createClient();
-
-      // For now, we'll add to interview_panelists if role is interviewer
-      // In a real implementation, you would send an invite email and add to admin_user_info
-      if (inviteForm.role === 'interviewer') {
-        const { data, error } = await supabase
-          .from('interview_panelists')
-          .insert({
-            school_id: schoolId,
-            name: inviteForm.name,
-            email: inviteForm.email
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Update local state
-        setPanelists(prev => [...prev, data]);
-        setUsers(prev => [...prev, {
-          id: data.id,
-          first_name: data.name.split(' ')[0] || '',
-          last_name: data.name.split(' ').slice(1).join(' ') || '',
-          email: data.email,
-          role: 'interviewer' as const,
-          status: 'active' as const
-        }]);
-      } else {
-        // For other roles (admin, hr, viewer), add to users list with appropriate role
-        const newUser = {
-          id: Math.random().toString(), // In a real implementation, this would come from the database
-          first_name: inviteForm.name.split(' ')[0] || '',
-          last_name: inviteForm.name.split(' ').slice(1).join(' ') || '',
-          email: inviteForm.email,
-          role: inviteForm.role as 'admin' | 'hr' | 'viewer',
-          status: 'invited' as const
-        };
-        setUsers(prev => [...prev, newUser]);
-        // This is a simplified implementation
-        toast.success('User invited successfully! In a full implementation, an email invitation would be sent.');
-      }
-
-      // Reset form and close dialog
-      setInviteForm({ name: '', email: '', role: 'viewer' });
-      setIsInviteDialogOpen(false);
-      toast.success('User invited successfully!');
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Reset to first page when new user is added
-      setCurrentPage(0);
+      const response = await supabase.functions.invoke('create-invitation', {
+        body: {
+          name: inviteForm.name,
+          email: inviteForm.email,
+          role: inviteForm.role,
+          schoolId,
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        setMessage(response.error.message || 'Failed to send invitation');
+      } else {
+        setMessage('Invitation sent successfully!');
+        setInviteForm({ name: '', email: '', role: 'viewer' });
+        setIsInviteDialogOpen(false);
+        // Refresh the user list
+        if (schoolId) {
+          const { data: userData, error: userError } = await supabase
+            .from('admin_user_info')
+            .select('id, first_name, last_name, email, role, avatar')
+            .eq('school_id', schoolId);
+
+          if (!userError) {
+            const usersWithStatus = (userData || []).map(user => ({
+              ...user,
+              status: 'active' as const,
+              role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
+            }));
+            setUsers(usersWithStatus);
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error inviting user:', error);
-      toast.error('Failed to invite user');
+      setMessage('An error occurred');
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -433,7 +415,7 @@ export default function UsersPage() {
                     Invite a new user to your organization
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Name</Label>
                     <Input
@@ -441,6 +423,7 @@ export default function UsersPage() {
                       value={inviteForm.name}
                       onChange={(e) => handleInviteFormChange('name', e.target.value)}
                       placeholder="Enter user's full name"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -451,6 +434,7 @@ export default function UsersPage() {
                       value={inviteForm.email}
                       onChange={(e) => handleInviteFormChange('email', e.target.value)}
                       placeholder="Enter user's email address"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -462,18 +446,21 @@ export default function UsersPage() {
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="admin">Admin</option>
-                      <option value="hr">HR</option>
                       <option value="interviewer">Interviewer</option>
-                      <option value="viewer">Viewer</option>
                     </select>
                   </div>
-                </div>
+                  {message && (
+                    <div className={`text-sm ${message.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
+                      {message}
+                    </div>
+                  )}
+                </form>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleInviteUser}>
-                    Send Invitation
+                  <Button onClick={handleSubmit} disabled={inviteLoading}>
+                    {inviteLoading ? 'Sending...' : 'Send Invitation'}
                   </Button>
                 </DialogFooter>
               </DialogContent>

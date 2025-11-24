@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useAuthStore } from '@/store/auth-store';
 import { createClient } from '@/lib/supabase/api/client';
 
@@ -264,7 +265,7 @@ export function InterviewRubricsSettings() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 ">
+      <div className="flex-shrink-0 sticky top-0 bg-background z-10 shadow-sm">
         <CardHeader className="mb-4 mt-4 flex flex-row items-center justify-between">
           <div>
             <CardTitle>Interview Rubrics Settings</CardTitle>
@@ -273,88 +274,93 @@ export function InterviewRubricsSettings() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Criteria
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Criteria</DialogTitle>
-                  <DialogDescription>
-                    Create a new evaluation criterion for interview assessments. 
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-name">Criteria Name</Label>
-                    <Input
-                      id="new-name"
-                      value={newCriteria.name}
-                      onChange={(e) => setNewCriteria(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter criteria name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-type">Type</Label>
-                    <div className="flex items-center gap-2">
-                      <Select 
-                        value={newCriteria.type} 
-                        onValueChange={(value: 'numeric' | 'boolean' | 'descriptive') => setNewCriteria(prev => ({ ...prev, type: value }))}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="numeric">Numeric (Out of)</SelectItem>
-                          <SelectItem value="boolean">Boolean (Yes/No)</SelectItem>
-                          <SelectItem value="descriptive">Descriptive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {newCriteria.type === 'numeric' && (
-                        <>
-                          <span className="text-sm">Out of</span>
-                          <Input
-                            id="new-outOf"
-                            type="number"
-                            min="1"
-                            className="w-20"
-                            value={newCriteria.outOf}
-                            onChange={(e) => setNewCriteria(prev => ({ ...prev, outOf: parseInt(e.target.value) || 1 }))}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-description">Description (Optional)</Label>
-                    <Input
-                      id="new-description"
-                      value={newCriteria.description}
-                      onChange={(e) => setNewCriteria(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Description"
-                      className="min-h-[60px] text-start"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddCriteria}>
+            {rubricCriteria.length > 0 && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Criteria
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Criteria</DialogTitle>
+                    <DialogDescription>
+                      Create a new evaluation criterion for interview assessments. 
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-name">Criteria Name</Label>
+                      <Input
+                        id="new-name"
+                        value={newCriteria.name}
+                        onChange={(e) => setNewCriteria(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Enter criteria name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-type">Type</Label>
+                      <div className="flex items-center gap-2">
+                        <Select 
+                          value={newCriteria.type} 
+                          onValueChange={(value: 'numeric' | 'boolean' | 'descriptive') => setNewCriteria(prev => ({ ...prev, type: value }))}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="numeric">Numeric (Out of)</SelectItem>
+                            <SelectItem value="boolean">Boolean (Yes/No)</SelectItem>
+                            <SelectItem value="descriptive">Descriptive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {newCriteria.type === 'numeric' && (
+                          <>
+                            <span className="text-sm">Out of</span>
+                            <Input
+                              id="new-outOf"
+                              type="number"
+                              min="1"
+                              className="w-20"
+                              value={newCriteria.outOf}
+                              onChange={(e) => setNewCriteria(prev => ({ ...prev, outOf: parseInt(e.target.value) || 1 }))}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-description">Description (Optional)</Label>
+                      <Input
+                        id="new-description"
+                        value={newCriteria.description}
+                        onChange={(e) => setNewCriteria(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Description"
+                        className="min-h-[60px] text-start"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddCriteria}>
+                      Add Criteria
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Rubric Settings'}
+            </Button>
           </div>
         </CardHeader>
       </div>
       <div className="flex-grow overflow-y-auto">
         <CardContent>
-          <div className="space-y-6 mx-auto">
+          <div className="space-y-6 mx-auto mt-6 mb-6">
             <div className="border rounded-lg">
               <Table>
                 <TableHeader>
@@ -366,69 +372,83 @@ export function InterviewRubricsSettings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rubricCriteria.map((criteria) => (
-                    <TableRow key={criteria.id}>
-                      <TableCell className="font-medium max-w-xs">
-                        <div className="font-medium">{criteria.name}</div>
-                        <div className="text-sm text-muted-foreground mt-1 whitespace-normal">
-                          {criteria.description || "No description provided"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="capitalize">{criteria.type}</div>
-                      </TableCell>
-                      <TableCell>
-                        {criteria.type === 'numeric' ? (
-                          <div className="flex items-center gap-2">
-                            <span>Out of</span>
-                            <Input
-                              id={`outOf-${criteria.id}`}
-                              type="number"
-                              min="1"
-                              className="w-20"
-                              value={criteria.out_of}
-                              onChange={(e) => handleOutOfChange(criteria.id, e.target.value)}
-                            />
+                  {rubricCriteria.length > 0 ? (
+                    rubricCriteria.map((criteria) => (
+                      <TableRow key={criteria.id}>
+                        <TableCell className="font-medium max-w-xs">
+                          <div className="font-medium">{criteria.name}</div>
+                          <div className="text-sm text-muted-foreground mt-1 whitespace-normal">
+                            {criteria.description || "No description provided"}
                           </div>
-                        ) : criteria.type === 'boolean' ? (
-                          <span>Yes/No</span>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleRemoveRubric(criteria.id)}
-                        >
-                          <Trash2 className="w-4 h-4 hover:text-red-500" />
-                        </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="capitalize">{criteria.type}</div>
+                        </TableCell>
+                        <TableCell>
+                          {criteria.type === 'numeric' ? (
+                            <div className="flex items-center gap-2">
+                              <span>Out of</span>
+                              <Input
+                                id={`outOf-${criteria.id}`}
+                                type="number"
+                                min="1"
+                                className="w-20"
+                                value={criteria.out_of}
+                                onChange={(e) => handleOutOfChange(criteria.id, e.target.value)}
+                              />
+                            </div>
+                          ) : criteria.type === 'boolean' ? (
+                            <span>Yes/No</span>
+                          ) : (
+                            <span>-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleRemoveRubric(criteria.id)}
+                          >
+                            <Trash2 className="w-4 h-4 hover:text-red-500" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        <Empty className="border-0">
+                          <EmptyHeader>
+                            <EmptyTitle>No Criteria Added</EmptyTitle>
+                            <EmptyDescription>
+                              Get started by adding a new evaluation criterion.
+                            </EmptyDescription>
+                          </EmptyHeader>
+                          <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Criteria
+                          </Button>
+                        </Empty>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
             
             {/* Total Score at the Bottom */}
-            <div className="bg-muted p-4 rounded-lg mb-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium">Maximum Possible Score</p>
-                  <p className="text-2xl font-bold">{maxScore}</p>
+            {rubricCriteria.length > 0 && (
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium">Maximum Possible Score</p>
+                    <p className="text-2xl font-bold">{maxScore}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
-      </div>
-      <div className="flex-shrink-0 border-t p-4">
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Rubric Settings'}
-          </Button>
-        </div>
       </div>
     </div>
   );

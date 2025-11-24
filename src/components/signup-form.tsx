@@ -23,6 +23,7 @@ export function SignupForm({
   const [showPassword, setShowPassword] = useState(false)
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -135,6 +136,32 @@ export function SignupForm({
       const msg = err instanceof Error ? err.message : "Signup failed. Please try again."
       setError(msg)
       toast.error(msg)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true)
+    setError("")
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+      }
+    } catch (err) {
+      setError("Failed to sign in with Google. Please try again.")
+    } finally {
+      setIsGoogleLoading(false)
     }
   }
 
@@ -262,6 +289,7 @@ export function SignupForm({
               className="w-full flex items-center justify-center gap-2"
               disabled={isSubmitting}
               type="button"
+              onClick={handleGoogleLogin}
             >
               <Image src="/iv_google.png" alt="Google" width={20} height={20} className="rounded-md" />
               Sign up with Google

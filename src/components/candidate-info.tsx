@@ -172,7 +172,7 @@ export function CandidateInfo({ candidateInfo }: CandidateInfoProps) {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-gray-500" />
                     <div>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-gray-900 md:line-clamp-2">
                         {candidateInfo.resume_file_name || 'Resume.pdf'}
                       </div>
                       <div className="text-xs text-gray-500">PDF Document</div>

@@ -88,7 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         setOpenMobile(false);
                       }}
                     >
-                        <Icon className={active ? "text-white" : undefined} />
+                        <Icon size={18} className={active ? "text-white" : undefined} />
                         <span className={`${active ? "text-white" : 'text-blue'} hover: text-blue`}>
                           {title}
                         </span>

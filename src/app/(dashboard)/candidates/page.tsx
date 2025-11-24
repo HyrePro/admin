@@ -252,7 +252,7 @@ export default function CandidatesPage() {
 
       if (response.ok) {
         toast.success(`${emails.length} candidate(s) invited successfully`, {
-          description: "Invitations have been sent and saved to the database",
+          description: "Invitations have been sent!",
         });
       } else {
         // Handle the specific case of existing invitations
