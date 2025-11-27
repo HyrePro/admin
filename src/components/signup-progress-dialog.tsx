@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Mail, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Mail, Clock, AlertCircle, Loader2, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from "@/lib/supabase/api/client"
 import { useRouter } from 'next/navigation'
@@ -108,6 +108,11 @@ export function SignupProgressDialog({
     onResendEmail()
     setCountdown(60)
     setCanResend(false)
+  }
+
+  const handleNeedHelp = () => {
+    // Open a support email or help page
+    window.open('mailto:support@hyrepro.com?subject=Email Confirmation Issue&body=I am having trouble confirming my email address for my HyrePro account.', '_blank')
   }
 
   const formatTime = (seconds: number) => {
@@ -233,11 +238,16 @@ export function SignupProgressDialog({
                     <div className="text-left">
                       <p className="text-sm text-blue-800 font-semibold mb-2">Check your email</p>
                       <p className="text-sm text-blue-700 leading-relaxed">
-                        Please check your inbox and click the verification link. Don&apos;t forget to check your spam folder if you don&apos;t see it.
+                        Please check your inbox and click the verification link. Don&apos;t forget to check your spam/junk folder if you don&apos;t see it.
                       </p>
                       <p className="text-xs text-blue-600 mt-2 font-medium">
-                        💡 Once you confirm your email, you&apos;ll be automatically redirected to the dashboard!
+                        💡 Didn&apos;t receive the email? Try these steps:
                       </p>
+                      <ul className="text-xs text-blue-600 mt-1 list-disc pl-4 space-y-1">
+                        <li>Check spam/junk folders</li>
+                        <li>Wait 2-3 minutes for delivery</li>
+                        <li>Click &quot;Resend verification email&quot; below</li>
+                      </ul>
                     </div>
                   </div>
                 </motion.div>
@@ -284,6 +294,21 @@ export function SignupProgressDialog({
                       className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
                     >
                       Got it, thanks!
+                    </Button>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2 }}
+                  >
+                    <Button 
+                      onClick={handleNeedHelp}
+                      variant="ghost"
+                      className="w-full h-10 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      Need help with email confirmation?
                     </Button>
                   </motion.div>
                 </div>

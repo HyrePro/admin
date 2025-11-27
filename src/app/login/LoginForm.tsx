@@ -10,25 +10,53 @@ import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+
+interface LoginFormProps extends React.ComponentProps<"form"> {
+  email?: string | null
+  redirect?: string | null
+}
 
 export function LoginForm({
   className,
+  email: initialEmail,
+  redirect: initialRedirect,
   ...props
-}: React.ComponentProps<"form">) {
-  const [email, setEmail] = useState("")
+}: LoginFormProps) {
+  const [email, setEmail] = useState(initialEmail || "")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState("")
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false)
+  const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
   const { user, loading } = useAuth()
+  const searchParams = useSearchParams()
   
   // Create the supabase client instance
   const supabase = createClient()
+
+  // Decode URL parameters if they exist
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    const redirectParam = searchParams.get('redirect')
+    
+    if (emailParam) {
+      try {
+        const decodedEmail = decodeURIComponent(emailParam)
+        setEmail(decodedEmail)
+        setShowSignInMessage(true)
+      } catch (e) {
+        console.error('Error decoding email parameter:', e)
+      }
+    }
+    
+    // Clear any existing error when arriving from invitation link
+    setError("")
+  }, [searchParams])
 
   // Redirect user if they're already logged in
   useEffect(() => {
@@ -99,6 +127,11 @@ export function LoginForm({
     }
   }
 
+  const isValidRedirectPath = (path: string): boolean => {
+    // Security: Validate the redirect path is relative (starts with /) to prevent open redirect vulnerabilities
+    return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
+  }
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -126,12 +159,31 @@ export function LoginForm({
         console.log('Login successful, user:', data.user.email)
         console.log('User email confirmed at:', data.user.email_confirmed_at)
         
-        // After successful login, check user's school info and redirect
-        console.log('Checking school info after successful login')
-        // Wait a bit for the auth state to update
-        setTimeout(() => {
-          checkUserSchoolInfo()
-        }, 100)
+        // After successful login, check if we have a redirect parameter
+        let redirectPath = '/'
+        
+        // First check if we have an initial redirect parameter passed to the component
+        if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+          redirectPath = initialRedirect
+        } 
+        // Then check URL params for redirect
+        else {
+          const redirectParam = searchParams.get('redirect')
+          if (redirectParam) {
+            try {
+              const decodedRedirect = decodeURIComponent(redirectParam)
+              if (isValidRedirectPath(decodedRedirect)) {
+                redirectPath = decodedRedirect
+              }
+            } catch (e) {
+              console.error('Error decoding redirect parameter:', e)
+            }
+          }
+        }
+        
+        // Redirect to the appropriate path
+        console.log('Redirecting to:', redirectPath)
+        router.push(redirectPath)
       } else {
         setError('Login failed: No user data received')
       }
@@ -148,10 +200,34 @@ export function LoginForm({
     setError("")
     
     try {
+      // Prepare redirect URL with parameters if they exist
+      let redirectTo = `${window.location.origin}/auth/callback`
+      
+      // Add redirect parameter to the callback URL if it exists
+      if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        const url = new URL(redirectTo)
+        url.searchParams.set('next', initialRedirect)
+        redirectTo = url.toString()
+      } else {
+        const redirectParam = searchParams.get('redirect')
+        if (redirectParam) {
+          try {
+            const decodedRedirect = decodeURIComponent(redirectParam)
+            if (isValidRedirectPath(decodedRedirect)) {
+              const url = new URL(redirectTo)
+              url.searchParams.set('next', decodedRedirect)
+              redirectTo = url.toString()
+            }
+          } catch (e) {
+            console.error('Error decoding redirect parameter for Google login:', e)
+          }
+        }
+      }
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -178,9 +254,16 @@ export function LoginForm({
       >
         <div className="flex flex-col gap-2 mb-2">
           <h1 className="text-2xl font-bold">Login to your account</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            Enter your email below to login to your account
-          </p>
+          {showSignInMessage && email && (
+            <p className="text-muted-foreground text-sm text-balance">
+              Sign in with <span className="font-semibold">{email}</span> to continue
+            </p>
+          )}
+          {!showSignInMessage && (
+            <p className="text-muted-foreground text-sm text-balance">
+              Enter your email below to login to your account
+            </p>
+          )}
         </div>
 
         {error && (
@@ -198,7 +281,13 @@ export function LoginForm({
               type="email"
               placeholder="m@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                // Hide the sign-in message if user manually changes the email
+                if (showSignInMessage) {
+                  setShowSignInMessage(false)
+                }
+              }}
               required
               disabled={isLoading}
             />

@@ -82,7 +82,7 @@ export default function InvitationPage() {
     // Scenario A: User not logged in - redirect to signup
     if (!user && action === 'accept') {
       localStorage.setItem('pendingInvite', token);
-      router.push(`/auth/signup?email=${encodeURIComponent(invitation?.email || '')}`);
+      router.push(`/signup?email=${encodeURIComponent(invitation?.email || '')}`);
       return;
     }
 
@@ -127,39 +127,53 @@ export default function InvitationPage() {
         },
       });
 
+      // Log the full response for debugging
+      console.log('Response from server:', { data, error });
+
+      // Handle Supabase invocation errors
       if (error) {
+        console.error('Supabase function error:', error);
         setError(error.message || 'Failed to process invitation');
         setResponding(false);
         return;
       }
 
-      if (data.error) {
-        // Handle different scenarios based on response
-        if (data.requiresSignOut) {
-          // Scenario D: User logged in with different email
-          setSignOutMessage(data.message);
-          setShowSignOutPrompt(true);
-          setResponding(false);
-          return;
-        } else if (data.requiresConfirmation) {
-          // Scenario C: School change confirmation required
-          setSchoolChangeData({
-            currentSchool: data.currentSchool,
-            newSchool: data.newSchool,
-          });
-          setShowSchoolChangeConfirmation(true);
-          setResponding(false);
-          return;
-        } else if (data.requiresAuth) {
-          // Scenario A: Need to sign up/login
-          localStorage.setItem('pendingInvite', token);
-          router.push(`/auth/signup?email=${encodeURIComponent(data.invitationEmail || '')}`);
-          return;
-        } else {
-          setError(data.message || data.error);
-          setResponding(false);
-          return;
-        }
+      // Check for special scenarios first
+      if (data.requiresSignOut) {
+        // Scenario D: User logged in with different email
+        console.log('Scenario D: Requires sign out', data);
+        setSignOutMessage(data.message);
+        setShowSignOutPrompt(true);
+        setResponding(false);
+        return;
+      }
+      
+      if (data.requiresConfirmation) {
+        // Scenario C: School change confirmation required
+        console.log('Scenario C: School change required', data);
+        setSchoolChangeData({
+          currentSchool: data.currentSchool,
+          newSchool: data.newSchool,
+        });
+        setShowSchoolChangeConfirmation(true);
+        setResponding(false);
+        return;
+      }
+      
+      if (data.requiresAuth) {
+        // Scenario A: Need to sign up/login
+        console.log('Scenario A: Requires auth', data);
+        localStorage.setItem('pendingInvite', token);
+        router.push(`/signup?email=${encodeURIComponent(data.invitationEmail || '')}`);
+        return;
+      }
+
+      // Handle other errors from the function
+      if (data.error && !data.success) {
+        console.error('Function returned error:', data);
+        setError(data.message || data.error);
+        setResponding(false);
+        return;
       }
 
       // Success!
@@ -198,7 +212,7 @@ export default function InvitationPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push(`/auth/login?email=${encodeURIComponent(invitation?.email || '')}&redirect=/invite/${token}`);
+    router.push(`/login?email=${encodeURIComponent(invitation?.email || '')}&redirect=/invite/${token}`);
   };
 
   if (loading) {

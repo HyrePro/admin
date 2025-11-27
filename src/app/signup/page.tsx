@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import adminSignupAnimation from "@/assets/animations/admin-signup.json"
+import { useSearchParams } from "next/navigation"
 
 // Dynamic import for Lottie player to avoid SSR issues
 const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'), {
@@ -14,6 +15,10 @@ const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'
 })
 
 export default function SignupPage() {
+  const searchParams = useSearchParams()
+  const email = searchParams.get('email')
+  const redirect = searchParams.get('redirect')
+
   return (
     <div className="grid min-h-svh lg:grid-cols-5">
       <div className="flex flex-col gap-4 p-6 md:p-10 lg:col-span-2">
@@ -24,7 +29,7 @@ export default function SignupPage() {
           </div>
           <div className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-medium" scroll={false}>
+            <Link href={`/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-primary hover:underline font-medium" scroll={false}>
               Login
             </Link>
           </div>
@@ -32,7 +37,7 @@ export default function SignupPage() {
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-sm">
             <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
-              <SignupForm />
+              <SignupForm email={email} redirect={redirect} />
             </Suspense>
           </div>
         </div>

@@ -5,17 +5,24 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/api/client"
 import { Separator } from "./ui/separator"
 import Image from "next/image"
 import { SignupProgressDialog } from "./signup-progress-dialog"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, AlertCircle } from "lucide-react"
+
+interface SignupFormProps extends React.ComponentProps<"div"> {
+  email?: string | null
+  redirect?: string | null
+}
 
 export function SignupForm({
   className,
+  email: initialEmail,
+  redirect: initialRedirect,
   ...props
-}: React.ComponentProps<"div">) {
+}: SignupFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isSignupDialogOpen, setIsSignupDialogOpen] = useState(false)
@@ -24,8 +31,34 @@ export function SignupForm({
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [email, setEmail] = useState(initialEmail || "")
+  const [showSignUpMessage, setShowSignUpMessage] = useState(!!initialEmail)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  // Decode URL parameters if they exist
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    
+    if (emailParam) {
+      try {
+        const decodedEmail = decodeURIComponent(emailParam)
+        setEmail(decodedEmail)
+        setShowSignUpMessage(true)
+      } catch (e) {
+        console.error('Error decoding email parameter:', e)
+      }
+    }
+    
+    // Clear any existing error when arriving from invitation link
+    setError("")
+  }, [searchParams])
+
+  const isValidRedirectPath = (path: string): boolean => {
+    // Security: Validate the redirect path is relative (starts with /) to prevent open redirect vulnerabilities
+    return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +69,6 @@ export function SignupForm({
     const form = e.target as HTMLFormElement
     const firstName = (form.elements.namedItem('firstName') as HTMLInputElement)?.value
     const lastName = (form.elements.namedItem('lastName') as HTMLInputElement)?.value
-    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value
     const contactNumber = (form.elements.namedItem('contactNumber') as HTMLInputElement)?.value
     const password = (form.elements.namedItem('password') as HTMLInputElement)?.value
 
@@ -56,7 +88,7 @@ export function SignupForm({
 
     try {
       const baseUrl = window.location.origin
-      const redirectUrl = `${baseUrl}`
+      const redirectUrl = `${baseUrl}/auth/callback`
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -89,7 +121,26 @@ export function SignupForm({
           description: "This email is already registered. Please log in instead.",
           action: {
             label: "Go to Login",
-            onClick: () => router.push("/login"),
+            onClick: () => {
+              // Include redirect parameter in login URL if it exists
+              let loginUrl = "/login"
+              if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+                loginUrl += `?redirect=${encodeURIComponent(initialRedirect)}`
+              } else {
+                const redirectParam = searchParams.get('redirect')
+                if (redirectParam) {
+                  try {
+                    const decodedRedirect = decodeURIComponent(redirectParam)
+                    if (isValidRedirectPath(decodedRedirect)) {
+                      loginUrl += `?redirect=${encodeURIComponent(decodedRedirect)}`
+                    }
+                  } catch (e) {
+                    console.error('Error decoding redirect parameter:', e)
+                  }
+                }
+              }
+              router.push(loginUrl)
+            },
           },
           duration: 5000,
         })
@@ -99,7 +150,23 @@ export function SignupForm({
       if (signUpError) {
         setIsSubmitting(false)
         setError(signUpError.message)
-        toast.error(signUpError.message)
+        // Provide more user-friendly error messages for common issues
+        let errorMessage = signUpError.message
+        if (signUpError.message.includes('Email rate limit exceeded')) {
+          errorMessage = "We've hit our email limit. Please try again in a few minutes or contact support."
+          toast.error("Email Limit Reached", {
+            description: "We've temporarily reached our email sending limit. Please try again shortly.",
+            duration: 8000,
+          })
+        } else if (signUpError.message.includes('Unable to send email')) {
+          errorMessage = "We couldn't send the verification email. Please check the email address and try again."
+          toast.error("Email Delivery Failed", {
+            description: "We couldn't send the verification email. Please check the email address and try again.",
+            duration: 8000,
+          })
+        } else {
+          toast.error(errorMessage)
+        }
         return
       }
 
@@ -125,7 +192,16 @@ export function SignupForm({
           // Don't fail the signup process
         }
 
-        toast.success("Signup successful! Please check your email to confirm your account.")
+        toast.success("Signup successful!", {
+          description: "Please check your email to confirm your account. Check your spam folder if you don't see it.",
+          duration: 10000,
+          action: {
+            label: "Resend Email",
+            onClick: () => {
+              handleResendEmail()
+            }
+          }
+        })
         setMessage("Account created successfully! Please check your email and click the verification link to activate your account.")
       }
 
@@ -135,7 +211,10 @@ export function SignupForm({
       setIsSubmitting(false)
       const msg = err instanceof Error ? err.message : "Signup failed. Please try again."
       setError(msg)
-      toast.error(msg)
+      toast.error("Signup Failed", {
+        description: msg,
+        duration: 8000,
+      })
     }
   }
 
@@ -144,10 +223,34 @@ export function SignupForm({
     setError("")
     
     try {
+      // Prepare redirect URL with parameters if they exist
+      let redirectTo = `${window.location.origin}/auth/callback`
+      
+      // Add redirect parameter to the callback URL if it exists
+      if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        const url = new URL(redirectTo)
+        url.searchParams.set('next', initialRedirect)
+        redirectTo = url.toString()
+      } else {
+        const redirectParam = searchParams.get('redirect')
+        if (redirectParam) {
+          try {
+            const decodedRedirect = decodeURIComponent(redirectParam)
+            if (isValidRedirectPath(decodedRedirect)) {
+              const url = new URL(redirectTo)
+              url.searchParams.set('next', decodedRedirect)
+              redirectTo = url.toString()
+            }
+          } catch (e) {
+            console.error('Error decoding redirect parameter for Google login:', e)
+          }
+        }
+      }
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -171,17 +274,51 @@ export function SignupForm({
         type: 'signup',
         email: signupEmail
       })
-      if (error) toast.error("Failed to resend verification email: " + error.message)
-      else toast.success("Verification email resent! Please check your inbox.")
-    } catch {
-      toast.error("Failed to resend verification email. Please try again.")
+      if (error) {
+        toast.error("Failed to resend verification email", {
+          description: error.message,
+          duration: 8000,
+        })
+      } else {
+        toast.success("Verification email resent!", {
+          description: "Please check your inbox. Check your spam folder if you don't see it.",
+          duration: 8000,
+        })
+      }
+    } catch (err) {
+      toast.error("Failed to resend verification email", {
+        description: "Please try again or contact support.",
+        duration: 8000,
+      })
     }
   }
 
   const handleCloseDialog = () => {
     setIsSignupDialogOpen(false)
     if (isEmailConfirmed) {
-      router.push("/select-organization")
+      // After email confirmation, check if we have a redirect parameter
+      let redirectPath = '/select-organization'
+      
+      // First check if we have an initial redirect parameter passed to the component
+      if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        redirectPath = initialRedirect
+      } 
+      // Then check URL params for redirect
+      else {
+        const redirectParam = searchParams.get('redirect')
+        if (redirectParam) {
+          try {
+            const decodedRedirect = decodeURIComponent(redirectParam)
+            if (isValidRedirectPath(decodedRedirect)) {
+              redirectPath = decodedRedirect
+            }
+          } catch (e) {
+            console.error('Error decoding redirect parameter:', e)
+          }
+        }
+      }
+      
+      router.push(redirectPath)
     }
   }
 
@@ -191,7 +328,30 @@ export function SignupForm({
       if (session?.user?.email_confirmed_at) {
         setIsEmailConfirmed(true)
         setIsSignupDialogOpen(false)
-        router.push("/select-organization")
+        
+        // After email confirmation, check if we have a redirect parameter
+        let redirectPath = '/select-organization'
+        
+        // First check if we have an initial redirect parameter passed to the component
+        if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+          redirectPath = initialRedirect
+        } 
+        // Then check URL params for redirect
+        else {
+          const redirectParam = searchParams.get('redirect')
+          if (redirectParam) {
+            try {
+              const decodedRedirect = decodeURIComponent(redirectParam)
+              if (isValidRedirectPath(decodedRedirect)) {
+                redirectPath = decodedRedirect
+              }
+            } catch (e) {
+              console.error('Error decoding redirect parameter:', e)
+            }
+          }
+        }
+        
+        router.push(redirectPath)
         return true
       }
       return false
@@ -217,7 +377,10 @@ export function SignupForm({
     <div className={cn("flex flex-col items-center justify-center gap-6 w-full", className)} {...props}>
       {error && (
         <div className="w-full max-w-xs text-center text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">
-          {error}
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
         </div>
       )}
       {message && (
@@ -229,7 +392,14 @@ export function SignupForm({
       <form className="w-full flex flex-col gap-6 max-w-md" onSubmit={handleSubmit}>
         <div className="space-y-2 mb-4">
           <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-muted-foreground text-sm">Enter your details below to create a new account</p>
+          {showSignUpMessage && email && (
+            <p className="text-muted-foreground text-sm">
+              Sign up with <span className="font-semibold">{email}</span> to continue
+            </p>
+          )}
+          {!showSignUpMessage && (
+            <p className="text-muted-foreground text-sm">Enter your details below to create a new account</p>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -251,7 +421,22 @@ export function SignupForm({
 
           <div className="grid gap-3">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={isSubmitting} />
+            <Input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="m@example.com" 
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                // Hide the sign-up message if user manually changes the email
+                if (showSignUpMessage) {
+                  setShowSignUpMessage(false)
+                }
+              }}
+              required 
+              disabled={isSubmitting} 
+            />
           </div>
 
           <div className="grid gap-3">

@@ -55,11 +55,19 @@ export async function GET(request: NextRequest) {
           if (userInfoError) {
             console.error('Error fetching user info:', userInfoError)
             // If we can't determine user info, redirect to select organization
+            // But respect the 'next' parameter if it's a valid path
+            if (next && next.startsWith('/') && !next.startsWith('//')) {
+              return NextResponse.redirect(`${requestUrl.origin}${next}`)
+            }
             return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
           }
           
-          // If user has a school_id, redirect to dashboard
+          // If user has a school_id, redirect to the next path or dashboard
           if (userInfo && userInfo.school_id) {
+            // Security: Validate the redirect path is relative to prevent open redirect vulnerabilities
+            if (next && next.startsWith('/') && !next.startsWith('//')) {
+              return NextResponse.redirect(`${requestUrl.origin}${next}`)
+            }
             return NextResponse.redirect(`${requestUrl.origin}/`)
           } 
           // Otherwise, redirect to select organization
@@ -69,6 +77,10 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error('Error checking user organization status:', error)
           // If there's an error checking user info, redirect to select organization
+          // But respect the 'next' parameter if it's a valid path
+          if (next && next.startsWith('/') && !next.startsWith('//')) {
+            return NextResponse.redirect(`${requestUrl.origin}${next}`)
+          }
           return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
         }
       } else {
