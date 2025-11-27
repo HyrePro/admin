@@ -26,7 +26,7 @@ A comprehensive forgot password functionality has been implemented with the foll
   - Responsive design with proper loading states
 
 ### 3. Login Form Integration
-- **Existing Integration**: The [login form](file:///Users/rahuljain/hyrePro-Repo/admin-hyrepro/src/components/login-form.tsx) already has:
+- **Existing Integration**: The [login form](file:///Users/rahuljain/Hyriki-Repo/admin-Hyriki/src/components/login-form.tsx) already has:
   - "Forgot your password?" link
   - Email value passing to dialog
   - Proper state management

@@ -1,4 +1,4 @@
-# HyrePro Admin - Secure Authentication Setup
+# Hyriki Admin - Secure Authentication Setup
 
 This guide covers the secure implementation of authentication with both email/password and Google OAuth using Supabase.
 

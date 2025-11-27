@@ -155,7 +155,7 @@ export default function Page() {
               </EmptyHeader>
               <EmptyContent>
                 <Button
-                  onClick={() => router.push('/create-job-post')}
+                  onClick={() => router.push('/jobs/create-job-post')}
                   size="lg"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                 >

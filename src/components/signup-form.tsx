@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/api/client"
 import { Separator } from "./ui/separator"
 import Image from "next/image"
@@ -34,26 +34,18 @@ export function SignupForm({
   const [email, setEmail] = useState(initialEmail || "")
   const [showSignUpMessage, setShowSignUpMessage] = useState(!!initialEmail)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClient()
 
-  // Decode URL parameters if they exist
+  // Set email from initial prop
   useEffect(() => {
-    const emailParam = searchParams.get('email')
-    
-    if (emailParam) {
-      try {
-        const decodedEmail = decodeURIComponent(emailParam)
-        setEmail(decodedEmail)
-        setShowSignUpMessage(true)
-      } catch (e) {
-        console.error('Error decoding email parameter:', e)
-      }
+    if (initialEmail) {
+      setEmail(initialEmail)
+      setShowSignUpMessage(true)
     }
     
     // Clear any existing error when arriving from invitation link
     setError("")
-  }, [searchParams])
+  }, [initialEmail])
 
   const isValidRedirectPath = (path: string): boolean => {
     // Security: Validate the redirect path is relative (starts with /) to prevent open redirect vulnerabilities
@@ -126,18 +118,6 @@ export function SignupForm({
               let loginUrl = "/login"
               if (initialRedirect && isValidRedirectPath(initialRedirect)) {
                 loginUrl += `?redirect=${encodeURIComponent(initialRedirect)}`
-              } else {
-                const redirectParam = searchParams.get('redirect')
-                if (redirectParam) {
-                  try {
-                    const decodedRedirect = decodeURIComponent(redirectParam)
-                    if (isValidRedirectPath(decodedRedirect)) {
-                      loginUrl += `?redirect=${encodeURIComponent(decodedRedirect)}`
-                    }
-                  } catch (e) {
-                    console.error('Error decoding redirect parameter:', e)
-                  }
-                }
               }
               router.push(loginUrl)
             },
@@ -231,20 +211,6 @@ export function SignupForm({
         const url = new URL(redirectTo)
         url.searchParams.set('next', initialRedirect)
         redirectTo = url.toString()
-      } else {
-        const redirectParam = searchParams.get('redirect')
-        if (redirectParam) {
-          try {
-            const decodedRedirect = decodeURIComponent(redirectParam)
-            if (isValidRedirectPath(decodedRedirect)) {
-              const url = new URL(redirectTo)
-              url.searchParams.set('next', decodedRedirect)
-              redirectTo = url.toString()
-            }
-          } catch (e) {
-            console.error('Error decoding redirect parameter for Google login:', e)
-          }
-        }
       }
       
       const { error } = await supabase.auth.signInWithOAuth({
@@ -299,23 +265,9 @@ export function SignupForm({
       // After email confirmation, check if we have a redirect parameter
       let redirectPath = '/select-organization'
       
-      // First check if we have an initial redirect parameter passed to the component
+      // Use the initial redirect parameter passed to the component
       if (initialRedirect && isValidRedirectPath(initialRedirect)) {
         redirectPath = initialRedirect
-      } 
-      // Then check URL params for redirect
-      else {
-        const redirectParam = searchParams.get('redirect')
-        if (redirectParam) {
-          try {
-            const decodedRedirect = decodeURIComponent(redirectParam)
-            if (isValidRedirectPath(decodedRedirect)) {
-              redirectPath = decodedRedirect
-            }
-          } catch (e) {
-            console.error('Error decoding redirect parameter:', e)
-          }
-        }
       }
       
       router.push(redirectPath)
@@ -332,23 +284,9 @@ export function SignupForm({
         // After email confirmation, check if we have a redirect parameter
         let redirectPath = '/select-organization'
         
-        // First check if we have an initial redirect parameter passed to the component
+        // Use the initial redirect parameter passed to the component
         if (initialRedirect && isValidRedirectPath(initialRedirect)) {
           redirectPath = initialRedirect
-        } 
-        // Then check URL params for redirect
-        else {
-          const redirectParam = searchParams.get('redirect')
-          if (redirectParam) {
-            try {
-              const decodedRedirect = decodeURIComponent(redirectParam)
-              if (isValidRedirectPath(decodedRedirect)) {
-                redirectPath = decodedRedirect
-              }
-            } catch (e) {
-              console.error('Error decoding redirect parameter:', e)
-            }
-          }
         }
         
         router.push(redirectPath)

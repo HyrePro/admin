@@ -112,7 +112,7 @@ export function SignupProgressDialog({
 
   const handleNeedHelp = () => {
     // Open a support email or help page
-    window.open('mailto:support@hyrepro.com?subject=Email Confirmation Issue&body=I am having trouble confirming my email address for my HyrePro account.', '_blank')
+    window.open('mailto:support@Hyriki.com?subject=Email Confirmation Issue&body=I am having trouble confirming my email address for my Hyriki account.', '_blank')
   }
 
   const formatTime = (seconds: number) => {

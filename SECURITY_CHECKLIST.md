@@ -1,4 +1,4 @@
-# Security Checklist for HyrePro Admin Authentication
+# Security Checklist for Hyriki Admin Authentication
 
 ## ✅ Implementation Status
 

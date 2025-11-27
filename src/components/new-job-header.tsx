@@ -10,7 +10,7 @@ export function NewJobHeader() {
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 py-2">
         <a href="#">
           {/* <IconInnerShadowTop className="!size-5" /> */}
-          <span className="text-base font-semibold">HyrePro</span>
+          <span className="text-base font-semibold">Hyriki</span>
         </a>
         <Separator
           orientation="vertical"

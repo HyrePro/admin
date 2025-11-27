@@ -15,7 +15,7 @@ export default function AuthCodeErrorPage() {
 
   const handleContactSupport = () => {
     // In a real application, this would open a support ticket or contact form
-    alert('Please contact support at support@hyrepro.com for assistance with authentication issues.')
+    alert('Please contact support at support@Hyriki.com for assistance with authentication issues.')
   }
 
   return (

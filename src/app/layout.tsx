@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Admin HyrePro",
-  description: "Admin panel for the HyrePro platform.",
+  title: "Admin Hyriki",
+  description: "Admin panel for the Hyriki platform.",
 };
 
 export default function RootLayout({

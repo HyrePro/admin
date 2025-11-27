@@ -1,6 +1,6 @@
 # Email Confirmation Troubleshooting Guide
 
-This guide helps resolve common issues with email confirmation in the HyrePro Admin application.
+This guide helps resolve common issues with email confirmation in the Hyriki Admin application.
 
 ## Common Issues and Solutions
 
@@ -95,4 +95,4 @@ Users can resend confirmation emails through:
 If email confirmation issues persist:
 1. Contact your email service provider
 2. Check Supabase status at https://status.supabase.com
-3. Reach out to HyrePro support at support@hyrepro.com
+3. Reach out to Hyriki support at support@Hyriki.com

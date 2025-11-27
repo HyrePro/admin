@@ -1,6 +1,6 @@
-# Admin HyrePro
+# Admin Hyriki
 
-This is a Next.js admin dashboard application for HyrePro.
+This is a Next.js admin dashboard application for Hyriki.
 
 ## Features
 

@@ -266,7 +266,7 @@ export default function CreateSchoolPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <ToastContainer position="top-center" autoClose={3000} />
 
-      {/* Header with HyrePro Logo and NavUser - Sticky */}
+      {/* Header with Hyriki Logo and NavUser - Sticky */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="px-4 sm:px-6 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">

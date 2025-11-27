@@ -10,7 +10,7 @@ import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 
 interface LoginFormProps extends React.ComponentProps<"form"> {
@@ -34,29 +34,20 @@ export function LoginForm({
   const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
   const { user, loading } = useAuth()
-  const searchParams = useSearchParams()
   
   // Create the supabase client instance
   const supabase = createClient()
 
-  // Decode URL parameters if they exist
+  // Set email from initial prop
   useEffect(() => {
-    const emailParam = searchParams.get('email')
-    const redirectParam = searchParams.get('redirect')
-    
-    if (emailParam) {
-      try {
-        const decodedEmail = decodeURIComponent(emailParam)
-        setEmail(decodedEmail)
-        setShowSignInMessage(true)
-      } catch (e) {
-        console.error('Error decoding email parameter:', e)
-      }
+    if (initialEmail) {
+      setEmail(initialEmail)
+      setShowSignInMessage(true)
     }
     
     // Clear any existing error when arriving from invitation link
     setError("")
-  }, [searchParams])
+  }, [initialEmail])
 
   // Redirect user if they're already logged in
   useEffect(() => {
@@ -162,23 +153,9 @@ export function LoginForm({
         // After successful login, check if we have a redirect parameter
         let redirectPath = '/'
         
-        // First check if we have an initial redirect parameter passed to the component
+        // Use the initial redirect parameter passed to the component
         if (initialRedirect && isValidRedirectPath(initialRedirect)) {
           redirectPath = initialRedirect
-        } 
-        // Then check URL params for redirect
-        else {
-          const redirectParam = searchParams.get('redirect')
-          if (redirectParam) {
-            try {
-              const decodedRedirect = decodeURIComponent(redirectParam)
-              if (isValidRedirectPath(decodedRedirect)) {
-                redirectPath = decodedRedirect
-              }
-            } catch (e) {
-              console.error('Error decoding redirect parameter:', e)
-            }
-          }
         }
         
         // Redirect to the appropriate path
@@ -208,20 +185,6 @@ export function LoginForm({
         const url = new URL(redirectTo)
         url.searchParams.set('next', initialRedirect)
         redirectTo = url.toString()
-      } else {
-        const redirectParam = searchParams.get('redirect')
-        if (redirectParam) {
-          try {
-            const decodedRedirect = decodeURIComponent(redirectParam)
-            if (isValidRedirectPath(decodedRedirect)) {
-              const url = new URL(redirectTo)
-              url.searchParams.set('next', decodedRedirect)
-              redirectTo = url.toString()
-            }
-          } catch (e) {
-            console.error('Error decoding redirect parameter for Google login:', e)
-          }
-        }
       }
       
       const { error } = await supabase.auth.signInWithOAuth({
