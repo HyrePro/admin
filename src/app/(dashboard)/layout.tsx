@@ -177,7 +177,7 @@ export default function DashboardShellLayout({
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
-            <Popover>
+            {/* <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Messages" className="hover:bg-gray-200">
                   <MessageSquare className="size-5" />
@@ -225,7 +225,7 @@ export default function DashboardShellLayout({
                   View all notifications
                 </div>
               </PopoverContent>
-            </Popover>
+            </Popover> */}
             {user && user.email ? (
               <NavUser user={{
                 name: user.user_metadata?.name || user.email.split('@')[0] || 'User',

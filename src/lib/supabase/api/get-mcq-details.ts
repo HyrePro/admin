@@ -54,10 +54,10 @@ export async function getMCQDetailsByApplicationId(applicationId: string) {
   const supabase: SupabaseClient = createClient()
   
   try {
-    // Fetch detailed results from job_applications
+    // First, get the job_id from job_applications table
     const { data: applicationData, error: appError } = await supabase
       .from("job_applications")
-      .select("detailed_results")
+      .select("job_id, detailed_results")
       .eq("id", applicationId)
       .single();
 
@@ -65,19 +65,21 @@ export async function getMCQDetailsByApplicationId(applicationId: string) {
       throw new Error(appError.message || "Failed to fetch application details");
     }
 
-    // Fetch questions from application_questionnaires
+    const jobId = applicationData.job_id;
+    
+    // Fetch questions from job_questionnaires using the job_id
     // Expected questions_json structure: [{ id: 0, options: [...], category: "...", question: "..." }]
     const { data: questionnaireData, error: questionError } = await supabase
-      .from("application_questionnaires")
+      .from("job_questionnaires")
       .select("questions_json")
-      .eq("application_id", applicationId)
+      .eq("job_id", jobId)
       .single();
 
     if (questionError) {
       console.warn("Could not fetch questions:", questionError.message);
     }
 
-    if (!applicationData || !applicationData.detailed_results) {
+    if (!applicationData.detailed_results) {
       return { 
         questions: [], 
         error: null 

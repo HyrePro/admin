@@ -73,6 +73,7 @@ const STATUS_CONFIG = {
   appealed: { text: 'Appealed', color: statusColors.appealed },
   withdrawn: { text: 'Withdrawn', color: statusColors.withdrawn },
   offered: { text: 'Offered', color: statusColors.offered },
+  panelist_review_in_progress: { text: 'Panelist Review In Progress', color: statusColors.panelist_review_in_progress },
 } as const
 
 // Fetchers

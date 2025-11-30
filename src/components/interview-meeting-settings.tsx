@@ -4,19 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
-import { useAuthStore } from '@/store/auth-store';
-
-interface Panelist {
-  id: string;
-  name: string;
-  email: string;
-}
+import { SlotPreviewDialog } from "@/components/slot-preview-dialog";
 
 interface InterviewSettingsData {
   default_interview_type: 'in-person' | 'online' | 'phone';
@@ -29,18 +22,58 @@ interface InterviewSettingsData {
   custom_instructions: string;
 }
 
+interface WorkingDay {
+  day: string;
+  enabled: boolean;
+  start_time: string;
+  end_time: string;
+  slot_duration: string; // in minutes
+}
+
+interface BreakPeriod {
+  id: string;
+  day: string; // Associate break with specific day
+  start_time: string;
+  end_time: string;
+}
+
+interface Slot {
+  day: string;
+  startTime: string;
+  endTime: string;
+  isBreak: boolean;
+}
+
+interface ExtendedInterviewSettings extends InterviewSettingsData {
+  working_days: WorkingDay[];
+  breaks: BreakPeriod[];
+}
+
+interface SettingsErrors extends Partial<InterviewSettingsData> {
+  working_days?: string;
+  breaks?: string;
+}
+
 interface InterviewMeetingSettingsProps {
   schoolId: string;
 }
 
+const DAYS_OF_WEEK = [
+  { value: 'monday', label: 'Mon' },
+  { value: 'tuesday', label: 'Tue' },
+  { value: 'wednesday', label: 'Wed' },
+  { value: 'thursday', label: 'Thu' },
+  { value: 'friday', label: 'Fri' },
+  { value: 'saturday', label: 'Sat' },
+  { value: 'sunday', label: 'Sun' },
+];
+
 export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsProps) {
-  const [defaultPanelists, setDefaultPanelists] = useState<Panelist[]>([]);
-  const [newPanelist, setNewPanelist] = useState({ name: '', email: '' });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   // Interview settings state
-  const [interviewSettings, setInterviewSettings] = useState<InterviewSettingsData>({
+  const [interviewSettings, setInterviewSettings] = useState<ExtendedInterviewSettings>({
     default_interview_type: 'in-person',
     default_duration: '30',
     buffer_time: '15',
@@ -48,38 +81,18 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     working_hours_end: '17:00',
     candidate_reminder_hours: '24',
     interviewer_reminder_hours: '1',
-    custom_instructions: 'Please arrive 10 minutes early for your interview.'
+    custom_instructions: 'Please arrive 10 minutes early for your interview.',
+    working_days: DAYS_OF_WEEK.map(day => ({
+      day: day.value,
+      enabled: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day.value),
+      start_time: '09:00',
+      end_time: '17:00',
+      slot_duration: '30' // Default slot duration of 30 minutes
+    })),
+    breaks: []
   });
   
-  const [settingsErrors, setSettingsErrors] = useState<Partial<InterviewSettingsData>>({});
-
-  // Fetch default panelists from Supabase
-  useEffect(() => {
-    const fetchPanelists = async () => {
-      if (!schoolId) return;
-      
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('interview_panelists')
-          .select('*')
-          .eq('school_id', schoolId);
-        
-        if (error) throw error;
-        
-        setDefaultPanelists(data || []);
-      } catch (error) {
-        console.error('Error fetching panelists:', error);
-        toast.error('Failed to load panelists');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    if (schoolId) {
-      fetchPanelists();
-    }
-  }, [schoolId]);
+  const [settingsErrors, setSettingsErrors] = useState<SettingsErrors>({});
 
   // Fetch interview settings from Supabase
   useEffect(() => {
@@ -99,7 +112,9 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
         if (data?.interview_settings) {
           setInterviewSettings(prev => ({
             ...prev,
-            ...data.interview_settings
+            ...data.interview_settings,
+            working_days: data.interview_settings.working_days || prev.working_days,
+            breaks: data.interview_settings.breaks || prev.breaks
           }));
         }
       } catch (error) {
@@ -113,69 +128,8 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     }
   }, [schoolId]);
 
-  // Add a new default panelist
-  const handleAddPanelist = async () => {
-    if (!schoolId) {
-      toast.error('Organization information not available. Please try again.');
-      return;
-    }
-    
-    if (!newPanelist.name.trim() || !newPanelist.email.trim()) {
-      toast.error('Please enter both name and email');
-      return;
-    }
-    
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newPanelist.email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('interview_panelists')
-        .insert({
-          school_id: schoolId,
-          name: newPanelist.name,
-          email: newPanelist.email
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      setDefaultPanelists(prev => [...prev, data]);
-      setNewPanelist({ name: '', email: '' });
-      toast.success('Panelist added successfully');
-    } catch (error) {
-      console.error('Error adding panelist:', error);
-      toast.error('Failed to add panelist');
-    }
-  };
-
-  // Remove a default panelist
-  const handleRemovePanelist = async (id: string) => {
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('interview_panelists')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      setDefaultPanelists(prev => prev.filter(panelist => panelist.id !== id));
-      toast.success('Panelist removed successfully');
-    } catch (error) {
-      console.error('Error removing panelist:', error);
-      toast.error('Failed to remove panelist');
-    }
-  };
-
   // Handle interview settings change
-  const handleSettingsChange = (field: keyof InterviewSettingsData, value: string) => {
+  const handleSettingsChange = (field: keyof ExtendedInterviewSettings, value: string | WorkingDay[] | BreakPeriod[]) => {
     setInterviewSettings(prev => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
@@ -184,9 +138,131 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     }
   };
 
+  // Handle working day change
+  const handleWorkingDayChange = (dayValue: string, field: keyof WorkingDay, value: string | boolean) => {
+    setInterviewSettings(prev => ({
+      ...prev,
+      working_days: prev.working_days.map(day => 
+        day.day === dayValue ? { ...day, [field]: value } : day
+      )
+    }));
+  };
+
+  // Add a new break
+  const addBreak = (day: string) => {
+    const newBreak: BreakPeriod = {
+      id: Date.now().toString(),
+      day: day,
+      start_time: '12:00',
+      end_time: '13:00'
+    };
+    
+    setInterviewSettings(prev => ({
+      ...prev,
+      breaks: [...prev.breaks, newBreak]
+    }));
+  };
+
+  // Remove a break
+  const removeBreak = (id: string) => {
+    setInterviewSettings(prev => ({
+      ...prev,
+      breaks: prev.breaks.filter(breakItem => breakItem.id !== id)
+    }));
+  };
+
+  // Handle break change
+  const handleBreakChange = (id: string, field: keyof BreakPeriod, value: string) => {
+    setInterviewSettings(prev => ({
+      ...prev,
+      breaks: prev.breaks.map(breakItem => 
+        breakItem.id === id ? { ...breakItem, [field]: value } : breakItem
+      )
+    }));
+  };
+
+  // Generate slots for preview
+  const generateSlots = (): Slot[] => {
+    const slots: Slot[] = [];
+    const today = new Date();
+    
+    // Generate slots for the next 7 days
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(today);
+      currentDate.setDate(today.getDate() + i);
+      
+      const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const workingDay = interviewSettings.working_days.find(day => day.day === dayOfWeek);
+      
+      if (workingDay && workingDay.enabled) {
+        const slotDuration = parseInt(workingDay.slot_duration) || 30;
+        const startTime = workingDay.start_time;
+        const endTime = workingDay.end_time;
+        
+        // Convert times to minutes for easier calculation
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+        const startTotalMinutes = startHours * 60 + startMinutes;
+        const endTotalMinutes = endHours * 60 + endMinutes;
+        
+        // Add working hour slots
+        for (let minutes = startTotalMinutes; minutes < endTotalMinutes; minutes += slotDuration) {
+          const slotStartHours = Math.floor(minutes / 60);
+          const slotStartMinutes = minutes % 60;
+          const slotEndHours = Math.floor((minutes + slotDuration) / 60);
+          const slotEndMinutes = (minutes + slotDuration) % 60;
+          
+          const slotStartTime = `${slotStartHours.toString().padStart(2, '0')}:${slotStartMinutes.toString().padStart(2, '0')}`;
+          const slotEndTime = `${slotEndHours.toString().padStart(2, '0')}:${slotEndMinutes.toString().padStart(2, '0')}`;
+          
+          // Check if this slot overlaps with any break
+          const breakPeriod = interviewSettings.breaks.find(breakItem => 
+            breakItem.day === dayOfWeek &&
+            ((breakItem.start_time <= slotStartTime && breakItem.end_time > slotStartTime) ||
+             (breakItem.start_time < slotEndTime && breakItem.end_time >= slotEndTime))
+          );
+          
+          if (!breakPeriod) {
+            slots.push({
+              day: dayOfWeek,
+              startTime: slotStartTime,
+              endTime: slotEndTime,
+              isBreak: false
+            });
+          }
+        }
+        
+        // Add break slots
+        const dayBreaks = interviewSettings.breaks.filter(breakItem => breakItem.day === dayOfWeek);
+        dayBreaks.forEach(breakItem => {
+          slots.push({
+            day: dayOfWeek,
+            startTime: breakItem.start_time,
+            endTime: breakItem.end_time,
+            isBreak: true
+          });
+        });
+      }
+    }
+    
+    return slots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  };
+
+  // Get slots grouped by day for table display
+  const getSlotsByDay = () => {
+    const slots = generateSlots();
+    const slotsByDay: Record<string, Slot[]> = {};
+    
+    DAYS_OF_WEEK.forEach(day => {
+      slotsByDay[day.value] = slots.filter(slot => slot.day === day.value);
+    });
+    
+    return slotsByDay;
+  };
+
   // Validate interview settings
   const validateSettings = (): boolean => {
-    const newErrors: Partial<InterviewSettingsData> = {};
+    const newErrors: SettingsErrors = {};
     
     if (!interviewSettings.default_duration || parseInt(interviewSettings.default_duration) <= 0) {
       newErrors.default_duration = 'Duration must be a positive number';
@@ -204,13 +280,36 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
       newErrors.interviewer_reminder_hours = 'Reminder hours must be a non-negative number';
     }
     
-    // Validate working hours
-    const startHour = parseInt(interviewSettings.working_hours_start.split(':')[0]);
-    const endHour = parseInt(interviewSettings.working_hours_end.split(':')[0]);
+    // Validate that at least one working day is enabled
+    const enabledDays = interviewSettings.working_days.filter(day => day.enabled);
+    if (enabledDays.length === 0) {
+      newErrors.working_days = 'At least one working day must be enabled';
+    }
     
-    if (startHour >= endHour) {
-      newErrors.working_hours_start = 'Start time must be before end time';
-      newErrors.working_hours_end = 'End time must be after start time';
+    // Validate working days
+    for (const day of interviewSettings.working_days) {
+      if (day.enabled) {
+        const startHour = parseInt(day.start_time.split(':')[0]);
+        const endHour = parseInt(day.end_time.split(':')[0]);
+        
+        if (startHour >= endHour) {
+          newErrors.working_days = `Start time must be before end time for ${day.day}`;
+        }
+        
+        if (!day.slot_duration || parseInt(day.slot_duration) <= 0) {
+          newErrors.working_days = `Slot duration must be a positive number for ${day.day}`;
+        }
+      }
+    }
+    
+    // Validate breaks
+    for (const breakItem of interviewSettings.breaks) {
+      const startHour = parseInt(breakItem.start_time.split(':')[0]);
+      const endHour = parseInt(breakItem.end_time.split(':')[0]);
+      
+      if (startHour >= endHour) {
+        newErrors.breaks = `Break start time must be before end time for ${breakItem.day}`;
+      }
     }
     
     setSettingsErrors(newErrors);
@@ -244,32 +343,29 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     }
   };
 
+  const slotsByDay = getSlotsByDay();
+
   return (
-    <div className="space-y-6 p-4">
-      <div>
+    <div className="space-y-6 p-4 w-full">
+      <div className="pb-4">
         <h3 className="text-lg font-medium">Meeting Settings</h3>
         <p className="text-sm text-muted-foreground">
           Control the default interview workflow for new job posts
         </p>
       </div>
       
-      {/* Interview Type & Duration Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Interview Type & Duration</CardTitle>
-          <CardDescription>
-            Configure the default interview type and duration for new job posts
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+      <div className="space-y-8 w-full">
+        {/* Interview Type & Duration Section */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Interview Type & Duration</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 w-full">
+            <div className="space-y-2 w-full">
               <Label htmlFor="default_interview_type">Default Interview Type</Label>
               <Select 
                 value={interviewSettings.default_interview_type} 
                 onValueChange={(value) => handleSettingsChange('default_interview_type', value as unknown as string)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select interview type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -280,7 +376,7 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
               </Select>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 w-full">
               <Label htmlFor="default_duration">Default Interview Duration (minutes)</Label>
               <Input
                 id="default_duration"
@@ -288,26 +384,136 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
                 min="1"
                 value={interviewSettings.default_duration}
                 onChange={(e) => handleSettingsChange('default_duration', e.target.value)}
-                className={settingsErrors.default_duration ? 'border-red-500' : ''}
+                className={`w-full ${settingsErrors.default_duration ? 'border-red-500' : ''}`}
               />
               {settingsErrors.default_duration && (
                 <p className="text-sm text-red-600">{settingsErrors.default_duration}</p>
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* Scheduling Window Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduling Window</CardTitle>
-          <CardDescription>
-            Configure scheduling preferences for interviews
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        </div>
+        
+        {/* Scheduling Window Section */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Scheduling Window</h4>
+          <div className="space-y-6 pt-2 w-full">
+            {/* Working Days */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h5 className="font-medium">Working Days</h5>
+                <SlotPreviewDialog 
+                  isOpen={isPreviewOpen}
+                  onOpenChange={setIsPreviewOpen}
+                  slotsByDay={slotsByDay}
+                  workingDays={interviewSettings.working_days}
+                  daysOfWeek={DAYS_OF_WEEK}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                {interviewSettings.working_days.map((day) => (
+                  <div key={day.day} className="border rounded-lg p-4">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <Checkbox
+                        id={`day-${day.day}`}
+                        checked={day.enabled}
+                        onCheckedChange={(checked) => handleWorkingDayChange(day.day, 'enabled', checked as boolean)}
+                      />
+                      <Label htmlFor={`day-${day.day}`} className="flex-1 font-medium">
+                        {DAYS_OF_WEEK.find(d => d.value === day.day)?.label}
+                      </Label>
+                    </div>
+                    
+                    {day.enabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
+                        <div className="space-y-2">
+                          <Label htmlFor={`start-${day.day}`}>Start Time</Label>
+                          <Input
+                            id={`start-${day.day}`}
+                            type="time"
+                            value={day.start_time}
+                            onChange={(e) => handleWorkingDayChange(day.day, 'start_time', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`end-${day.day}`}>End Time</Label>
+                          <Input
+                            id={`end-${day.day}`}
+                            type="time"
+                            value={day.end_time}
+                            onChange={(e) => handleWorkingDayChange(day.day, 'end_time', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`duration-${day.day}`}>Slot Duration (min)</Label>
+                          <Input
+                            id={`duration-${day.day}`}
+                            type="number"
+                            min="15"
+                            step="15"
+                            value={day.slot_duration}
+                            onChange={(e) => handleWorkingDayChange(day.day, 'slot_duration', e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2 flex items-end">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => addBreak(day.day)}
+                            className="w-full"
+                          >
+                            Add Break
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {day.enabled && interviewSettings.breaks.filter(b => b.day === day.day).length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h6 className="text-sm font-medium">Breaks</h6>
+                        {interviewSettings.breaks
+                          .filter(breakItem => breakItem.day === day.day)
+                          .map(breakItem => (
+                            <div key={breakItem.id} className="flex items-center space-x-2 p-2 bg-orange-50 rounded">
+                              <Input
+                                type="time"
+                                value={breakItem.start_time}
+                                onChange={(e) => handleBreakChange(breakItem.id, 'start_time', e.target.value)}
+                                className="w-24"
+                              />
+                              <span>to</span>
+                              <Input
+                                type="time"
+                                value={breakItem.end_time}
+                                onChange={(e) => handleBreakChange(breakItem.id, 'end_time', e.target.value)}
+                                className="w-24"
+                              />
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => removeBreak(breakItem.id)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {settingsErrors.working_days && (
+                <p className="text-sm text-red-600">{settingsErrors.working_days}</p>
+              )}
+            </div>
+            
+            {/* Buffer Time */}
             <div className="space-y-2">
               <Label htmlFor="buffer_time">Buffer Between Interviews (minutes)</Label>
               <Input
@@ -316,55 +522,20 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
                 min="0"
                 value={interviewSettings.buffer_time}
                 onChange={(e) => handleSettingsChange('buffer_time', e.target.value)}
-                className={settingsErrors.buffer_time ? 'border-red-500' : ''}
+                className={`w-full md:w-1/3 ${settingsErrors.buffer_time ? 'border-red-500' : ''}`}
               />
               {settingsErrors.buffer_time && (
                 <p className="text-sm text-red-600">{settingsErrors.buffer_time}</p>
               )}
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="working_hours_start">Working Hours Start</Label>
-              <Input
-                id="working_hours_start"
-                type="time"
-                value={interviewSettings.working_hours_start}
-                onChange={(e) => handleSettingsChange('working_hours_start', e.target.value)}
-                className={settingsErrors.working_hours_start ? 'border-red-500' : ''}
-              />
-              {settingsErrors.working_hours_start && (
-                <p className="text-sm text-red-600">{settingsErrors.working_hours_start}</p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="working_hours_end">Working Hours End</Label>
-              <Input
-                id="working_hours_end"
-                type="time"
-                value={interviewSettings.working_hours_end}
-                onChange={(e) => handleSettingsChange('working_hours_end', e.target.value)}
-                className={settingsErrors.working_hours_end ? 'border-red-500' : ''}
-              />
-              {settingsErrors.working_hours_end && (
-                <p className="text-sm text-red-600">{settingsErrors.working_hours_end}</p>
-              )}
-            </div>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* Reminders & Instructions Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reminders & Instructions</CardTitle>
-          <CardDescription>
-            Configure reminder settings and custom instructions for interviews
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+        </div>
+        
+        {/* Reminders & Instructions Section */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Reminders & Instructions</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 w-full">
+            <div className="space-y-2 w-full">
               <Label htmlFor="candidate_reminder_hours">Send Reminder to Candidate (hours before)</Label>
               <Input
                 id="candidate_reminder_hours"
@@ -372,14 +543,14 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
                 min="0"
                 value={interviewSettings.candidate_reminder_hours}
                 onChange={(e) => handleSettingsChange('candidate_reminder_hours', e.target.value)}
-                className={settingsErrors.candidate_reminder_hours ? 'border-red-500' : ''}
+                className={`w-full ${settingsErrors.candidate_reminder_hours ? 'border-red-500' : ''}`}
               />
               {settingsErrors.candidate_reminder_hours && (
                 <p className="text-sm text-red-600">{settingsErrors.candidate_reminder_hours}</p>
               )}
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 w-full">
               <Label htmlFor="interviewer_reminder_hours">Send Reminder to Interviewer (hours before)</Label>
               <Input
                 id="interviewer_reminder_hours"
@@ -387,7 +558,7 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
                 min="0"
                 value={interviewSettings.interviewer_reminder_hours}
                 onChange={(e) => handleSettingsChange('interviewer_reminder_hours', e.target.value)}
-                className={settingsErrors.interviewer_reminder_hours ? 'border-red-500' : ''}
+                className={`w-full ${settingsErrors.interviewer_reminder_hours ? 'border-red-500' : ''}`}
               />
               {settingsErrors.interviewer_reminder_hours && (
                 <p className="text-sm text-red-600">{settingsErrors.interviewer_reminder_hours}</p>
@@ -395,7 +566,7 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
             </div>
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-2 pt-4 w-full">
             <Label htmlFor="custom_instructions">Custom Instructions</Label>
             <Textarea
               id="custom_instructions"
@@ -403,88 +574,21 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
               value={interviewSettings.custom_instructions}
               onChange={(e) => handleSettingsChange('custom_instructions', e.target.value)}
               rows={4}
+              className="w-full"
             />
             <p className="text-sm text-muted-foreground">
               This message will be shown to candidates before their interview
             </p>
           </div>
-          
-          <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Default Panelists Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Default Panelists</CardTitle>
-          <CardDescription>
-            Add panelists who are frequently involved in interviews. They will be available for quick selection when scheduling interviews.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Add new panelist form */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newPanelist.name}
-                onChange={(e) => setNewPanelist(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Panelist name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newPanelist.email}
-                onChange={(e) => setNewPanelist(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Panelist email"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleAddPanelist} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Panelist
-              </Button>
-            </div>
-          </div>
-          
-          {/* Panelists list */}
-          <div className="space-y-2">
-            <h4 className="font-medium">Saved Panelists</h4>
-            {loading ? (
-              <p>Loading panelists...</p>
-            ) : defaultPanelists.length === 0 ? (
-              <p className="text-muted-foreground">No panelists added yet.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {defaultPanelists.map((panelist) => (
-                  <div 
-                    key={panelist.id} 
-                    className="flex items-center gap-2 bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>{panelist.name} ({panelist.email})</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleRemovePanelist(panelist.id)}
-                      className="text-blue-800 hover:text-blue-900"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        
+        {/* Save Button */}
+        <div className="flex justify-end pt-4 w-full">
+          <Button onClick={handleSaveSettings} disabled={saving} className="w-full md:w-auto">
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
