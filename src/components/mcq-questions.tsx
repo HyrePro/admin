@@ -79,7 +79,7 @@ export function MCQQuestions({ applicationStage }: MCQQuestionsProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="sticky top-0 bg-white border-b px-4 py-3 z-10 flex-shrink-0">
+      <div className="sticky top-0 bg-white border-b px-6 py-3 z-10 flex-shrink-0">
         <h3 className="text-lg font-semibold text-gray-900">Assessment Questions</h3>
         <p className="text-sm text-gray-600 mt-1">
           Total Questions: {questions.length} | 
@@ -88,9 +88,9 @@ export function MCQQuestions({ applicationStage }: MCQQuestionsProps) {
         </p>
       </div>
       
-      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-grow overflow-y-auto px-4 py-4 space-y-4">
         {questions.map((question, index) => (
-          <Card key={question.question_id} className="hover:shadow-md">
+          <div className="bg-white border rounded-lg" key={question.question_id}>
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 mt-1">
@@ -211,7 +211,7 @@ export function MCQQuestions({ applicationStage }: MCQQuestionsProps) {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

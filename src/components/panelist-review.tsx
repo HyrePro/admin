@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Lock, Edit3 } from "lucide-react";
+import { Lock, Edit3, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/api/client";
 
 interface Rubric {
@@ -115,11 +115,14 @@ export const PanelistReview: React.FC<PanelistReviewProps> = ({ jobApplicationId
   return (
     <div className="flex flex-col h-full">
       {noData ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No panelist review data available</p>
-          <p className="text-gray-400 text-sm mt-2">
-            Rubrics: {rubrics.length}, Panelists: {panelists.length}
-          </p>
+        <div className="p-6">
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No Panelist Reviews Available</h3>
+            <p className="text-gray-500">
+              Panelist evaluations have not been submitted for this application yet.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-lg flex-1 overflow-y-auto p-6">

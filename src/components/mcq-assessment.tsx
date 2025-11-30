@@ -18,7 +18,7 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
   return (
     <div className="h-full flex flex-col">
       {/* Tab Navigation */}
-      <div className="flex gap-2 px-4 pt-4 flex-shrink-0 mb-4">
+      <div className="flex gap-2 px-4 pt-4 flex-shrink-0 ">
         <Badge
           variant={activeTab === "overview" ? "default" : "outline"}
           className={cn(
@@ -58,7 +58,7 @@ export function MCQAssessment({ applicationStage }: MCQAssessmentProps) {
       </div>
 
       {/* Tab Content - Scrollable Area */}
-      <div className="flex-grow overflow-y-auto min-h-0 px-4 pb-4">
+      <div className="flex-grow overflow-y-auto min-h-0 pb-4">
         {activeTab === "overview" && (
           <MCQOverview applicationStage={applicationStage} />
         )}

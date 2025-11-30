@@ -97,7 +97,7 @@ export function MCQIncidents({ applicationStage }: MCQIncidentsProps) {
 
   if (error) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 px-4">
         <div className="text-center py-8">
           <div className="bg-red-50 rounded-full p-4 inline-block mb-4">
             <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -111,7 +111,7 @@ export function MCQIncidents({ applicationStage }: MCQIncidentsProps) {
 
   if (logs.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 px-4">
         <div className="text-center py-8">
           <div className="bg-green-50 rounded-full p-4 inline-block mb-4">
             <Eye className="h-8 w-8 text-green-500" />
@@ -138,8 +138,8 @@ export function MCQIncidents({ applicationStage }: MCQIncidentsProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto space-y-4">
-      <div className="flex items-center justify-between mb-6">
+    <div className="h-full overflow-y-auto space-y-4  px-4">
+      <div className="flex items-center justify-between mb-6 mt-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Assessment Incidents</h3>
           <p className="text-gray-600">
