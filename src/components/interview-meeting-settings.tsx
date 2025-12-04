@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { SlotPreviewDialog } from "@/components/slot-preview-dialog";
+import { X } from "lucide-react";
+import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
 
 interface InterviewSettingsData {
   default_interview_type: 'in-person' | 'online' | 'phone';
@@ -47,15 +50,32 @@ interface Slot {
 interface ExtendedInterviewSettings extends InterviewSettingsData {
   working_days: WorkingDay[];
   breaks: BreakPeriod[];
+  // Add slots property to store individual slots
+  slots?: IndividualSlot[];
 }
 
 interface SettingsErrors extends Partial<InterviewSettingsData> {
   working_days?: string;
   breaks?: string;
+  slots?: string;
 }
 
 interface InterviewMeetingSettingsProps {
   schoolId: string;
+  onNavigateAway?: () => void;
+}
+
+interface SlotConfig {
+  start_time: string;
+  end_time: string;
+  slot_duration: string;
+}
+
+interface IndividualSlot {
+  id: string;
+  day: string;
+  start_time: string;
+  duration: string; // in minutes
 }
 
 const DAYS_OF_WEEK = [
@@ -68,23 +88,36 @@ const DAYS_OF_WEEK = [
   { value: 'sunday', label: 'Sun' },
 ];
 
-export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsProps) {
+export function InterviewMeetingSettings({ schoolId, onNavigateAway }: InterviewMeetingSettingsProps) {
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [newSlotConfig, setNewSlotConfig] = useState<SlotConfig>({
+    start_time: '09:00',
+    end_time: '17:00',
+    slot_duration: '30'
+  });
+  const [individualSlots, setIndividualSlots] = useState<IndividualSlot[]>([]);
+  
+  // State for tracking unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(false);
   
   // Interview settings state
   const [interviewSettings, setInterviewSettings] = useState<ExtendedInterviewSettings>({
     default_interview_type: 'in-person',
     default_duration: '30',
-    buffer_time: '15',
+    buffer_time: '0',
     working_hours_start: '09:00',
     working_hours_end: '17:00',
-    candidate_reminder_hours: '24',
-    interviewer_reminder_hours: '1',
-    custom_instructions: 'Please arrive 10 minutes early for your interview.',
+    candidate_reminder_hours: '0',
+    interviewer_reminder_hours: '0',
+    custom_instructions: '',
     working_days: DAYS_OF_WEEK.map(day => ({
       day: day.value,
-      enabled: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day.value),
+      enabled: false,
       start_time: '09:00',
       end_time: '17:00',
       slot_duration: '30' // Default slot duration of 30 minutes
@@ -101,21 +134,32 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
       
       try {
         const supabase = createClient();
+        // Use the new RPC function to get interview settings
         const { data, error } = await supabase
-          .from('school_info')
-          .select('interview_settings')
-          .eq('id', schoolId)
-          .single();
+          .rpc('get_interview_meeting_settings', { p_school_id: schoolId });
         
         if (error) throw error;
         
-        if (data?.interview_settings) {
-          setInterviewSettings(prev => ({
-            ...prev,
-            ...data.interview_settings,
-            working_days: data.interview_settings.working_days || prev.working_days,
-            breaks: data.interview_settings.breaks || prev.breaks
-          }));
+        // Transform the returned data to match our state structure
+        if (data && data.length > 0) {
+          // If we get an array back (which is what RPC functions typically return)
+          const settingsData = Array.isArray(data) ? data[0] : data;
+          
+          const updatedSettings = {
+            ...interviewSettings,
+            default_interview_type: settingsData.default_interview_type || interviewSettings.default_interview_type,
+            working_hours_start: settingsData.working_hours_start || interviewSettings.working_hours_start,
+            working_hours_end: settingsData.working_hours_end || interviewSettings.working_hours_end,
+            working_days: settingsData.working_days || interviewSettings.working_days,
+            breaks: settingsData.breaks || interviewSettings.breaks,
+            slots: settingsData.slots || [] // Initialize slots from database
+          };
+          
+          setInterviewSettings(updatedSettings);
+          
+          // Initialize individual slots from database
+          const slotsToSet = settingsData.slots && Array.isArray(settingsData.slots) ? settingsData.slots : [];
+          setIndividualSlots(slotsToSet);
         }
       } catch (error) {
         console.error('Error fetching interview settings:', error);
@@ -127,6 +171,46 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
       fetchInterviewSettings();
     }
   }, [schoolId]);
+  
+  // Track when settings have been modified
+  useEffect(() => {
+    // This effect will run whenever individualSlots change
+    // We could implement deep comparison here if needed, but for now we'll just set
+    // hasUnsavedChanges to true whenever these values change after initial load
+    // Only set to true if we're not in the initial loading phase
+    if (individualSlots.length > 0) {
+      setHasUnsavedChanges(true);
+    }
+  }, [individualSlots]);
+  
+  // Handle beforeunload event to warn about unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+  
+  // Handle navigation attempts
+  const handleNavigationAttempt = (callback: () => void) => {
+    if (hasUnsavedChanges) {
+      // Show confirmation dialog
+      setShowUnsavedChangesDialog(true);
+      // Store the callback to execute after confirmation
+      setPendingNavigation(true);
+    } else {
+      // No unsaved changes, proceed with navigation
+      callback();
+    }
+  };
 
   // Handle interview settings change
   const handleSettingsChange = (field: keyof ExtendedInterviewSettings, value: string | WorkingDay[] | BreakPeriod[]) => {
@@ -181,6 +265,102 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     }));
   };
 
+  // Check if two time ranges overlap
+  const doTimesOverlap = (start1: string, duration1: string, start2: string, duration2: string): boolean => {
+    const [hours1, minutes1] = start1.split(':').map(Number);
+    const [hours2, minutes2] = start2.split(':').map(Number);
+    
+    const startMinutes1 = hours1 * 60 + minutes1;
+    const endMinutes1 = startMinutes1 + parseInt(duration1);
+    
+    const startMinutes2 = hours2 * 60 + minutes2;
+    const endMinutes2 = startMinutes2 + parseInt(duration2);
+    
+    return startMinutes1 < endMinutes2 && startMinutes2 < endMinutes1;
+  };
+  
+  // Add slot configuration
+  const addSlotConfiguration = () => {
+    if (selectedDays.length === 0) return;
+    
+    // Check for conflicts before adding new slots
+    const conflictingDays: string[] = [];
+    
+    selectedDays.forEach(day => {
+      const existingSlots = individualSlots.filter(slot => slot.day === day);
+      
+      const hasConflict = existingSlots.some(slot => 
+        doTimesOverlap(
+          slot.start_time, 
+          slot.duration, 
+          newSlotConfig.start_time, 
+          newSlotConfig.slot_duration
+        )
+      );
+      
+      if (hasConflict) {
+        conflictingDays.push(day);
+      }
+    });
+    
+    // Show error if there are conflicts
+    if (conflictingDays.length > 0) {
+      const dayLabels = conflictingDays.map(day => 
+        DAYS_OF_WEEK.find(d => d.value === day)?.label
+      ).filter(Boolean).join(', ');
+      
+      toast.error(`Time conflict detected for ${dayLabels}. Please adjust the time.`);
+      return;
+    }
+    
+    // Add individual slots for each selected day
+    const newSlots: IndividualSlot[] = selectedDays.map(day => ({
+      id: `${day}-${Date.now()}-${Math.random()}`,
+      day: day,
+      start_time: newSlotConfig.start_time,
+      duration: newSlotConfig.slot_duration
+    }));
+    
+    setIndividualSlots(prev => [...prev, ...newSlots]);
+    
+    // Also enable the days in working_days for compatibility
+    setInterviewSettings(prev => ({
+      ...prev,
+      working_days: prev.working_days.map(day => 
+        selectedDays.includes(day.day) 
+          ? { 
+              ...day, 
+              enabled: true,
+              start_time: newSlotConfig.start_time,
+              end_time: '23:59', // Not used but required by interface
+              slot_duration: newSlotConfig.slot_duration
+            } 
+          : day
+      )
+    }));
+    
+    // Reset selection
+    setSelectedDays([]);
+  };
+
+  // Remove a specific individual slot
+  const removeIndividualSlot = (slotId: string) => {
+    setIndividualSlots(prev => prev.filter(slot => slot.id !== slotId));
+  };
+  
+  // Remove all slots for a specific day
+  const removeAllSlotsForDay = (dayValue: string) => {
+    setIndividualSlots(prev => prev.filter(slot => slot.day !== dayValue));
+    
+    // Also disable the day in working_days for compatibility
+    setInterviewSettings(prev => ({
+      ...prev,
+      working_days: prev.working_days.map(day => 
+        day.day === dayValue ? { ...day, enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' } : day
+      )
+    }));
+  };
+
   // Generate slots for preview
   const generateSlots = (): Slot[] => {
     const slots: Slot[] = [];
@@ -192,58 +372,44 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
       currentDate.setDate(today.getDate() + i);
       
       const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const workingDay = interviewSettings.working_days.find(day => day.day === dayOfWeek);
       
-      if (workingDay && workingDay.enabled) {
-        const slotDuration = parseInt(workingDay.slot_duration) || 30;
-        const startTime = workingDay.start_time;
-        const endTime = workingDay.end_time;
+      // Find all individual slots for this day
+      const daySlots = individualSlots.filter(slot => slot.day === dayOfWeek);
+      
+      daySlots.forEach(slot => {
+        const slotDuration = parseInt(slot.duration) || 30;
+        const startTime = slot.start_time;
         
-        // Convert times to minutes for easier calculation
+        // Calculate end time based on start time and duration
         const [startHours, startMinutes] = startTime.split(':').map(Number);
-        const [endHours, endMinutes] = endTime.split(':').map(Number);
         const startTotalMinutes = startHours * 60 + startMinutes;
-        const endTotalMinutes = endHours * 60 + endMinutes;
+        const endTotalMinutes = startTotalMinutes + slotDuration;
         
-        // Add working hour slots
-        for (let minutes = startTotalMinutes; minutes < endTotalMinutes; minutes += slotDuration) {
-          const slotStartHours = Math.floor(minutes / 60);
-          const slotStartMinutes = minutes % 60;
-          const slotEndHours = Math.floor((minutes + slotDuration) / 60);
-          const slotEndMinutes = (minutes + slotDuration) % 60;
-          
-          const slotStartTime = `${slotStartHours.toString().padStart(2, '0')}:${slotStartMinutes.toString().padStart(2, '0')}`;
-          const slotEndTime = `${slotEndHours.toString().padStart(2, '0')}:${slotEndMinutes.toString().padStart(2, '0')}`;
-          
-          // Check if this slot overlaps with any break
-          const breakPeriod = interviewSettings.breaks.find(breakItem => 
-            breakItem.day === dayOfWeek &&
-            ((breakItem.start_time <= slotStartTime && breakItem.end_time > slotStartTime) ||
-             (breakItem.start_time < slotEndTime && breakItem.end_time >= slotEndTime))
-          );
-          
-          if (!breakPeriod) {
-            slots.push({
-              day: dayOfWeek,
-              startTime: slotStartTime,
-              endTime: slotEndTime,
-              isBreak: false
-            });
-          }
-        }
+        const endHours = Math.floor(endTotalMinutes / 60);
+        const endMinutes = endTotalMinutes % 60;
         
-        // Add break slots
-        const dayBreaks = interviewSettings.breaks.filter(breakItem => breakItem.day === dayOfWeek);
-        dayBreaks.forEach(breakItem => {
-          slots.push({
-            day: dayOfWeek,
-            startTime: breakItem.start_time,
-            endTime: breakItem.end_time,
-            isBreak: true
-          });
+        const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+        
+        slots.push({
+          day: dayOfWeek,
+          startTime: startTime,
+          endTime: endTime,
+          isBreak: false
         });
-      }
+      });
     }
+    
+    // Add break slots if any
+    const todayString = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const dayBreaks = interviewSettings.breaks.filter(breakItem => breakItem.day === todayString);
+    dayBreaks.forEach(breakItem => {
+      slots.push({
+        day: todayString,
+        startTime: breakItem.start_time,
+        endTime: breakItem.end_time,
+        isBreak: true
+      });
+    });
     
     return slots.sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
@@ -260,46 +426,54 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     return slotsByDay;
   };
 
+  const slotsByDay = getSlotsByDay();
+
   // Validate interview settings
   const validateSettings = (): boolean => {
     const newErrors: SettingsErrors = {};
     
-    if (!interviewSettings.default_duration || parseInt(interviewSettings.default_duration) <= 0) {
-      newErrors.default_duration = 'Duration must be a positive number';
+    // Validate that at least one slot is configured
+    if (individualSlots.length === 0) {
+      newErrors.working_days = 'At least one time slot must be configured';
     }
     
-    if (!interviewSettings.buffer_time || parseInt(interviewSettings.buffer_time) < 0) {
-      newErrors.buffer_time = 'Buffer time must be a non-negative number';
-    }
-    
-    if (!interviewSettings.candidate_reminder_hours || parseInt(interviewSettings.candidate_reminder_hours) < 0) {
-      newErrors.candidate_reminder_hours = 'Reminder hours must be a non-negative number';
-    }
-    
-    if (!interviewSettings.interviewer_reminder_hours || parseInt(interviewSettings.interviewer_reminder_hours) < 0) {
-      newErrors.interviewer_reminder_hours = 'Reminder hours must be a non-negative number';
-    }
-    
-    // Validate that at least one working day is enabled
-    const enabledDays = interviewSettings.working_days.filter(day => day.enabled);
-    if (enabledDays.length === 0) {
-      newErrors.working_days = 'At least one working day must be enabled';
-    }
-    
-    // Validate working days
-    for (const day of interviewSettings.working_days) {
-      if (day.enabled) {
-        const startHour = parseInt(day.start_time.split(':')[0]);
-        const endHour = parseInt(day.end_time.split(':')[0]);
-        
-        if (startHour >= endHour) {
-          newErrors.working_days = `Start time must be before end time for ${day.day}`;
-        }
-        
-        if (!day.slot_duration || parseInt(day.slot_duration) <= 0) {
-          newErrors.working_days = `Slot duration must be a positive number for ${day.day}`;
-        }
+    // Validate individual slots
+    for (const slot of individualSlots) {
+      if (!slot.start_time) {
+        newErrors.working_days = `Start time is required for slot on ${slot.day}`;
       }
+      
+      if (!slot.duration || parseInt(slot.duration) <= 0) {
+        newErrors.working_days = `Slot duration must be a positive number for slot on ${slot.day}`;
+      }
+    }
+    
+    // Check for conflicts between slots
+    const daysWithSlots = [...new Set(individualSlots.map(slot => slot.day))];
+    
+    for (const day of daysWithSlots) {
+      // Sort slots by start time for consistent conflict checking
+      const daySlots = individualSlots
+        .filter(slot => slot.day === day)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      
+      // Check each pair of slots for conflicts
+      for (let i = 0; i < daySlots.length; i++) {
+        for (let j = i + 1; j < daySlots.length; j++) {
+          const slot1 = daySlots[i];
+          const slot2 = daySlots[j];
+          
+          if (doTimesOverlap(slot1.start_time, slot1.duration, slot2.start_time, slot2.duration)) {
+            const dayLabel = DAYS_OF_WEEK.find(d => d.value === day)?.label || day;
+            newErrors.working_days = `Conflicting time slots on ${dayLabel}. Please resolve overlaps.`;
+            break;
+          }
+        }
+        
+        if (newErrors.working_days) break;
+      }
+      
+      if (newErrors.working_days) break;
     }
     
     // Validate breaks
@@ -326,13 +500,55 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
     try {
       const supabase = createClient();
       
-      // Update school info with interview settings
-      const { error } = await supabase
-        .from('school_info')
-        .update({ interview_settings: interviewSettings })
-        .eq('id', schoolId);
+      // Prepare data to save, including individual slots as JSON
+      const settingsToSave = {
+        school_id: schoolId,
+        default_interview_type: interviewSettings.default_interview_type,
+        default_duration: interviewSettings.default_duration,
+        buffer_time: interviewSettings.buffer_time,
+        working_hours_start: interviewSettings.working_hours_start,
+        working_hours_end: interviewSettings.working_hours_end,
+        candidate_reminder_hours: interviewSettings.candidate_reminder_hours,
+        interviewer_reminder_hours: interviewSettings.interviewer_reminder_hours,
+        custom_instructions: interviewSettings.custom_instructions,
+        working_days: interviewSettings.working_days,
+        breaks: interviewSettings.breaks,
+        slots: individualSlots // Save individual slots as JSON
+      };
       
-      if (error) throw error;
+      // First, try to find existing settings for this school
+      const { data: existingData, error: fetchError } = await supabase
+        .from('interview_meeting_settings')
+        .select('id')
+        .eq('school_id', schoolId)
+        .limit(1);
+      
+      if (fetchError) throw fetchError;
+      
+      let saveError;
+      
+      // If existing settings found, update them
+      if (existingData && existingData.length > 0) {
+        const { error: updateError } = await supabase
+          .from('interview_meeting_settings')
+          .update(settingsToSave)
+          .eq('id', existingData[0].id);
+        
+        saveError = updateError;
+      } 
+      // Otherwise, insert new settings
+      else {
+        const { error: insertError } = await supabase
+          .from('interview_meeting_settings')
+          .insert(settingsToSave);
+        
+        saveError = insertError;
+      }
+      
+      if (saveError) throw saveError;
+      
+      // Reset unsaved changes flag
+      setHasUnsavedChanges(false);
       
       toast.success('Interview settings saved successfully!', { id: toastId });
     } catch (error) {
@@ -342,8 +558,6 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
       setSaving(false);
     }
   };
-
-  const slotsByDay = getSlotsByDay();
 
   return (
     <div className="space-y-6 p-4 w-full">
@@ -397,137 +611,301 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
         <div className="space-y-4">
           <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Scheduling Window</h4>
           <div className="space-y-6 pt-2 w-full">
-            {/* Working Days */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h5 className="font-medium">Working Days</h5>
-                <SlotPreviewDialog 
-                  isOpen={isPreviewOpen}
-                  onOpenChange={setIsPreviewOpen}
-                  slotsByDay={slotsByDay}
-                  workingDays={interviewSettings.working_days}
-                  daysOfWeek={DAYS_OF_WEEK}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4">
-                {interviewSettings.working_days.map((day) => (
-                  <div key={day.day} className="border rounded-lg p-4">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <Checkbox
-                        id={`day-${day.day}`}
-                        checked={day.enabled}
-                        onCheckedChange={(checked) => handleWorkingDayChange(day.day, 'enabled', checked as boolean)}
-                      />
-                      <Label htmlFor={`day-${day.day}`} className="flex-1 font-medium">
-                        {DAYS_OF_WEEK.find(d => d.value === day.day)?.label}
-                      </Label>
-                    </div>
-                    
-                    {day.enabled && (
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
-                        <div className="space-y-2">
-                          <Label htmlFor={`start-${day.day}`}>Start Time</Label>
-                          <Input
-                            id={`start-${day.day}`}
-                            type="time"
-                            value={day.start_time}
-                            onChange={(e) => handleWorkingDayChange(day.day, 'start_time', e.target.value)}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor={`end-${day.day}`}>End Time</Label>
-                          <Input
-                            id={`end-${day.day}`}
-                            type="time"
-                            value={day.end_time}
-                            onChange={(e) => handleWorkingDayChange(day.day, 'end_time', e.target.value)}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor={`duration-${day.day}`}>Slot Duration (min)</Label>
-                          <Input
-                            id={`duration-${day.day}`}
-                            type="number"
-                            min="15"
-                            step="15"
-                            value={day.slot_duration}
-                            onChange={(e) => handleWorkingDayChange(day.day, 'slot_duration', e.target.value)}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2 flex items-end">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => addBreak(day.day)}
-                            className="w-full"
-                          >
-                            Add Break
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {day.enabled && interviewSettings.breaks.filter(b => b.day === day.day).length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <h6 className="text-sm font-medium">Breaks</h6>
-                        {interviewSettings.breaks
-                          .filter(breakItem => breakItem.day === day.day)
-                          .map(breakItem => (
-                            <div key={breakItem.id} className="flex items-center space-x-2 p-2 bg-orange-50 rounded">
-                              <Input
-                                type="time"
-                                value={breakItem.start_time}
-                                onChange={(e) => handleBreakChange(breakItem.id, 'start_time', e.target.value)}
-                                className="w-24"
-                              />
-                              <span>to</span>
-                              <Input
-                                type="time"
-                                value={breakItem.end_time}
-                                onChange={(e) => handleBreakChange(breakItem.id, 'end_time', e.target.value)}
-                                className="w-24"
-                              />
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => removeBreak(breakItem.id)}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ))
-                        }
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {settingsErrors.working_days && (
-                <p className="text-sm text-red-600">{settingsErrors.working_days}</p>
-              )}
+            <div className="flex justify-end items-center">
+              <SlotPreviewDialog 
+                isOpen={isPreviewOpen}
+                onOpenChange={setIsPreviewOpen}
+                slotsByDay={slotsByDay}
+                workingDays={interviewSettings.working_days}
+                daysOfWeek={DAYS_OF_WEEK}
+              />
             </div>
             
-            {/* Buffer Time */}
-            <div className="space-y-2">
-              <Label htmlFor="buffer_time">Buffer Between Interviews (minutes)</Label>
-              <Input
-                id="buffer_time"
-                type="number"
-                min="0"
-                value={interviewSettings.buffer_time}
-                onChange={(e) => handleSettingsChange('buffer_time', e.target.value)}
-                className={`w-full md:w-1/3 ${settingsErrors.buffer_time ? 'border-red-500' : ''}`}
-              />
-              {settingsErrors.buffer_time && (
-                <p className="text-sm text-red-600">{settingsErrors.buffer_time}</p>
-              )}
+            <div className="space-y-4">
+                {/* Add New Slot Form */}
+                <div className="border rounded-lg p-4">
+                  <h6 className="font-medium mb-4">Create Specific Time Slots</h6>
+                  <p className="text-sm text-gray-600 mb-4">Create individual time slots for specific days. Each slot will be available for scheduling interviews.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-start-time">Start Time</Label>
+                      <Input
+                        id="slot-start-time"
+                        type="time"
+                        value={newSlotConfig.start_time}
+                        onChange={(e) => setNewSlotConfig(prev => ({ ...prev, start_time: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-duration">Slot Duration (min)</Label>
+                      <Input
+                        id="slot-duration"
+                        type="number"
+                        min="15"
+                        step="15"
+                        value={newSlotConfig.slot_duration}
+                        onChange={(e) => setNewSlotConfig(prev => ({ ...prev, slot_duration: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 flex items-end">
+                      <Button 
+                        type="button" 
+                        onClick={addSlotConfiguration}
+                        disabled={selectedDays.length === 0}
+                        className="w-full"
+                      >
+                        Add Time Slots
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Select Days</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                      {DAYS_OF_WEEK.map((day) => {
+                        // Check if adding a slot for this day would cause a conflict
+                        // Sort existing slots by start time for consistent conflict checking
+                        const existingDaySlots = individualSlots
+                          .filter(slot => slot.day === day.value)
+                          .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                        
+                        const hasConflict = selectedDays.includes(day.value) && 
+                          existingDaySlots
+                            .some(slot => 
+                              doTimesOverlap(
+                                slot.start_time, 
+                                slot.duration, 
+                                newSlotConfig.start_time, 
+                                newSlotConfig.slot_duration
+                              )
+                            );
+                        
+                        return (
+                          <div 
+                            key={day.value} 
+                            className={`flex items-center space-x-2 border rounded p-2 cursor-pointer ${
+                              selectedDays.includes(day.value) 
+                                ? hasConflict 
+                                  ? 'bg-red-50 border-red-300' 
+                                  : 'bg-blue-50 border-blue-300'
+                                : 'hover:bg-gray-50'
+                            }`}
+                            onClick={() => {
+                              if (selectedDays.includes(day.value)) {
+                                setSelectedDays((prev: string[]) => prev.filter((d: string) => d !== day.value));
+                              } else {
+                                setSelectedDays((prev: string[]) => [...prev, day.value]);
+                              }
+                            }}
+                          >
+                            <Checkbox
+                              id={`select-${day.value}`}
+                              checked={selectedDays.includes(day.value)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDays((prev: string[]) => [...prev, day.value]);
+                                } else {
+                                  setSelectedDays((prev: string[]) => prev.filter((d: string) => d !== day.value));
+                                }
+                              }}
+                              className="pointer-events-none"
+                            />
+                            <Label htmlFor={`select-${day.value}`} className="text-sm cursor-pointer">
+                              {day.label}
+                              {hasConflict && (
+                                <span className="text-red-500 ml-1">⚠️</span>
+                              )}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Existing Slot Configurations - Calendar View */}
+                <div className="space-y-3">
+                  <h6 className="font-medium">Configured Slots</h6>
+                  <div className="border rounded-lg overflow-hidden">
+                    {/* Generate time-based grid */}
+                    {(() => {
+                      // Sort slots by start time to ensure proper display order
+                      const sortedSlots = [...individualSlots].sort((a, b) => {
+                        const [aHours, aMinutes] = a.start_time.split(':').map(Number);
+                        const [bHours, bMinutes] = b.start_time.split(':').map(Number);
+                        const aTotalMinutes = aHours * 60 + aMinutes;
+                        const bTotalMinutes = bHours * 60 + bMinutes;
+                        return aTotalMinutes - bTotalMinutes;
+                      });
+                      
+                      // Display all days of the week by default
+                      const displayedDays = DAYS_OF_WEEK;
+                      
+                      // Determine the time range based on configured slots
+                      if (sortedSlots.length === 0) {
+                        return (
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b bg-gray-50">
+                                {displayedDays.map(day => (
+                                  <th key={day.value} className="text-center p-2 text-sm font-medium">
+                                    {day.label}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={displayedDays.length} className="text-center p-4 text-muted-foreground">
+                                  No slots configured yet. Add time slots above.
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        );
+                      }
+                      
+                      // Find min and max times to create the grid
+                      const startTimes = sortedSlots.map(slot => {
+                        const [hours, minutes] = slot.start_time.split(':').map(Number);
+                        return hours * 60 + minutes;
+                      });
+                      
+                      const minTime = Math.min(...startTimes);
+                      const maxTime = Math.max(...startTimes.map(time => {
+                        // Add duration to get end time
+                        const slot = sortedSlots.find(s => {
+                          const [hours, minutes] = s.start_time.split(':').map(Number);
+                          return hours * 60 + minutes === time;
+                        });
+                        return time + (slot ? parseInt(slot.duration) : 0);
+                      }));
+                      
+                      // Round to nearest 30 minutes
+                      const gridStart = Math.floor(minTime / 30) * 30;
+                      const gridEnd = Math.ceil(maxTime / 30) * 30;
+                      
+                      // Generate 30-minute intervals
+                      const timeSlots: string[] = [];
+                      for (let minutes = gridStart; minutes <= gridEnd; minutes += 30) {
+                        const hours = Math.floor(minutes / 60);
+                        const mins = minutes % 60;
+                        timeSlots.push(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
+                      }
+                      
+                      // Base height for a 30-minute slot (in rem)
+                      const baseHeight = 4; // 4rem for 30 minutes
+                      
+                      // Create a matrix to track which cells are occupied
+                      const cellOccupancy: Record<string, boolean> = {};
+                      
+                      return (
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b bg-gray-50">
+                              {displayedDays.map(day => (
+                                <th key={day.value} className="text-center p-2 text-sm font-medium">
+                                  {day.label}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {timeSlots.map((time, index) => (
+                              <tr key={time} className="border-b" style={{ height: `${baseHeight}rem` }}>
+                                {displayedDays.map(day => {
+                                  const cellKey = `${time}-${day.value}`;
+                                  
+                                  // Check if this cell is occupied by a slot
+                                  if (cellOccupancy[cellKey]) {
+                                    return <td key={cellKey} className="p-1 align-middle"></td>;
+                                  }
+                                  
+                                  // Find slot that starts at this time
+                                  const slot = sortedSlots.find(s => 
+                                    s.day === day.value && s.start_time === time
+                                  );
+                                  
+                                  if (slot) {
+                                    // Calculate how many time slots this slot spans
+                                    const duration = parseInt(slot.duration);
+                                    const span = Math.ceil(duration / 30);
+                                    const height = span * baseHeight;
+                                    
+                                    // Mark cells that this slot occupies
+                                    for (let i = 0; i < span; i++) {
+                                      if (index + i < timeSlots.length) {
+                                        cellOccupancy[`${timeSlots[index + i]}-${day.value}`] = true;
+                                      }
+                                    }
+                                    
+                                    // Calculate end time for display
+                                    const [startHours, startMinutes] = slot.start_time.split(':').map(Number);
+                                    const startTotalMinutes = startHours * 60 + startMinutes;
+                                    const endTotalMinutes = startTotalMinutes + duration;
+                                    
+                                    const endHours = Math.floor(endTotalMinutes / 60);
+                                    const endMinutes = endTotalMinutes % 60;
+                                    
+                                    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+                                    
+                                    return (
+                                      <td 
+                                        key={cellKey} 
+                                        className="p-1 align-middle relative" 
+                                        rowSpan={span}
+                                      >
+                                        <div className="relative h-full flex items-center justify-center">
+                                          <div 
+                                            className="p-2 rounded text-sm bg-green-100 border border-green-300 w-full flex flex-col justify-center"
+                                            style={{ height: `${height}rem` }}
+                                          >
+                                            <div className="font-mono text-center">
+                                              {slot.start_time} - {endTime}
+                                            </div>
+                                            <div className="text-xs text-gray-600 text-center mt-1">
+                                              {slot.duration} min
+                                            </div>
+                                          </div>
+                                          <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => removeIndividualSlot(slot.id)}
+                                            className="absolute -top-2 -right-2 h-5 w-5 bg-white rounded-full shadow"
+                                          >
+                                            <X className="h-3 w-3" />
+                                            <span className="sr-only">Remove slot at {slot.start_time} on {day.label}</span>
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    );
+                                  }
+                                  
+                                  return (
+                                    <td key={cellKey} className="p-1 align-middle">
+                                      <div className="h-full w-full"></div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      );
+                    })()}
+                  </div>
+                  
+                  {individualSlots.length === 0 && (
+                    <p className="text-sm text-gray-500 italic">No slots configured yet. Add time slots above.</p>
+                  )}
+                </div>
+              </div>
             </div>
+            
+            
           </div>
         </div>
         
@@ -587,8 +965,28 @@ export function InterviewMeetingSettings({ schoolId }: InterviewMeetingSettingsP
           <Button onClick={handleSaveSettings} disabled={saving} className="w-full md:w-auto">
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>
-        </div>
       </div>
+      <UnsavedChangesDialog 
+        open={showUnsavedChangesDialog}
+        onOpenChange={setShowUnsavedChangesDialog}
+        onConfirm={() => {
+          setHasUnsavedChanges(false);
+          setShowUnsavedChangesDialog(false);
+          // Handle actual navigation here if needed
+          if (pendingNavigation) {
+            // Perform the pending navigation
+            setPendingNavigation(false);
+          }
+          // Call the onNavigateAway callback if provided
+          if (onNavigateAway) {
+            onNavigateAway();
+          }
+        }}
+        onCancel={() => {
+          setShowUnsavedChangesDialog(false);
+          setPendingNavigation(false);
+        }}
+      />
     </div>
   );
 }

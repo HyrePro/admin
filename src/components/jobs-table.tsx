@@ -342,9 +342,9 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={job.hiring.avatar || ''} alt="Hiring Manager" />
-                                <AvatarFallback>{job.hiring.first_name[0]} {job.hiring.last_name[0]}</AvatarFallback>
+                                <AvatarFallback>{job.hiring.first_name[0]}{job.hiring.last_name[0]}</AvatarFallback>
                               </Avatar>
-                              <span className="text-sm">{job.hiring.first_name} {job.hiring.last_name}</span>
+                              <span className="text-sm">{job.hiring.first_name}{job.hiring.last_name}</span>
                             </div>
                           ): <div>-</div>}
                         </div>

@@ -209,7 +209,7 @@ export const ReviewAndPublish = memo(({ jobData }: ReviewAndPublishProps) => {
           {jobData.includeSubjectTest && (
             <AssessmentCard className="bg-gradient-to-r from-purple-50 to-purple-100/50 border-purple-200">
               <span className="text-gray-900 font-medium">
-                Subject Assessment Test
+                MCQ Assessment
               </span>
               <div className="flex flex-wrap gap-2 mt-2">
                 {capitalizedDifficulty && (

@@ -42,7 +42,7 @@ export function SlotPreviewDialog({
           Preview Slots
         </Button>
       </DialogTrigger>
-      <DialogContent className=" h-[90vh] flex flex-col">
+      <DialogContent className="h-[90vh] w-[95vw] max-w-none flex flex-col">
         <DialogHeader>
           <DialogTitle>Available Interview Slots</DialogTitle>
         </DialogHeader>
@@ -71,7 +71,7 @@ export function SlotPreviewDialog({
                       key={day.value} 
                       className={`align-top ${!isEnabled ? 'opacity-50' : ''}`}
                     >
-                      {daySlots.length > 0 ? (
+                      {daySlots && daySlots.length > 0 ? (
                         <div className="space-y-2">
                           {daySlots.map((slot, index) => (
                             <div 
@@ -91,7 +91,7 @@ export function SlotPreviewDialog({
                         </div>
                       ) : (
                         <div className="text-muted-foreground text-sm p-2">
-                          {isEnabled ? 'No slots' : 'Not enabled'}
+                          {isEnabled ? 'No slots configured' : 'Not enabled'}
                         </div>
                       )}
                     </TableCell>
@@ -101,9 +101,9 @@ export function SlotPreviewDialog({
             </TableBody>
           </Table>
           
-          {Object.values(slotsByDay).every(daySlots => daySlots.length === 0) && (
+          {Object.values(slotsByDay).every(daySlots => !daySlots || daySlots.length === 0) && (
             <p className="text-muted-foreground text-center py-4">
-              No slots available. Please enable at least one working day.
+              No slots available. Please configure time slots for at least one day.
             </p>
           )}
         </div>

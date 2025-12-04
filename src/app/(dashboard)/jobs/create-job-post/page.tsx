@@ -1,24 +1,28 @@
 'use client'
 
-import { Formik, Form, FormikProps } from 'formik'
-import * as Yup from 'yup'
-import { useState, useRef, lazy, Suspense, useMemo, useCallback, memo } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/auth-context'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { AuthGuard } from '@/components/auth-guard'
-import '@/styles/jobs.css'
-import { Button } from '@/components/ui/button'
-import { X, AlertTriangle } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { toast } from 'sonner'
+import React, { memo, Suspense, useCallback, useMemo, useRef, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Formik, FormikProps } from "formik"
+import { Form } from "formik"
+import { useAuth } from "@/context/auth-context"
+import { useAuthStore } from "@/store/auth-store"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { X, AlertCircle } from "lucide-react"
+import { BasicJobInformation } from "@/components/basic-job-information"
+import { ScreeningSettings, type ExtendedInterviewSettings, type InterviewSettingsData, type WorkingDay, type BreakPeriod, type IndividualSlot, DAYS_OF_WEEK } from "@/components/screening-settings"
+import { ReviewAndPublish } from "@/components/review-and-publish"
+import { JobPostDialog } from "@/components/job-post-dialog"
+import { AuthGuard } from "@/components/auth-guard"
+import { createClient } from '@/lib/supabase/api/client'
+import { toast } from "sonner"
+import * as Yup from "yup"
 
-// Lazy load components
-const BasicJobInformation = lazy(() => import('@/components/basic-job-information').then(mod => ({ default: mod.BasicJobInformation })))
-const ScreeningSettings = lazy(() => import('@/components/screening-settings').then(mod => ({ default: mod.ScreeningSettings })))
-const ReviewAndPublish = lazy(() => import('@/components/review-and-publish').then(mod => ({ default: mod.ReviewAndPublish })))
-const JobPostDialog = lazy(() => import('@/components/job-post-dialog').then(mod => ({ default: mod.JobPostDialog })))
+
+
+
 
 // Memoize validation schema
 const validationSchema = Yup.object({
@@ -113,7 +117,7 @@ ProgressBar.displayName = 'ProgressBar'
 const ErrorAlert = memo(({ error }: { error: string }) => (
   <div className="fixed top-2 bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
     <Alert variant="destructive" className="shadow-lg">
-      <AlertTriangle className="h-4 w-4 text-red-500" />
+      <AlertCircle className="h-4 w-4 text-red-500" />
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>{error}</AlertDescription>
     </Alert>
@@ -140,7 +144,57 @@ export default function CreateJobApplicationPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogType, setDialogType] = useState<'progress' | 'success' | 'error' | null>(null)
   const { user, session } = useAuth()
+  const { schoolId } = useAuthStore()
+  const [createdJobId, setCreatedJobId] = useState<string | null>(null)
+  const [interviewSettings, setInterviewSettings] = useState<ExtendedInterviewSettings | null>(null)
+  const [pendingJobSettings, setPendingJobSettings] = useState<{settings: ExtendedInterviewSettings, jobId: string} | null>(null) // Add state for pending job settings
+  const [resolvedSchoolId, setResolvedSchoolId] = useState<string | null>(schoolId || null) // Add state for resolved schoolId
+  
+  // Log auth information for debugging
   const formikRef = useRef<FormikProps<FormValues>>(null)
+
+  // Fetch schoolId from admin_user_info if not provided
+  useEffect(() => {
+    const fetchSchoolId = async () => {
+      if (schoolId) {
+        // If schoolId is already provided, use it
+        setResolvedSchoolId(schoolId);
+        return;
+      }
+      
+      if (!user?.id) {
+        return;
+      }
+      
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('admin_user_info')
+          .select('school_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching school info:', error);
+          return;
+        }
+        
+        if (data?.school_id) {
+          setResolvedSchoolId(data.school_id);
+          // Update the store as well
+          useAuthStore.getState().setSchoolId(data.school_id);
+        }
+      } catch (error) {
+        console.error('Error fetching school ID:', error);
+      }
+    };
+    
+    if (!schoolId && user?.id) {
+      fetchSchoolId();
+    } else if (schoolId) {
+      setResolvedSchoolId(schoolId);
+    }
+  }, [schoolId, user?.id]);
 
   // Memoize progress percentage
   const progressPercentage = useMemo(() => 
@@ -213,7 +267,7 @@ export default function CreateJobApplicationPage() {
     } else if (step === 1) {
       if (!screening.assessment && !screening.demoVideo) {
         toast.error('Please select at least one screening method', {
-          description: 'Select either Subject Screening Assessment or Teaching Demo Video to continue.'
+          description: 'Select either MCQ Assessment or Teaching Demo Video to continue.'
         });
         return
       }
@@ -271,11 +325,46 @@ export default function CreateJobApplicationPage() {
         return
       }
       
+      // Set the created job ID
+      const newJobId = data.id;
+      console.log('Job created with ID:', newJobId);
+      setCreatedJobId(newJobId)
+      
+      // Log the current state
+      console.log('Current state:', { pendingJobSettings, screening, interviewSettings, resolvedSchoolId });
+      
+      // If we have pending job settings, save them now
+      if (pendingJobSettings) {
+        console.log('Saving pending job settings:', pendingJobSettings);
+        try {
+          await saveJobSettings(pendingJobSettings.settings, newJobId);
+          setPendingJobSettings(null);
+        } catch (settingsError) {
+          console.error('Error saving job interview settings:', settingsError);
+        }
+      }
+      // If interview scheduling is enabled and we have interview settings, save job-specific settings
+      else if (screening.interviewScheduling && interviewSettings && resolvedSchoolId) {
+        console.log('Saving interview settings:', interviewSettings);
+        try {
+          await saveJobSettings(interviewSettings, newJobId);
+        } catch (settingsError) {
+          console.error('Error saving job interview settings:', settingsError);
+        }
+      } else {
+        console.log('No job settings to save. Conditions:', {
+          hasInterviewScheduling: screening.interviewScheduling,
+          hasInterviewSettings: !!interviewSettings,
+          hasSchoolId: !!resolvedSchoolId,
+          hasPendingSettings: !!pendingJobSettings
+        });
+      }
+      
       setDialogType('success')
       setTimeout(() => {
         setDialogOpen(false)
         setTimeout(() => {
-          router.push(`/jobs/create-job-post/success?jobId=${data.id}`)
+          router.push(`/jobs/create-job-post/success?jobId=${newJobId}`)
         }, 100)
       }, 1000)
     } catch (e: unknown) {
@@ -283,11 +372,132 @@ export default function CreateJobApplicationPage() {
       if (typeof e === 'object' && e !== null && 'message' in e && typeof (e as { message?: unknown }).message === 'string') {
         errorMessage = (e as { message: string }).message;
       }
+      console.error('Error in handlePublish:', e);
       setError(errorMessage)
       setDialogType('error')
       setLoading(false)
     }
-  }, [user, session, createJobPayload, router])
+  }, [user, session, createJobPayload, router, screening.interviewScheduling, interviewSettings, resolvedSchoolId, pendingJobSettings])
+
+  // Add function to save job settings
+  const saveJobSettings = async (settings: ExtendedInterviewSettings, jobId: string) => {
+    console.log('Saving job settings:', { settings, jobId, resolvedSchoolId });
+    
+    if (!resolvedSchoolId) {
+      console.error('No resolved school ID found');
+      return;
+    }
+    
+    const settingsPayload = {
+      job_id: jobId,
+      school_id: resolvedSchoolId,
+      default_interview_type: settings.default_interview_type,
+      default_duration: settings.default_duration,
+      buffer_time: settings.buffer_time,
+      working_hours_start: settings.working_hours_start,
+      working_hours_end: settings.working_hours_end,
+      candidate_reminder_hours: settings.candidate_reminder_hours,
+      interviewer_reminder_hours: settings.interviewer_reminder_hours,
+      custom_instructions: settings.custom_instructions,
+      slots: settings.slots
+    };
+    
+    console.log('Settings payload:', settingsPayload);
+    
+    const settingsHeaders = new Headers({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    });
+    
+    if (session?.access_token) {
+      settingsHeaders.set('Authorization', `Bearer ${session.access_token}`);
+    }
+    
+    const settingsResponse = await fetch('/api/job-interview-settings', {
+      method: 'POST',
+      headers: settingsHeaders,
+      credentials: 'include',
+      body: JSON.stringify(settingsPayload),
+    });
+    
+    console.log('Settings response:', settingsResponse);
+    
+    if (!settingsResponse.ok) {
+      const errorText = await settingsResponse.text();
+      console.error('Failed to save job interview settings:', errorText);
+      throw new Error(`Failed to save job interview settings: ${errorText}`);
+    }
+    
+    const responseData = await settingsResponse.json();
+    console.log('Settings saved successfully:', responseData);
+  };
+
+  // Add this function to handle saving interview settings
+  const handleSaveInterviewSettings = useCallback(async (settings: ExtendedInterviewSettings) => {
+    console.log('Handling save interview settings:', settings);
+    console.log('Current state - createdJobId:', createdJobId, 'pendingJobSettings:', pendingJobSettings);
+    setInterviewSettings(settings);
+    
+    // If we already have a job ID, save the settings immediately
+    if (createdJobId) {
+      console.log('Saving settings immediately for job:', createdJobId);
+      try {
+        await saveJobSettings(settings, createdJobId);
+      } catch (error) {
+        console.error('Error saving job interview settings:', error);
+      }
+    }
+    // Otherwise, store the settings to be saved after job creation
+    else {
+      console.log('Storing settings for later save (no job ID yet)');
+      setPendingJobSettings({ settings, jobId: 'pending' });
+      console.log('Updated pendingJobSettings:', { settings, jobId: 'pending' });
+    }
+  }, [createdJobId, session, pendingJobSettings]);
+
+  // Add a function to refresh job-specific settings after they've been saved
+  const refreshJobSettings = useCallback(async (jobId: string) => {
+    if (!jobId) return;
+    
+    try {
+      const supabase = createClient();
+      
+      // Fetch job-specific settings
+      const { data: jobSettings, error: jobError } = await supabase
+        .from('job_meeting_settings')
+        .select('*')
+        .eq('job_id', jobId)
+        .single();
+      
+      if (!jobError && jobSettings) {
+        const jobSpecificSettings: ExtendedInterviewSettings = {
+          default_interview_type: jobSettings.default_interview_type || 'in-person',
+          default_duration: jobSettings.default_duration || '30',
+          buffer_time: '15',
+          working_hours_start: '09:00',
+          working_hours_end: '17:00',
+          candidate_reminder_hours: jobSettings.candidate_reminder_hours || '24',
+          interviewer_reminder_hours: jobSettings.interviewer_reminder_hours || '1',
+          custom_instructions: jobSettings.custom_instructions || '',
+          working_days: [
+            { day: 'monday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'tuesday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'wednesday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'thursday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'friday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'saturday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' },
+            { day: 'sunday', enabled: false, start_time: '09:00', end_time: '17:00', slot_duration: '30' }
+          ],
+          breaks: [],
+          slots: jobSettings.slots || []
+        };
+        
+        setInterviewSettings(jobSpecificSettings);
+      }
+    } catch (error) {
+      console.error('Error refreshing job-specific settings:', error);
+    }
+  }, []);
 
   // Memoize review job data
   const reviewJobData = useMemo(() => ({
@@ -381,6 +591,9 @@ export default function CreateJobApplicationPage() {
                     <ScreeningSettings
                       values={screening}
                       onChange={handleScreeningChange}
+                      schoolId={resolvedSchoolId || undefined} // Pass resolvedSchoolId
+                      jobId={createdJobId || undefined} // Pass the created job ID if available
+                      onSaveJobSettings={handleSaveInterviewSettings} // Pass the save function
                     />
                   )}
                   {step === 2 && (

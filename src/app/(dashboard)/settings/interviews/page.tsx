@@ -102,7 +102,15 @@ export default function InterviewSettingsPage() {
         {!sidebarCollapsed && (
           <nav className="flex-1 p-2 overflow-y-auto min-w-[200px]">
             <button
-              onClick={() => setActiveSection('meeting')}
+              onClick={() => {
+                if (activeSection === 'rubrics') {
+                  // Trying to switch from rubrics to meeting
+                  // We could add similar logic here if needed
+                  setActiveSection('meeting');
+                } else {
+                  setActiveSection('meeting');
+                }
+              }}
               className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium mb-1 flex items-center ${
                 activeSection === 'meeting'
                   ? 'bg-blue-100 text-blue-700'
@@ -119,7 +127,14 @@ export default function InterviewSettingsPage() {
               Meeting
             </button>
             <button
-              onClick={() => setActiveSection('rubrics')}
+              onClick={() => {
+                if (activeSection === 'meeting') {
+                  // Trying to switch from meeting to rubrics
+                  // The InterviewMeetingSettings component will handle this
+                } else {
+                  setActiveSection('rubrics');
+                }
+              }}
               className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center ${
                 activeSection === 'rubrics'
                   ? 'bg-blue-100 text-blue-700'
@@ -140,7 +155,15 @@ export default function InterviewSettingsPage() {
         {sidebarCollapsed && (
           <nav className="flex-1 p-2 overflow-y-auto flex flex-col items-center space-y-4 mt-4">
             <button
-              onClick={() => setActiveSection('meeting')}
+              onClick={() => {
+                if (activeSection === 'rubrics') {
+                  // Trying to switch from rubrics to meeting
+                  // We could add similar logic here if needed
+                  setActiveSection('meeting');
+                } else {
+                  setActiveSection('meeting');
+                }
+              }}
               className={`p-2 rounded-md ${
                 activeSection === 'meeting'
                   ? 'bg-blue-100 text-blue-700'
@@ -157,7 +180,14 @@ export default function InterviewSettingsPage() {
               </svg>
             </button>
             <button
-              onClick={() => setActiveSection('rubrics')}
+              onClick={() => {
+                if (activeSection === 'meeting') {
+                  // Trying to switch from meeting to rubrics
+                  // The InterviewMeetingSettings component will handle this
+                } else {
+                  setActiveSection('rubrics');
+                }
+              }}
               className={`p-2 rounded-md ${
                 activeSection === 'rubrics'
                   ? 'bg-blue-100 text-blue-700'
@@ -181,7 +211,10 @@ export default function InterviewSettingsPage() {
       <div className="flex-1 overflow-y-auto">
         {/* Meeting Content */}
         {activeSection === 'meeting' && (
-          <InterviewMeetingSettings schoolId={schoolId || ''} />
+          <InterviewMeetingSettings 
+            schoolId={schoolId || ''} 
+            onNavigateAway={() => setActiveSection('rubrics')}
+          />
         )}
         
         {/* Rubrics Content - Using the new component */}
