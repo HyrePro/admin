@@ -53,6 +53,14 @@ interface SavedPanelist {
   avatar?: string | null;
 }
 
+// Add this interface for preferred interview slots
+interface PreferredSlot {
+  id: string;
+  day: string;
+  duration: string;
+  start_time: string;
+}
+
 interface SchoolInfo {
   id: string;
   name: string;
@@ -98,6 +106,10 @@ export function ScheduleInterviewDialog({
     panelists: '',
     notes: ''
   });
+  
+  // Add state for preferred slots
+  const [preferredSlots, setPreferredSlots] = useState<PreferredSlot[]>([]);
+  const [selectedPreferredSlot, setSelectedPreferredSlot] = useState<PreferredSlot | null>(null);
   
   const [savedPanelists, setSavedPanelists] = useState<SavedPanelist[]>([]);
   
@@ -223,6 +235,61 @@ export function ScheduleInterviewDialog({
     
     fetchSavedPanelists();
   }, [schoolId, open, scheduleForm.panelists]);
+
+  // Fetch preferred interview slots for the candidate
+  useEffect(() => {
+    const fetchPreferredSlots = async () => {
+      if (!candidate?.application_id) return;
+      
+      // Reset selected preferred slot when candidate changes
+      setSelectedPreferredSlot(null);
+      
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('application_interview_slots')
+          .select('selected_slots')
+          .eq('id', candidate.application_id)
+          .single();
+        
+        if (error) {
+          console.warn('No preferred slots found for candidate:', error);
+          setPreferredSlots([]);
+          return;
+        }
+        
+        if (data?.selected_slots && Array.isArray(data.selected_slots)) {
+          // Remove duplicates based on day, start_time, and duration
+          let uniqueSlots = data.selected_slots.filter((slot, index, self) =>
+            index === self.findIndex(s => 
+              s.day === slot.day && 
+              s.start_time === slot.start_time && 
+              s.duration === slot.duration
+            )
+          );
+          
+          // Sort slots by start time
+          uniqueSlots = uniqueSlots.sort((a, b) => {
+            // Convert time strings to comparable values
+            const [aHours, aMinutes] = a.start_time.split(':').map(Number);
+            const [bHours, bMinutes] = b.start_time.split(':').map(Number);
+            const aTotalMinutes = aHours * 60 + aMinutes;
+            const bTotalMinutes = bHours * 60 + bMinutes;
+            return aTotalMinutes - bTotalMinutes;
+          });
+          
+          setPreferredSlots(uniqueSlots);
+        } else {
+          setPreferredSlots([]);
+        }
+      } catch (error) {
+        console.error('Error fetching preferred slots:', error);
+        setPreferredSlots([]);
+      }
+    };
+    
+    fetchPreferredSlots();
+  }, [candidate?.application_id]);
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -363,11 +430,52 @@ export function ScheduleInterviewDialog({
 
   // Function to handle form changes
   const handleFormChange = (field: keyof ScheduleInterviewForm, value: string) => {
+    // If user manually changes time or duration, deselect preferred slot
+    if (field === 'time' || field === 'duration') {
+      setSelectedPreferredSlot(null);
+    }
+    
+    // If user manually changes date, deselect preferred slot
+    if (field === 'date') {
+      setSelectedPreferredSlot(null);
+    }
+    
     setScheduleForm(prev => ({
         ...prev,
         [field]: value
     }));
   };
+
+  // Check if manually entered time matches any preferred slot
+  useEffect(() => {
+    // Only check if we have preferred slots and a complete date
+    if (preferredSlots.length > 0 && scheduleForm.date) {
+      const matchingSlot = preferredSlots.find(slot => {
+        // Convert day name to date
+        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const slotDayIndex = daysOfWeek.indexOf(slot.day.toLowerCase());
+        
+        if (slotDayIndex !== -1) {
+          const inputDate = new Date(scheduleForm.date);
+          const inputDayIndex = inputDate.getDay();
+          
+          // Check if the date matches the slot's day and time/duration match
+          return inputDayIndex === slotDayIndex && 
+                 slot.start_time === scheduleForm.time && 
+                 slot.duration === scheduleForm.duration;
+        }
+        return false;
+      });
+      
+      // Only set if not already selected (to avoid infinite loops)
+      if (matchingSlot && 
+          (selectedPreferredSlot?.id !== matchingSlot.id || 
+           selectedPreferredSlot?.start_time !== matchingSlot.start_time ||
+           selectedPreferredSlot?.duration !== matchingSlot.duration)) {
+        setSelectedPreferredSlot(matchingSlot);
+      }
+    }
+  }, [scheduleForm.date, scheduleForm.time, scheduleForm.duration, preferredSlots, selectedPreferredSlot]);
 
   // Function to handle meeting type change
   const handleMeetingTypeChange = (value: "offline" | "online") => {
@@ -381,6 +489,48 @@ export function ScheduleInterviewDialog({
       };
       return updatedForm;
     });
+  };
+
+  // Function to handle selection of a preferred slot
+  const handlePreferredSlotSelect = (slot: PreferredSlot) => {
+    setSelectedPreferredSlot(slot);
+    
+    // Update form with slot information
+    setScheduleForm(prev => ({
+      ...prev,
+      time: slot.start_time,
+      duration: slot.duration
+    }));
+    
+    // Find the next occurrence of the specified day
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = new Date();
+    const todayIndex = today.getDay();
+    const slotDayIndex = daysOfWeek.indexOf(slot.day.toLowerCase());
+    
+    if (slotDayIndex !== -1) {
+      let daysUntilSlot = slotDayIndex - todayIndex;
+      if (daysUntilSlot <= 0) {
+        daysUntilSlot += 7; // If the day has passed this week, use next week
+      }
+      
+      const nextSlotDate = new Date(today);
+      nextSlotDate.setDate(today.getDate() + daysUntilSlot);
+      
+      // Format as YYYY-MM-DD for the date input
+      const formattedDate = nextSlotDate.toISOString().split('T')[0];
+      
+      // Update the date in the form
+      setScheduleForm(prev => ({
+        ...prev,
+        date: formattedDate,
+        time: slot.start_time,
+        duration: slot.duration
+      }));
+    }
+    
+    // Show a toast notification
+    toast.info(`Selected preferred slot: ${slot.day} at ${slot.start_time} for ${slot.duration} minutes`);
   };
 
   // Function to parse panelist emails
@@ -527,6 +677,9 @@ export function ScheduleInterviewDialog({
       toast.success("Interview scheduled successfully!");
       console.log('Interview scheduled successfully:', insertData);
       
+      // Reset selected preferred slot
+      setSelectedPreferredSlot(null);
+      
       // Close the dialog after saving
       onClose();
     } catch (error) {
@@ -575,25 +728,48 @@ export function ScheduleInterviewDialog({
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">
-                  {candidate.first_name} {candidate.last_name}
+                  {candidate.first_name} {candidate.last_name} <span className="text-slate-600 font-normal">({candidate.email})</span>
                 </h3>
-                <p className="text-slate-600 flex items-center gap-1">
-                  <Mail className="w-4 h-4" />
-                  {candidate.email}
-                </p>
+                <div className="flex items-center gap-4 mt-1">
+                  <p className="text-slate-600 flex items-center gap-1">
+                    <Briefcase className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-slate-800">{candidate.job_title}</span>
+                  </p>
+                  <p className="text-slate-600 flex items-center gap-1">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-slate-800">Applied on {formatDate(candidate.created_at)}</span>
+                  </p>
+                </div>
               </div>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-slate-600">
-                <Briefcase className="w-4 h-4 flex-shrink-0" />
-                <span className="text-slate-800">{candidate.job_title}</span>
+            {/* Preferred Slots Section */}
+            {preferredSlots.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium text-slate-800 mb-2">Preferred Slots</h4>
+                <div className="flex flex-wrap gap-2">
+                  {preferredSlots.map((slot, index) => (
+                    <div 
+                      key={`${slot.id}-${index}`}
+                      className={`min-w-[120px] p-3 rounded-lg border cursor-pointer transition-all ${
+                        selectedPreferredSlot?.id === slot.id && 
+                        selectedPreferredSlot?.start_time === slot.start_time &&
+                        selectedPreferredSlot?.duration === slot.duration
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' 
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                      onClick={() => handlePreferredSlotSelect(slot)}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium capitalize text-slate-800">{slot.day}</span>
+                        <span className="text-sm text-slate-600">{slot.start_time} ({slot.duration} min)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <Calendar className="w-4 h-4 flex-shrink-0" />
-                <span className="text-slate-800">Applied on {formatDate(candidate.created_at)}</span>
-              </div>
-            </div>
+            )}
+
           </div>
         )}
         
