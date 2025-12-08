@@ -385,6 +385,15 @@ export function ScheduleInterviewDialog({
     const parts = value.split(',');
     const lastEmail = parts[parts.length - 1]?.trim() || '';
     
+    // Validate all emails except the last one (which might still be typing)
+    for (let i = 0; i < parts.length - 1; i++) {
+      const email = parts[i].trim();
+      if (email && !isValidEmail(email)) {
+        toast.error(`Invalid email format: ${email}`);
+        return;
+      }
+    }
+    
     if (lastEmail.length > 0) {
       // Filter out already selected panelists
       const selectedEmails = parsePanelistEmails();
@@ -435,6 +444,12 @@ export function ScheduleInterviewDialog({
     
     const panelistEmail = panelist.email || '';
     if (!panelistEmail) return;
+    
+    // Validate email format
+    if (!isValidEmail(panelistEmail)) {
+      toast.error(`Invalid email format: ${panelistEmail}`);
+      return;
+    }
     
     // Get current panelist emails
     const currentEmails = parsePanelistEmails();
@@ -584,6 +599,12 @@ export function ScheduleInterviewDialog({
     toast.info(`Selected preferred slot: ${slot.day} at ${slot.start_time} for ${slot.duration} minutes`);
   };
 
+    // Function to validate email format
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Function to parse panelist emails
   const parsePanelistEmails = (): string[] => {
     return scheduleForm.panelists
@@ -614,6 +635,12 @@ export function ScheduleInterviewDialog({
   // Function to add a panelist
   const addPanelist = (emailToAdd: string) => {
     if (!emailToAdd) return;
+    
+    // Validate email format
+    if (!isValidEmail(emailToAdd)) {
+      toast.error(`Invalid email format: ${emailToAdd}`);
+      return;
+    }
     
     const currentEmails = parsePanelistEmails();
     // Check if panelist is already selected
@@ -682,6 +709,14 @@ export function ScheduleInterviewDialog({
     
     // Parse current panelist emails
     const currentPanelistEmails = parsePanelistEmails();
+    
+    // Validate all panelist emails
+    for (const email of currentPanelistEmails) {
+      if (!isValidEmail(email)) {
+        toast.error(`Invalid email format: ${email}`);
+        return;
+      }
+    }
     
     // Set loading state
     setIsSaving(true);
@@ -768,7 +803,7 @@ export function ScheduleInterviewDialog({
     }}>
       <SheetContent 
         side="right" 
-        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col"
+        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col h-screen"
       >
         <SheetHeader>
           <SheetTitle>Schedule Interview</SheetTitle>
@@ -777,62 +812,62 @@ export function ScheduleInterviewDialog({
           </SheetDescription>
         </SheetHeader>
         
-        {/* Candidate Details Section */}
-        {candidate && (
-          <div className="rounded-lg px-4">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                {getInitials(candidate.first_name, candidate.last_name)}
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">
-                  {candidate.first_name} {candidate.last_name} <span className="text-slate-600 font-normal">({candidate.email})</span>
-                </h3>
-                <div className="flex items-center gap-4 mt-1">
-                  <p className="text-slate-600 flex items-center gap-1">
-                    <Briefcase className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-slate-800">{candidate.job_title}</span>
-                  </p>
-                  <p className="text-slate-600 flex items-center gap-1">
-                    <Calendar className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-slate-800">Applied on {formatDate(candidate.created_at)}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Preferred Slots Section */}
-            {preferredSlots.length > 0 && (
-              <div className="mt-4">
-                <h4 className="font-medium text-slate-800 mb-2">Preferred Slots</h4>
-                <div className="flex flex-wrap gap-2">
-                  {preferredSlots.map((slot, index) => (
-                    <div 
-                      key={`${slot.id}-${index}`}
-                      className={`min-w-[120px] p-3 rounded-lg border cursor-pointer transition-all ${
-                        selectedPreferredSlot?.id === slot.id && 
-                        selectedPreferredSlot?.start_time === slot.start_time &&
-                        selectedPreferredSlot?.duration === slot.duration
-                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' 
-                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                      }`}
-                      onClick={() => handlePreferredSlotSelect(slot)}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium capitalize text-slate-800">{slot.day}</span>
-                        <span className="text-sm text-slate-600">{slot.start_time} ({slot.duration} min)</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </div>
-        )}
-        
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto px-4">
+          {/* Candidate Details Section */}
+          {candidate && (
+            <div className="rounded-lg pb-4 mb-4">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {getInitials(candidate.first_name, candidate.last_name)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">
+                    {candidate.first_name} {candidate.last_name} <span className="text-slate-600 font-normal">({candidate.email})</span>
+                  </h3>
+                  <div className="flex items-center gap-4 mt-1">
+                    <p className="text-slate-600 flex items-center gap-1">
+                      <Briefcase className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-slate-800">{candidate.job_title}</span>
+                    </p>
+                    <p className="text-slate-600 flex items-center gap-1">
+                      <Calendar className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-slate-800">Applied on {formatDate(candidate.created_at)}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Preferred Slots Section */}
+              {preferredSlots.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-slate-800 mb-2">Preferred Slots</h4>
+                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                    {preferredSlots.map((slot, index) => (
+                      <div 
+                        key={`${slot.id}-${index}`}
+                        className={`min-w-[120px] p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedPreferredSlot?.id === slot.id && 
+                          selectedPreferredSlot?.start_time === slot.start_time &&
+                          selectedPreferredSlot?.duration === slot.duration
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' 
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                        }`}
+                        onClick={() => handlePreferredSlotSelect(slot)}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium capitalize text-slate-800">{slot.day}</span>
+                          <span className="text-sm text-slate-600">{slot.start_time} ({slot.duration} min)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+          
           <div className="grid gap-4">
             {/* Date, Time, and Duration in one row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
