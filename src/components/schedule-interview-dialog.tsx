@@ -116,11 +116,26 @@ export function ScheduleInterviewDialog({
   const [filteredPanelists, setFilteredPanelists] = useState<SavedPanelist[]>([]);
   
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSelectingPanelist, setIsSelectingPanelist] = useState(false);
+  
+  // Add effect to log when showSuggestions changes
+  useEffect(() => {
+    console.log('Show suggestions changed to:', showSuggestions);
+    setIsSelectingPanelist(showSuggestions);
+  }, [showSuggestions]);
+  
+  // Reset isSelectingPanelist when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setIsSelectingPanelist(false);
+    }
+  }, [open]);
   
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const panelistInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null); // Ref for dropdown portal
   const [panelistDropdownPosition, setPanelistDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   // Fetch schoolId if not available in store
@@ -219,6 +234,7 @@ export function ScheduleInterviewDialog({
           avatar: panelist.avatar || null
         }));
         
+        console.log('Fetched panelists:', validatedPanelists);
         setSavedPanelists(validatedPanelists);
         
         // Update filtered panelists to exclude already selected panelists
@@ -294,15 +310,37 @@ export function ScheduleInterviewDialog({
   // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
-          panelistInputRef.current && !panelistInputRef.current.contains(event.target as Node)) {
+      // Add a small delay to allow the dropdown item click to be processed first
+      setTimeout(() => {
+        console.log('Click outside event triggered:', event.target);
+        // Don't close if clicking on the dropdown or its children
+        if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) {
+          console.log('Clicked on dropdown, not closing');
+          return;
+        }
+        
+        // Don't close if clicking on the input field
+        if (panelistInputRef.current && panelistInputRef.current.contains(event.target as Node)) {
+          console.log('Clicked on input, not closing');
+          return;
+        }
+        
+        // Don't close if clicking on the suggestions container
+        if (suggestionsRef.current && suggestionsRef.current.contains(event.target as Node)) {
+          console.log('Clicked on suggestions container, not closing');
+          return;
+        }
+        
+        // Close suggestions for clicks outside
+        console.log('Closing suggestions');
         setShowSuggestions(false);
-      }
+        setIsSelectingPanelist(false);
+      }, 10);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
@@ -331,6 +369,7 @@ export function ScheduleInterviewDialog({
 
   // Filter panelists based on input
   const handlePanelistInputChange = (value: string) => {
+    console.log('Panelist input changed:', value);
     // Update the form state
     setScheduleForm(prev => ({
       ...prev,
@@ -359,8 +398,10 @@ export function ScheduleInterviewDialog({
         (panelist.last_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
         `${panelist.first_name || ''} ${panelist.last_name || ''}`.toLowerCase().includes(lastEmail.toLowerCase())
       );
+      console.log('Filtered panelists:', filtered);
       setFilteredPanelists(filtered);
       setShowSuggestions(filtered.length > 0);
+      console.log('Show suggestions:', filtered.length > 0);
     } else {
       // When there's no text after the last comma, show all available panelists
       const selectedEmails = parsePanelistEmails();
@@ -369,6 +410,7 @@ export function ScheduleInterviewDialog({
       );
       setFilteredPanelists(availablePanelists);
       setShowSuggestions(availablePanelists.length > 0);
+      console.log('Show all panelists:', availablePanelists.length > 0);
     }
   };
 
@@ -376,6 +418,7 @@ export function ScheduleInterviewDialog({
   const updateDropdownPosition = () => {
     if (panelistInputRef.current) {
       const rect = panelistInputRef.current.getBoundingClientRect();
+      console.log('Updating dropdown position:', rect);
       setPanelistDropdownPosition({
         top: rect.bottom + window.scrollY,
         left: rect.left + window.scrollX,
@@ -385,18 +428,24 @@ export function ScheduleInterviewDialog({
   };
 
   // Select a panelist from suggestions
-  // Select a panelist from suggestions
-  const selectPanelist = (panelist: SavedPanelist) => {
+  const selectPanelist = (panelist: SavedPanelist, e: React.MouseEvent) => {
+    console.log('Selecting panelist:', panelist);
+    e.stopPropagation(); // Prevent event from bubbling up
+    e.preventDefault(); // Prevent default behavior
+    
     const panelistEmail = panelist.email || '';
     if (!panelistEmail) return;
     
-    // Parse the current input value to get parts
-    const parts = scheduleForm.panelists.split(',').map(email => email.trim()).filter(email => email.length > 0);
+    // Get current panelist emails
+    const currentEmails = parsePanelistEmails();
+    console.log('Current emails:', currentEmails);
     
     // Check if panelist is already selected
-    if (parts.includes(panelistEmail)) {
+    if (currentEmails.includes(panelistEmail)) {
+      console.log('Panelist already selected');
       // If already selected, just close the suggestions
       setShowSuggestions(false);
+      setIsSelectingPanelist(false);
       setTimeout(() => {
         panelistInputRef.current?.focus();
       }, 0);
@@ -404,8 +453,9 @@ export function ScheduleInterviewDialog({
     }
     
     // Add the new panelist email to the list
-    const newEmails = [...parts, panelistEmail];
-    const newValue = newEmails.join(', ') + ', ';
+    const newEmails = [...currentEmails, panelistEmail];
+    const newValue = newEmails.join(', ') + (newEmails.length > 0 ? ', ' : '');
+    console.log('New value:', newValue);
     
     // Update the form state
     setScheduleForm(prev => ({
@@ -415,6 +465,7 @@ export function ScheduleInterviewDialog({
     
     // Close suggestions
     setShowSuggestions(false);
+    setIsSelectingPanelist(false);
     
     // Update filtered panelists to exclude the newly selected panelist
     const availablePanelists = savedPanelists.filter(
@@ -707,7 +758,14 @@ export function ScheduleInterviewDialog({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(isOpen) => {
+      // Don't close the sheet when selecting a panelist
+      if (!isOpen && isSelectingPanelist) {
+        console.log('Preventing sheet close while selecting panelist');
+        return;
+      }
+      onOpenChange(isOpen);
+    }}>
       <SheetContent 
         side="right" 
         className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col"
@@ -879,6 +937,7 @@ export function ScheduleInterviewDialog({
                   onChange={(e) => handlePanelistInputChange(e.target.value)}
                   placeholder="Enter panelist emails separated by commas"
                   onFocus={(e) => {
+                    console.log('Panelist input focused');
                     updateDropdownPosition();
                     if (savedPanelists.length > 0) {
                       const parts = scheduleForm.panelists.split(',');
@@ -897,8 +956,10 @@ export function ScheduleInterviewDialog({
                           (panelist.last_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
                           `${panelist.first_name || ''} ${panelist.last_name || ''}`.toLowerCase().includes(lastEmail.toLowerCase())
                         );
+                        console.log('Filtered panelists on focus:', filtered);
                         setFilteredPanelists(filtered);
                         setShowSuggestions(filtered.length > 0);
+                        console.log('Show suggestions on focus:', filtered.length > 0);
                       } else {
                         // When there's no text after the last comma, show all available panelists
                         const selectedEmails = parsePanelistEmails();
@@ -907,6 +968,7 @@ export function ScheduleInterviewDialog({
                         );
                         setFilteredPanelists(availablePanelists);
                         setShowSuggestions(true);
+                        console.log('Show all panelists on focus:', true);
                       }
                     }
                   }}
@@ -1000,41 +1062,49 @@ export function ScheduleInterviewDialog({
       {/* Portal for panelist suggestions dropdown to avoid clipping */}
       {showSuggestions && filteredPanelists.length > 0 && (
         <div 
-          className="fixed z-[1000] bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
+          ref={dropdownRef}
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto"
           style={{
             top: `${panelistDropdownPosition.top}px`,
             left: `${panelistDropdownPosition.left}px`,
-            width: `${panelistDropdownPosition.width}px`
+            width: `${panelistDropdownPosition.width}px`,
+            pointerEvents: 'auto' // Ensure the dropdown can receive events
+          }}
+          onClick={(e) => {
+            // Prevent click from propagating to the Sheet component
+            e.stopPropagation();
           }}
         >
-          {(() => {
-            return null;
-          })()}
-          {filteredPanelists.map((panelist) => (
-            <div
-              key={panelist.id}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
-              onClick={() => selectPanelist(panelist)}
-            >
-              {/* Display avatar if available, otherwise show initials */}
-              {panelist.avatar ? (
-                <img 
-                  src={panelist.avatar} 
-                  alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                  {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
+          <div className="debug-dropdown-content">
+            {filteredPanelists.map((panelist) => (
+              <div
+                key={panelist.id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                onClick={(e) => {
+                  console.log('Dropdown item clicked:', panelist);
+                  selectPanelist(panelist, e);
+                }}
+              >
+                {/* Display avatar if available, otherwise show initials */}
+                {panelist.avatar ? (
+                  <img 
+                    src={panelist.avatar} 
+                    alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
+                    {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
+                  </div>
+                )}
+                <div>
+                  <div className="font-medium">{panelist.first_name || ''} {panelist.last_name || ''}</div>
+                  <div className="text-sm text-gray-500">{panelist.email || ''}</div>
+                  <div className="text-xs text-gray-400 capitalize">{panelist.role || ''}</div>
                 </div>
-              )}
-              <div>
-                <div className="font-medium">{panelist.first_name || ''} {panelist.last_name || ''}</div>
-                <div className="text-sm text-gray-500">{panelist.email || ''}</div>
-                <div className="text-xs text-gray-400 capitalize">{panelist.role || ''}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </Sheet>
