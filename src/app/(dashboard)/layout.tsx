@@ -15,6 +15,7 @@ import { Bell, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 import { NavUser } from "@/components/nav-user";
+import { Badge } from "@/components/ui/badge";
 
 // Minimal interface for job data from RPC response
 interface JobData {
@@ -170,11 +171,13 @@ export default function DashboardShellLayout({
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>
-          <div className="flex px-2 flex-col ms-2 min-w-0">
-            <div className="font-regular text-gray-900 text-sm">Welcome</div>
+          <div className="flex px-2 items-center ms-2 min-w-0">
             <div className="font-medium text-gray-900 text-md truncate">
               {schoolInfo ? `${schoolInfo.name}, ${schoolInfo.location}` : "Loading school info..."}
             </div>
+            <Badge variant="outline" className="text-xs ms-2">
+              FREE PLAN
+            </Badge>
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
             {/* <Popover>

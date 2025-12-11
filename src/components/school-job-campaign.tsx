@@ -3,6 +3,7 @@ import { Rocket, MessageSquare, Users, Users2, UsersIcon, TvMinimalIcon, BookTex
 import { createClient } from '@/lib/supabase/api/client';
 import { Card, CardDescription, CardTitle } from './ui/card';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { useRouter } from 'next/navigation';
 
 // Type Definitions
@@ -69,30 +70,31 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
         <Card className={`hover:shadow-lg transition-shadow duration-300 gap-0 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer h-full`} onClick={handleCardClick}>
             {/* Header */}
             <div className="flex justify-between items-start">
-                <div className="text-orange-500 font-semibold text-sm ">
-                    {plan}
+                <div className="flex-1">
+                    {/* Title and Description */}
+                    <CardTitle className='p-0 m-0'>
+                        {title}
+                    </CardTitle>
+                    <CardDescription className='text-gray-600 mb-2 mt-1 line-clamp-2 flex-grow'>
+                        {description || 'No description available'}
+                    </CardDescription>
+                    <Badge variant="outline" className="border-gray-300 text-black text-xs font-semibold whitespace-nowrap bg-transparent">
+                        {plan}
+                    </Badge>
                 </div>
                 <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
             </div>
 
-            {/* Title and Description */}
-            <CardTitle className='p-0 m-0'>
-                {title}
-            </CardTitle>
-            <CardDescription className='text-gray-600 mb-4 mt-1 line-clamp-2 flex-grow'>
-                {description || 'No description available'}
-            </CardDescription>
-
             {/* Applicants and Stats */}
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 mt-4">
                 {/* Applicant Avatars */}
                 <div className="flex -space-x-2">
                     {recentApplicants.slice(0, 3).map((applicant, index) => (
                         <div
                             key={index}
-                            className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white flex items-center justify-center text-white font-semibold text-sm"
+                            className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-gray-700 font-semibold text-sm"
                             title={`${applicant.firstName} ${applicant.lastName}`}
                         >
                             {applicant.avatar ? (
