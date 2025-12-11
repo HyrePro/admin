@@ -185,7 +185,7 @@ export function SignupForm({
         
         // Provide more user-friendly error messages for common issues
         let errorMessage = signUpError.message
-        let toastDuration = 8000
+        const toastDuration = 8000
         
         if (signUpError.message.includes('Email rate limit exceeded') || 
             signUpError.message.toLowerCase().includes('rate limit')) {
