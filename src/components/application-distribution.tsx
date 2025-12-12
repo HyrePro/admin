@@ -189,16 +189,16 @@ export function ApplicationDistribution() {
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Bar Chart - Application Distribution */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Application Distribution</CardTitle>
-          <CardDescription>
+      <Card className="py-3 px-3 border-1 border-gray-200 shadow-none">
+        <CardHeader className="px-0 py-0 pb-4">
+          <CardTitle className="text-base font-medium">Application Distribution</CardTitle>
+          <CardDescription className="text-sm">
             Distribution of applications across different stages
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 py-0">
           <ChartContainer config={chartConfig} className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barChartData}>

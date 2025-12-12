@@ -35,202 +35,171 @@ interface SchoolJobsContainerProps {
     schoolId: string;
 }
 
-// JobCard Component - Pure presentation component
+const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) => {
+  const [jobs, setJobs] = useState<JobData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!schoolId) return
+
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const supabase = createClient()
+        const { data, error: err } = await supabase.rpc("get_school_jobs_data", {
+          p_school_id: schoolId
+        })
+        if (err) throw err
+
+        setJobs(data || [])
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Unknown error")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [schoolId])
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-lg border p-4 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
+            <div className="h-6 bg-gray-200 rounded w-2/3 mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-full mb-4" />
+            <div className="flex gap-2 mb-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+            </div>
+            <div className="h-2 bg-gray-200 rounded w-full" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <p className="text-red-600">Error loading jobs: {error}</p>
+      </div>
+    )
+  }
+
+  if (jobs.length === 0) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+        <p className="text-gray-600 text-lg">No jobs found for this school.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {jobs.map((job) => (
+        <JobCard key={job.id} data={job} />
+      ))}
+    </div>
+  )
+}
+
+
 const JobCard: React.FC<JobCardProps> = ({ data }) => {
-    const router = useRouter();
-    
-    if (!data) return null;
+  const router = useRouter()
+  if (!data) return null
 
-    const {
-        id: jobId,
-        title,
-        description,
-        plan,
-        max_applications: maxApplications,
-        recent_applicants: recentApplicants = [],
-        candidates_evaluated: candidatesEvaluated = 0,
-        interview_ready: interviewReady = 0,
-        offered = 0
-    } = data;
+  const {
+    id,
+    title,
+    description,
+    plan,
+    max_applications,
+    recent_applicants = [],
+    candidates_evaluated = 0,
+    interview_ready = 0,
+    offered = 0
+  } = data
 
-    // Calculate progress percentage
-    const progressPercentage = maxApplications > 0
-        ? Math.round((candidatesEvaluated / maxApplications) * 100)
-        : 0;
+  const pct =
+    max_applications > 0
+      ? Math.min(100, Math.round((candidates_evaluated / max_applications) * 100))
+      : 0
 
-    const handleCardClick = (e: React.MouseEvent) => {
-        // Check if the click was on the menu button
-        if ((e.target as HTMLElement).closest('button')) {
-            return;
-        }
-        router.push(`/jobs/${jobId}`);
-    };
+  const navigate = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return
+    router.push(`/jobs/${id}`)
+  }
 
-    return (
-        <Card className={`hover:shadow-lg transition-shadow duration-300 gap-0 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none cursor-pointer h-full`} onClick={handleCardClick}>
-            {/* Header */}
-            <div className="flex justify-between items-start">
-                <div className="flex-1">
-                    {/* Title and Description */}
-                    <CardTitle className='p-0 m-0'>
-                        {title}
-                    </CardTitle>
-                    <CardDescription className='text-gray-600 mb-2 mt-1 line-clamp-2 flex-grow'>
-                        {description || 'No description available'}
-                    </CardDescription>
-                    <Badge variant="outline" className="border-gray-300 text-black text-xs font-semibold whitespace-nowrap bg-transparent">
-                        {plan}
-                    </Badge>
-                </div>
-                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
-                    <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </div>
+  return (
+    <Card
+      className="flex flex-col p-3 border-1 border-gray-200 shadow-none hover:shadow-lg transition-shadow cursor-pointer gap-3"
+      onClick={navigate}
+    >
+      <div className="flex justify-between">
+        <div className="flex-1">
+          <CardTitle className="p-0 m-0 text-base font-medium">{title}</CardTitle>
 
-            {/* Applicants and Stats */}
-            <div className="flex items-center justify-between mb-2 mt-4">
-                {/* Applicant Avatars */}
-                <div className="flex -space-x-2">
-                    {recentApplicants.slice(0, 3).map((applicant, index) => (
-                        <div
-                            key={index}
-                            className="w-10 h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-gray-700 font-semibold text-sm"
-                            title={`${applicant.firstName} ${applicant.lastName}`}
-                        >
-                            {applicant.avatar ? (
-                                <img
-                                    src={applicant.avatar}
-                                    alt={`${applicant.firstName} ${applicant.lastName}`}
-                                    className="w-full h-full rounded-full object-cover"
-                                />
-                            ) : (
-                                `${applicant.firstName?.[0] || ''}${applicant.lastName?.[0] || ''}`
-                            )}
-                        </div>
-                    ))}
-                </div>
+          <CardDescription className="text-gray-600 mt-1 mb-2 line-clamp-2">
+            {description || "No description"}
+          </CardDescription>
 
-                {/* Stats */}
-                <div className="flex items-center gap-4 text-gray-700">
-                    <div className="flex items-center gap-1">
-                        <UsersIcon className="w-4 h-4" />
-                        <span className="font-semibold">{candidatesEvaluated}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <TvMinimalIcon className="w-4 h-4" />
-                        <span className="font-semibold">{interviewReady}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <BookText className="w-4 h-4" />
-                        <span className="font-semibold">{offered}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div
-                        className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                    />
-                </div>
-                <div className="text-sm text-gray-600 font-semibold whitespace-nowrap">
-                    {progressPercentage}%
-                </div>
-            </div>
-        </Card>
-    );
-};
-
-// SchoolJobsContainer Component - Handles data fetching for school
-const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({
-    schoolId,
-}) => {
-    const [jobs, setJobs] = useState<JobData[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchSchoolJobs = async (): Promise<void> => {
-            try {
-                setLoading(true);
-                setError(null);
-                const supabaseClient = createClient();
-                // Call the Supabase function that returns a table
-                const { data: result, error: rpcError } = await supabaseClient
-                    .rpc('get_school_jobs_data', { p_school_id: schoolId });
-
-                if (rpcError) {
-                    throw rpcError;
-                }
-
-                setJobs(result || []);
-            } catch (err) {
-                console.error('Error fetching school jobs:', err);
-                setError(err instanceof Error ? err.message : 'Unknown error occurred');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (schoolId) {
-            fetchSchoolJobs();
-        }
-    }, [schoolId]);
-
-    if (loading) {
-        return (
-            <div className="mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white rounded-lg shadow-md p-6">
-                            <div className="animate-pulse">
-                                <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-                                <div className="h-8 bg-gray-200 rounded w-2/3 mb-2"></div>
-                                <div className="h-4 bg-gray-200 rounded w-full mb-6"></div>
-                                <div className="flex gap-2 mb-4">
-                                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                                </div>
-                                <div className="h-2 bg-gray-200 rounded w-full"></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="max-w-6xl mx-auto p-8">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <p className="text-red-600">Error loading jobs: {error}</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (jobs.length === 0) {
-        return (
-            <div className="max-w-6xl mx-auto p-8">
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
-                    <p className="text-gray-600 text-lg">No jobs found for this school.</p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.map((job) => (
-                <JobCard key={job.id} data={job} />
-            ))}
+          
         </div>
-    );
-};
+
+        <Button variant="ghost" size="icon" className="text-gray-400">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <Badge
+            variant="outline"
+            className="border-gray-300 text-black text-xs font-semibold bg-transparent"
+          >
+            {plan}
+          </Badge>
+        <div className="flex -space-x-1.5">
+          {recent_applicants.slice(0, 3).map((a, i) => (
+            <div
+              key={i}
+              className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-gray-700 text-xs"
+            >
+              {a.avatar ? (
+                <img
+                  src={a.avatar}
+                  alt=""
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                `${a.firstName?.[0] || ""}${a.lastName?.[0] || ""}`
+              )}
+            </div>
+          ))}
+        </div>
+
+       
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex-1 bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-orange-500 h-2 rounded-full transition-all"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <div className="text-sm text-gray-600 font-semibold">{pct}%</div>
+      </div>
+    </Card>
+  )
+}
+
 
 // Export components
 export { JobCard, SchoolJobsContainer };

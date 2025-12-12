@@ -137,29 +137,29 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
           <Table className="flex-grow">
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead className="w-2/7">Job Title</TableHead>
-                <TableHead className="w-1/7">Applications</TableHead>
-                <TableHead className="w-1/7">Status</TableHead>
-                <TableHead className="w-1/7">Created</TableHead>
-                <TableHead className="w-2/7 text-right">Actions</TableHead>
+                <TableHead className="w-2/7 py-3 px-4">Job Title</TableHead>
+                <TableHead className="w-1/7 py-3 px-4">Applications</TableHead>
+                <TableHead className="w-1/7 py-3 px-4">Status</TableHead>
+                <TableHead className="w-1/7 py-3 px-4">Created</TableHead>
+                <TableHead className="w-2/7 text-right py-3 px-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="flex-grow">
               {[...Array(3)].map((_, i) => (
                 <TableRow key={i} className="border-b">
-                  <TableCell>
+                  <TableCell className="py-3 px-4">
                     <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3 px-4">
                     <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3 px-4">
                     <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3 px-4">
                     <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-3 px-4">
                     <div className="h-8 bg-gray-200 rounded w-16 ml-auto animate-pulse"></div>
                   </TableCell>
                 </TableRow>
@@ -183,7 +183,7 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
   if (error) {
     return (
       <div className="flex flex-col h-full">
-        <div className="rounded-md border p-8 text-center flex-grow flex items-center justify-center">
+        <div className="rounded-md border p-6 text-center flex-grow flex items-center justify-center">
           <div>
             <div className="text-red-500 mb-2">Error loading jobs</div>
             <Button onClick={() => fetchJobs(currentPage)}>Retry</Button>
@@ -199,7 +199,7 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col h-full">
-        <div className="rounded-md border p-8 text-center flex-grow flex items-center justify-center">
+        <div className="rounded-md border p-6 text-center flex-grow flex items-center justify-center">
           <div className="text-gray-500">No jobs found</div>
         </div>
         
@@ -216,19 +216,19 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
         <Table className="flex-grow">
           <TableHeader className="bg-gray-50 sticky top-0 z-10">
             <TableRow>
-              <TableHead className="w-2/7 font-normal">Job Title</TableHead>
-              <TableHead className="w-1.5/7 font-normal">Applications</TableHead>
-              <TableHead className="w-1/7 font-normal">Status</TableHead>
-              <TableHead className="w-1/7 font-normal">Created</TableHead>
-              <TableHead className="w-1.5/7 font-normal">Actions</TableHead>
+              <TableHead className="w-2/7 font-normal py-3 px-4">Job Title</TableHead>
+              <TableHead className="w-1.5/7 font-normal py-3 px-4">Applications</TableHead>
+              <TableHead className="w-1/7 font-normal py-3 px-4">Status</TableHead>
+              <TableHead className="w-1/7 font-normal py-3 px-4">Created</TableHead>
+              <TableHead className="w-1.5/7 font-normal py-3 px-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="overflow-y-auto flex-grow">
             {jobs.map((job) => (
-              <TableRow key={job.id} className="border-b">
-                <TableCell className="font-medium">{job.title}</TableCell>
-                <TableCell>{job.application_analytics.total_applications || 0}</TableCell>
-                <TableCell>
+              <TableRow key={job.id} className="border-b hover:bg-gray-50">
+                <TableCell className="font-medium py-3 px-4">{job.title}</TableCell>
+                <TableCell className="py-3 px-4">{job.application_analytics.total_applications || 0}</TableCell>
+                <TableCell className="py-3 px-4">
                   <Badge
                     variant="outline"
                     className={cn(
@@ -239,14 +239,14 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
                     {job.status.toLowerCase().replace("_", " ")}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3 px-4">
                   {new Date(job.created_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
                   })}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3 px-4">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"

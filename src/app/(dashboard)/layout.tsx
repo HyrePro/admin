@@ -167,7 +167,7 @@ export default function DashboardShellLayout({
       <AppSidebar />
       <SidebarInset className="flex flex-col h-screen overflow-hidden">
         {/* Fixed Header */}
-        <header className="shrink-0 flex h-20 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 border-b border-gray-200 dark:border-gray-800">
+        <header className="shrink-0 flex h-18 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 border-b border-gray-200 dark:border-gray-800">
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>

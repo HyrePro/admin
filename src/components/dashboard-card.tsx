@@ -1,32 +1,39 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { ReactNode } from "react"
 
 interface DashboardCardProps {
-    title: string
-    value: string | number
-    description: string
-    icon: ReactNode
-    className?: string
+  title: string
+  value: string | number
+  icon: ReactNode
+  className?: string
 }
 
 export function DashboardCard({
-    title,
-    value,
-    description,
-    icon,
-    className = ""
+  title,
+  value,
+  icon,
+  className = "",
 }: DashboardCardProps) {
-    return (
-        <Card className={`hover:shadow-lg transition-shadow duration-300 ${className} gap-2 py-4 px-4 flex flex-row items-center border-1 border-gray-200 shadow-none`}>
-            {icon}
-            <div className="flex flex-1 flex-col ms-4">
-                <CardHeader className="px-0">
-                    <CardTitle className="text-sm font-medium text-grey-500">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-0">
-                    <div className="text-2xl font-bold">{value}</div>
-                </CardContent>
-            </div>
-        </Card>
-    )
+  return (
+    <Card
+      className={[
+        "flex items-center gap-3 p-3 border-1 border-gray-200 shadow-none flex-row",
+        "hover:shadow-md transition-shadow",
+        className,
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-center h-10 w-10 rounded-md">
+        {icon}
+      </div>
+
+      <div className="flex flex-col">
+        <span className="text-xs font-medium text-gray-500 tracking-wide">
+          {title}
+        </span>
+        <span className="text-2xl font-semibold leading-tight">
+          {value}
+        </span>
+      </div>
+    </Card>
+  )
 }

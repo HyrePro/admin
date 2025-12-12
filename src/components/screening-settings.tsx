@@ -1,12 +1,24 @@
 "use client"
 
 import React, { memo, useCallback, useMemo, useState, useEffect } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Alert, AlertTitle } from "./ui/alert"
 import { Button } from "./ui/button"
 import { Input } from "@/components/ui/input"
+import { Info } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { createClient } from '@/lib/supabase/api/client'
 import { SlotPreviewDialog } from "@/components/slot-preview-dialog"
 import { InterviewSettingsSheet } from "@/components/interview-settings-sheet"
@@ -633,64 +645,142 @@ export const ScreeningSettings = memo(({
       >
         <>
           <div className="space-y-2 flex flex-col w-full">
-            <Label htmlFor="assessment-difficulty" className="text-sm font-medium text-gray-700">
-              Assessment Difficulty
-            </Label>
-            <Select
-              value={values.assessmentDifficulty || 'medium'}
-              onValueChange={handleDifficultyChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select difficulty level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="easy">Easy - Basic concepts and fundamental knowledge</SelectItem>
-                <SelectItem value="medium">Medium - Standard curriculum and practical application</SelectItem>
-                <SelectItem value="hard">Hard - Advanced concepts and critical thinking</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
+                Assessment Difficulty
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                </PopoverTrigger>
+                <PopoverContent className="max-w-xs">
+                  <p className="text-sm text-gray-600">
+                    Set the difficulty level of the MCQ assessment to match the role requirements. 
+                    Easy for basic knowledge, Medium for standard curriculum, Hard for advanced concepts.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { value: 'easy', label: 'Easy' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'hard', label: 'Hard' }
+              ].map((difficulty) => (
+                <div
+                  key={difficulty.value}
+                  className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                    values.assessmentDifficulty === difficulty.value
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleDifficultyChange(difficulty.value)}
+                >
+                  {difficulty.label}
+                </div>
+              ))}
+            </div>
+            {values.assessmentDifficulty && (
+              <p className="text-xs text-gray-600">
+                {values.assessmentDifficulty === 'easy' && 'Basic concepts and fundamental knowledge'}
+                {values.assessmentDifficulty === 'medium' && 'Standard curriculum and practical application'}
+                {values.assessmentDifficulty === 'hard' && 'Advanced concepts and critical thinking'}
+              </p>
+            )}
           </div>
 
           <div className="mt-4 space-y-2">
-            <Label htmlFor="number-of-questions" className="text-sm font-medium text-gray-700">
-              Number of Questions: {numberOfQuestions}
-            </Label>
-            <Slider
-              id="number-of-questions"
-              min={0}
-              max={30}
-              step={5}
-              value={[numberOfQuestions]}
-              onValueChange={handleQuestionsChange}
-              className="w-full"
-            />
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
+                Number of Questions
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                </PopoverTrigger>
+                <PopoverContent className="max-w-xs">
+                  <p className="text-sm text-gray-600">
+                    Define how many questions candidates will answer in the MCQ assessment. 
+                    Fewer questions reduce drop-off rates, while more questions provide deeper evaluation.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[5, 10, 15, 20, 25, 30].map((value) => (
+                <div
+                  key={value}
+                  className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                    numberOfQuestions === value
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleQuestionsChange([value])}
+                >
+                  {value}
+                </div>
+              ))}
+            </div>
             {numberOfQuestions > 20 && (
               <WarningAlert message="Setting too many questions may increase drop-off rates — keep it concise for better completion." />
             )}
+            {numberOfQuestions && numberOfQuestions <= 20 && (
+              <p className="text-xs text-gray-600">
+                {numberOfQuestions === 5 && 'Basic assessment with minimal questions'}
+                {numberOfQuestions === 10 && 'Standard assessment length for balanced evaluation'}
+                {numberOfQuestions === 15 && 'Comprehensive assessment covering key areas'}
+                {numberOfQuestions === 20 && 'Detailed assessment for thorough evaluation'}
+              </p>
+            )}
           </div>
 
           <div className="mt-4 space-y-2">
-            <Label htmlFor="minimum-passing-marks" className="text-sm font-medium text-gray-700">
-              Minimum Passing Marks: {minimumPassingMarks}%
-            </Label>
-            <Select
-              value={minimumPassingMarks.toString()}
-              onValueChange={handlePassingMarksChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select passing marks" />
-              </SelectTrigger>
-              <SelectContent>
-                {passingMarksOptions.map((value) => (
-                  <SelectItem key={value} value={value.toString()}>
-                    {value}%
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-semibold text-gray-900">
+                Minimum Passing Marks
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                </PopoverTrigger>
+                <PopoverContent className="max-w-xs">
+                  <p className="text-sm text-gray-600">
+                    Set the minimum score candidates must achieve to pass the assessment. 
+                    Lower thresholds allow more candidates to proceed, while higher thresholds ensure quality.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+                <div
+                  key={value}
+                  className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                    minimumPassingMarks === value
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => handlePassingMarksChange(value.toString())}
+                >
+                  {value}%
+                </div>
+              ))}
+            </div>
             {minimumPassingMarks > 70 && (
-              <WarningAlert message="Setting a high passing threshold may result in more candidates failing, creating a bottleneck in your hiring process." />
-            )}
+                <WarningAlert message="Setting a high passing threshold may result in more candidates failing, creating a bottleneck in your hiring process." />
+              )}
+              {minimumPassingMarks !== undefined && minimumPassingMarks <= 70 && (
+                <p className="text-xs text-gray-600">
+                  {minimumPassingMarks === 0 && 'Any submission passes (lowest barrier to entry)'}
+                  {minimumPassingMarks === 10 && 'Extremely lenient passing criteria'}
+                  {minimumPassingMarks === 20 && 'Very lenient passing criteria'}
+                  {minimumPassingMarks === 30 && 'Lenient standards for filtering candidates'}
+                  {minimumPassingMarks === 40 && 'Relaxed standards for filtering candidates'}
+                  {minimumPassingMarks === 50 && 'Standard passing threshold for balanced selection'}
+                  {minimumPassingMarks === 60 && 'Moderate passing threshold for balanced selection'}
+                  {minimumPassingMarks === 70 && 'Reasonable criteria for quality candidates'}
+                </p>
+              )}
           </div>
         </>
       </RadioCard>
@@ -703,44 +793,102 @@ export const ScreeningSettings = memo(({
         description="Require candidates to submit a short teaching demo video as part of their application."
       >
         {values.demoVideo && (
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="demo-video-duration" className="text-sm font-medium text-gray-700">
-              Video Duration: {demoVideoDuration} minutes
-            </Label>
-            <Slider
-              id="demo-video-duration"
-              min={0}
-              max={10}
-              step={1}
-              value={[demoVideoDuration]}
-              onValueChange={handleDemoVideoDurationChange}
-              className="w-full"
-            />
+          <>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-semibold text-gray-900">
+                  Video Duration
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-xs">
+                    <p className="text-sm text-gray-600">
+                      Specify the required length for candidate teaching demo videos. 
+                      Shorter videos improve completion rates, while longer videos allow for more comprehensive demonstrations.
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                  <div
+                    key={value}
+                    className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                      demoVideoDuration === value
+                        ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleDemoVideoDurationChange([value])}
+                  >
+                    {value} min
+                  </div>
+                ))}
+              </div>
+              {demoVideoDuration > 7 && (
+                <WarningAlert message="Longer videos may increase drop-off rates — keep it concise for better completion." />
+              )}
+              {demoVideoDuration !== undefined && demoVideoDuration <= 7 && (
+                <p className="text-xs text-gray-600">
+                  {demoVideoDuration === 2 && 'Brief demonstration (fastest to complete)'}
+                  {demoVideoDuration === 3 && 'Short demonstration with key points'}
+                  {demoVideoDuration === 4 && 'Concise demonstration with examples'}
+                  {demoVideoDuration === 5 && 'Balanced demonstration with detail'}
+                  {demoVideoDuration === 6 && 'Moderate demonstration with explanation'}
+                  {demoVideoDuration === 7 && 'Detailed demonstration with depth'}
+                </p>
+              )}
+            </div>
             
             <div className="mt-4 space-y-2">
-              <Label htmlFor="demo-video-passing-score" className="text-sm font-medium text-gray-700">
-                Passing Demo Score: {demoVideoPassingScore}/10
-              </Label>
-              <Select
-                value={demoVideoPassingScore.toString()}
-                onValueChange={handleDemoVideoScoreChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select passing score" />
-                </SelectTrigger>
-                <SelectContent>
-                  {demoScoreOptions.map((value) => (
-                    <SelectItem key={value} value={value.toString()}>
-                      {value}/10
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-semibold text-gray-900">
+                  Passing Demo Score
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-xs">
+                    <p className="text-sm text-gray-600">
+                      Define the minimum score required for teaching demo videos. 
+                      Lower scores allow more candidates to proceed, while higher scores ensure quality presentations.
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
+                  <div
+                    key={value}
+                    className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                      demoVideoPassingScore === value
+                        ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleDemoVideoScoreChange(value.toString())}
+                  >
+                    {value}/10
+                  </div>
+                ))}
+              </div>
               {demoVideoPassingScore > 7 && (
                 <WarningAlert message="Higher demo score can lead to candidate drop off" />
               )}
+              {demoVideoPassingScore !== undefined && demoVideoPassingScore <= 7 && (
+                <p className="text-xs text-gray-600">
+                  {demoVideoPassingScore === 1 && 'Minimal passing requirement'}
+                  {demoVideoPassingScore === 2 && 'Low bar for basic competency'}
+                  {demoVideoPassingScore === 3 && 'Entry-level performance expectation'}
+                  {demoVideoPassingScore === 4 && 'Below average performance threshold'}
+                  {demoVideoPassingScore === 5 && 'Average performance requirement'}
+                  {demoVideoPassingScore === 6 && 'Above average performance expectation'}
+                  {demoVideoPassingScore === 7 && 'Good performance threshold'}
+                </p>
+              )}
             </div>
-          </div>
+          </>
         )}
       </RadioCard>
 
@@ -761,27 +909,55 @@ export const ScreeningSettings = memo(({
               <>
                 {/* Interview Type Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="default_interview_type">Default Interview Type</Label>
-                  <Select 
-                    value={interviewSettings.default_interview_type} 
-                    onValueChange={(value) => {
-                      if (interviewSettings) {
-                        setInterviewSettings({
-                          ...interviewSettings,
-                          default_interview_type: value as 'in-person' | 'online' | 'phone'
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select interview type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="in-person">In-person</SelectItem>
-                      <SelectItem value="online">Online (Google Meet / Zoom)</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="default_interview_type" className="text-sm font-semibold text-gray-900">
+                      Default Interview Type
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Info className="h-4 w-4 text-gray-500 cursor-pointer" />
+                      </PopoverTrigger>
+                      <PopoverContent className="max-w-xs">
+                        <p className="text-sm text-gray-600">
+                          Select the default interview format for this role. 
+                          In-person for face-to-face meetings, Online for virtual calls, Phone for audio-only discussions.
+                        </p>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { value: 'in-person', label: 'In-person' },
+                      { value: 'online', label: 'Online' },
+                      { value: 'phone', label: 'Phone' }
+                    ].map((type) => (
+                      <div
+                        key={type.value}
+                        className={`flex items-center justify-center px-2.5 py-1 rounded-md cursor-pointer border text-sm font-medium ${
+                          interviewSettings?.default_interview_type === type.value
+                            ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          if (interviewSettings) {
+                            setInterviewSettings({
+                              ...interviewSettings,
+                              default_interview_type: type.value as 'in-person' | 'online' | 'phone'
+                            });
+                          }
+                        }}
+                      >
+                        {type.label}
+                      </div>
+                    ))}
+                  </div>
+                  {interviewSettings?.default_interview_type && (
+                    <p className="text-xs text-gray-600">
+                      {interviewSettings?.default_interview_type === 'in-person' && 'Face-to-face meeting at a physical location'}
+                      {interviewSettings?.default_interview_type === 'online' && 'Virtual meeting via Google Meet or Zoom'}
+                      {interviewSettings?.default_interview_type === 'phone' && 'Audio-only call via phone'}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Action Buttons */}

@@ -173,68 +173,60 @@ export default function Page() {
   // Dashboard with job count
   return (
     <AuthGuard>
-      <div className="flex flex-1 flex-col px-4 pb-8">
-        <div className="@container/main flex flex-1 flex-col gap-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-4">
+      <div className="flex flex-1 flex-col px-4 pb-8 pt-4">
+        <div className="@container/main flex flex-1 flex-col gap-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <DashboardCard
               title="Active Jobs"
               value={jobs.length}
-              description="Active job postings"
-              icon={<Briefcase className="h-10 w-10 text-green-500 p-3 bg-green-50 rounded-full" />}
-            />
+              icon={<Briefcase className="h-5 w-5 text-emerald-600" />} />
 
             <DashboardCard
               title="Total Applications"
-              value={dashboardStats?.total_applications?.toString() || "0"}
-              description="Across all positions"
-              icon={<Users className="h-10 w-10 text-red-500 p-3 bg-red-50 rounded-full" />}
-            />
+              value={dashboardStats?.total_applications || 0}
+              icon={<Users className="h-5 w-5 text-rose-600" />} />
 
             <DashboardCard
               title="Interviews Scheduled"
-              value={dashboardStats?.interview_ready?.toString() || "0"}
-              description="Upcoming interviews"
-              icon={<TvMinimalIcon className="h-10 w-10 text-yellow-500 p-3 bg-yellow-50 rounded-full" />}
-            />
+              value={dashboardStats?.interview_ready || 0}
+              icon={<TvMinimalIcon className="h-5 w-5 text-amber-600" />} />
 
             <DashboardCard
               title="Offers Sent"
-              value={dashboardStats?.offered?.toString() || "0"}
-              description="Pending responses"
-              icon={<BookText className="h-10 w-10 text-violet-500 p-3 bg-violet-50 rounded-full" />}
-            />
+              value={dashboardStats?.offered || 0}
+              icon={<BookText className="h-5 w-5 text-violet-600" />} />
           </div>
 
-          <div className="">
-            <div className="flex flex-row items-center justify-between mb-2">
-              <CardTitle>
-                Active Job Campaigns
-              </CardTitle>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <CardTitle className="text-lg font-semibold text-gray-900">Active Job Campaigns</CardTitle>
               <CardAction>
-                <Button variant="link" onClick={() => router.push('/jobs')}>{"See all campaigns >"}             </Button>
+                <Button variant="link" onClick={() => router.push('/jobs')}>
+                  See all campaigns &gt;
+                </Button>
               </CardAction>
             </div>
-            <SchoolJobsContainer
-              schoolId={schoolId}
-            />
+
+            <SchoolJobsContainer schoolId={schoolId} />
           </div>
 
-          <div className=" ">
-             <div className="flex flex-row items-center justify-between mb-2">
-              <CardTitle>
-                Progress and Activity
-              </CardTitle>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <CardTitle className="text-lg font-semibold text-gray-900">Progress and Activity</CardTitle>
               <CardAction>
-                <Button variant="link" onClick={() => router.push('/analytics')}>{"See all analytics >"}             </Button>
+                <Button variant="link" onClick={() => router.push('/analytics')}>
+                  See all analytics &gt;
+                </Button>
               </CardAction>
             </div>
-            <div className="flex gap-4 flex-col lg:flex-row">
-            <div className="lg:w-1/3">
-              <HiringProgressChart schoolId={schoolId} />
-            </div>
-            <div className="lg:w-2/3">
-              <WeeklyActivity schoolId={schoolId} />
-            </div>
+
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="lg:w-1/3">
+                <HiringProgressChart schoolId={schoolId} />
+              </div>
+              <div className="lg:w-2/3">
+                <WeeklyActivity schoolId={schoolId} />
+              </div>
             </div>
           </div>
         </div>
@@ -246,11 +238,11 @@ export default function Page() {
 function TabsSection({ schoolId }: { schoolId: string }) {
 
   return (
-    <div>
-      <h2 className="text-lg font-medium">
+    <div className="space-y-3">
+      <h2 className="text-base font-medium">
         Active Jobs
       </h2>
-      <div className="mt-4">
+      <div>
         <DashboardTable schoolId={schoolId} />
       </div>
     </div>

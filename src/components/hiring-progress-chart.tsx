@@ -109,9 +109,9 @@ const HiringProgressChart: React.FC<HiringProgressChartProps> = ({ schoolId: pro
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300 gap-2 py-4 px-4 flex flex-col border-1 border-gray-200 shadow-none h-full">
+    <Card className="hover:shadow-lg transition-shadow duration-300 gap-3 py-3 px-3 flex flex-col border-1 border-gray-200 shadow-none h-full">
       <div className="items-center pb-0">
-        <CardTitle>Overall Hiring Progress</CardTitle>
+        <CardTitle className="text-base font-medium">Overall Hiring Progress</CardTitle>
       </div>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -164,7 +164,7 @@ const HiringProgressChart: React.FC<HiringProgressChartProps> = ({ schoolId: pro
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
-        <div className="grid grid-cols-2 gap-6 w-full max-w-sm">
+        <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500"></div>
             <span className="text-sm text-gray-700">Candidates Screened</span>
