@@ -609,8 +609,8 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
         
         {/* Scheduling Window Section */}
         <div className="space-y-4">
-          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Scheduling Window</h4>
-          <div className="space-y-6 pt-2 w-full">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-base">Scheduling Window</h4>
             <div className="flex justify-end items-center">
               <SlotPreviewDialog 
                 isOpen={isPreviewOpen}
@@ -620,7 +620,9 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
                 daysOfWeek={DAYS_OF_WEEK}
               />
             </div>
-            
+          </div>
+          <div className="border-b  px-4 -mx-4"></div>
+          <div className="space-y-6 pt-2 w-full">
             <div className="space-y-4">
                 {/* Add New Slot Form */}
                 <div className="border rounded-lg p-4">
