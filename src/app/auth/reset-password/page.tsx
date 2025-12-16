@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from "next/image"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -53,17 +54,8 @@ function ResetPasswordContent() {
   }, [])
 
   const validatePassword = (password: string) => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long'
-    }
-    if (!/(?=.*[a-z])/.test(password)) {
-      return 'Password must contain at least one lowercase letter'
-    }
-    if (!/(?=.*[A-Z])/.test(password)) {
-      return 'Password must contain at least one uppercase letter'
-    }
-    if (!/(?=.*\d)/.test(password)) {
-      return 'Password must contain at least one number'
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters'
     }
     return null
   }
@@ -121,6 +113,10 @@ function ResetPasswordContent() {
   if (isValidToken === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="absolute top-6 left-6 flex items-center gap-2">
+          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <span className="text-lg font-bold text-foreground">Hyriki</span>
+        </div>
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -137,6 +133,10 @@ function ResetPasswordContent() {
   if (!isValidToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="absolute top-6 left-6 flex items-center gap-2">
+          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <span className="text-lg font-bold text-foreground">Hyriki</span>
+        </div>
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <AlertCircle className="h-12 w-12 text-red-600" />
@@ -162,6 +162,10 @@ function ResetPasswordContent() {
   if (resetComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="absolute top-6 left-6 flex items-center gap-2">
+          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <span className="text-lg font-bold text-foreground">Hyriki</span>
+        </div>
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <CheckCircle className="h-12 w-12 text-green-600" />
@@ -185,6 +189,10 @@ function ResetPasswordContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-6 left-6 flex items-center gap-2">
+        <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+        <span className="text-lg font-bold text-foreground">Hyriki</span>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
@@ -204,7 +212,7 @@ function ResetPasswordContent() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your new password"
+                  placeholder="Enter your new password (minimum 6 characters)"
                   required
                   disabled={loading}
                   className="pr-10"
@@ -223,7 +231,7 @@ function ResetPasswordContent() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Password must be at least 8 characters with uppercase, lowercase, and number
+                Password must be at least 6 characters
               </p>
             </div>
 

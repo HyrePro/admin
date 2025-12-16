@@ -90,7 +90,7 @@ export function SignupForm({
 
     try {
       const baseUrl = window.location.origin
-      const redirectUrl = `${baseUrl}/auth/callback`
+      const redirectUrl = `${baseUrl}`
 
       console.log('=== SIGNUP ATTEMPT START ===')
       console.log('Email:', email)

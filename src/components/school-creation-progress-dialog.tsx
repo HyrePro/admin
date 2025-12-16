@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Mail, Clock, AlertCircle, Loader2, HelpCircle, Upload, School } from 'lucide-react'
+import { CheckCircle, AlertCircle, X } from 'lucide-react'
 import { createClient } from "@/lib/supabase/api/client"
 import { useRouter } from 'next/navigation'
 
@@ -19,51 +19,39 @@ export function SchoolCreationProgressDialog({
   currentStep,
   errorMessage
 }: SchoolCreationProgressDialogProps) {
-  const [progress, setProgress] = useState(0)
-
-  useEffect(() => {
-    if (currentStep === 'uploading') {
-      setProgress(25)
-    } else if (currentStep === 'creating') {
-      setProgress(75)
-    } else if (currentStep === 'success') {
-      setProgress(100)
-    }
-  }, [currentStep])
+  const router = useRouter()
 
   const getStepContent = () => {
     switch (currentStep) {
       case 'uploading':
         return {
-          icon: <Upload className="w-16 h-16 text-blue-500" />,
-          title: 'Uploading Logo...',
-          description: 'Please wait while we upload your school logo',
-          showSpinner: true
+          title: 'Uploading your logo',
+          description: 'Please wait while we securely upload your school logo...',
+          showSpinner: true,
+          canClose: false
         }
       case 'creating':
         return {
-          icon: <School className="w-16 h-16 text-blue-500" />,
-          title: 'Creating School...',
-          description: 'Setting up your school profile and updating your account',
-          showSpinner: true
+          title: 'Creating your school',
+          description: 'Setting up your school profile and configuring your account...',
+          showSpinner: true,
+          canClose: false
         }
       case 'success':
         return {
-          icon: <CheckCircle className="w-16 h-16 text-green-500" />,
-          title: 'School Created Successfully!',
-          description: 'Redirecting you to the dashboard...',
-          showSpinner: false
+          title: 'School created successfully!',
+          description: 'Your school profile is ready. Redirecting you to the dashboard...',
+          showSpinner: false,
+          canClose: false,
+          isSuccess: true
         }
       case 'error':
         return {
-          icon: <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-            <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold">!</span>
-            </div>
-          </div>,
-          title: 'Creation Failed',
-          description: errorMessage || 'An error occurred while creating your school',
-          showSpinner: false
+          title: 'Creation failed',
+          description: errorMessage || 'An error occurred while creating your school. Please try again.',
+          showSpinner: false,
+          canClose: true,
+          isError: true
         }
     }
   }
@@ -71,82 +59,91 @@ export function SchoolCreationProgressDialog({
   const stepContent = getStepContent()
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}} modal>
+    <Dialog open={isOpen} onOpenChange={stepContent.canClose ? onClose : undefined}>
       <DialogContent 
-        className="sm:max-w-md backdrop-blur-md bg-white/95 border-0 shadow-2xl"
-        showCloseButton={false}
+        className="sm:max-w-md backdrop-blur-xl bg-white/98 border border-gray-200/50 shadow-2xl p-0 gap-0 overflow-hidden"
+        onPointerDownOutside={(e) => !stepContent.canClose && e.preventDefault()}
+        onEscapeKeyDown={(e) => !stepContent.canClose && e.preventDefault()}
       >
-        <div className="flex flex-col items-center text-center p-8">
-          <div
-            key={currentStep}
-            className="flex flex-col items-center animate-fade-in-up"
+        {stepContent.canClose && (
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 z-10 rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 transition-colors duration-200"
+            aria-label="Close dialog"
           >
-            {/* Icon with optional spinner */}
-            <div className="relative mb-6">
-              {stepContent.showSpinner ? (
-                <div className="animate-spin-slow">
-                  {stepContent.icon}
-                </div>
-              ) : (
-                <div className="animate-scale-in">
-                  {stepContent.icon}
-                </div>
-              )}
-              
-              {stepContent.showSpinner && (
-                <div className="absolute -bottom-2 -right-2">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              )}
-            </div>
+            <X className="w-4 h-4" />
+          </button>
+        )}
 
-            {/* Progress Bar */}
-            <div className="w-full mb-6">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{progress}% Complete</p>
-            </div>
-
-            {/* Title and Description */}
-            <h2 
-              className="text-2xl font-semibold mb-3 text-gray-800 animate-fade-in"
-              style={{ animationDelay: '0.2s' }}
-            >
-              {stepContent.title}
-            </h2>
+        <div className="flex flex-col items-center text-center px-6 py-10 sm:px-10 sm:py-12">
+          <div className="flex flex-col items-center w-full space-y-6">
             
-            <p 
-              className="text-muted-foreground text-lg leading-relaxed animate-fade-in"
-              style={{ animationDelay: '0.4s' }}
-            >
-              {stepContent.description}
-            </p>
-
-            {/* Additional info for uploading */}
-            {currentStep === 'uploading' && (
-              <div 
-                className="mt-4 flex items-center gap-2 text-sm text-gray-500 animate-fade-in"
-                style={{ animationDelay: '0.6s' }}
-              >
-                <Clock className="w-4 h-4" />
-                <span>This may take a few moments...</span>
+            {/* Spinner for loading states */}
+            {stepContent.showSpinner && (
+              <div className="relative animate-in fade-in zoom-in duration-500">
+                <div className="w-16 h-16 border-4 border-blue-100 rounded-full"></div>
+                <div className="absolute inset-0 w-16 h-16 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
               </div>
             )}
 
-            {/* Success redirect info */}
-            {currentStep === 'success' && (
+            {/* Success icon */}
+            {stepContent.isSuccess && (
+              <div className="relative animate-in fade-in zoom-in duration-500">
+                <div className="absolute inset-0 w-16 h-16 bg-green-100 rounded-full animate-ping opacity-30"></div>
+                <CheckCircle className="relative w-16 h-16 text-green-500" strokeWidth={2} />
+              </div>
+            )}
+
+            {/* Error icon */}
+            {stepContent.isError && (
+              <div className="relative animate-in fade-in zoom-in duration-500">
+                <div className="absolute inset-0 w-16 h-16 bg-red-100 rounded-full animate-pulse"></div>
+                <AlertCircle className="relative w-16 h-16 text-red-500" strokeWidth={2} />
+              </div>
+            )}
+
+            {/* Title and Description */}
+            <div className="space-y-3 animate-in fade-in duration-500" style={{ animationDelay: '0.2s' }}>
+              <h2 className="text-2xl font-semibold text-gray-900">
+                {stepContent.title}
+              </h2>
+              <p className="text-base text-gray-600 leading-relaxed max-w-sm mx-auto">
+                {stepContent.description}
+              </p>
+            </div>
+
+            {/* Success message */}
+            {stepContent.isSuccess && (
               <div 
-                className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in"
-                style={{ animationDelay: '0.6s' }}
+                className="w-full bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/60 rounded-2xl p-5 shadow-sm animate-in fade-in duration-500"
+                style={{ animationDelay: '0.4s' }}
               >
-                <p className="text-sm text-green-700">
-                  🎉 Your school has been created successfully! You will be redirected to the dashboard shortly.
+                <p className="text-sm text-green-800">
+                  🎉 Your school profile has been successfully created and is ready to use!
                 </p>
               </div>
+            )}
+
+            {/* Error action button */}
+            {stepContent.isError && (
+              <div className="w-full space-y-3 pt-2 animate-in fade-in duration-500" style={{ animationDelay: '0.4s' }}>
+                <Button 
+                  onClick={onClose}
+                  className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 hover:shadow-lg transition-all duration-200"
+                >
+                  Close and try again
+                </Button>
+              </div>
+            )}
+
+            {/* Loading state hint */}
+            {stepContent.showSpinner && (
+              <p 
+                className="text-sm text-gray-500 animate-in fade-in duration-500"
+                style={{ animationDelay: '0.4s' }}
+              >
+                This may take a few moments...
+              </p>
             )}
           </div>
         </div>

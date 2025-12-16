@@ -202,16 +202,7 @@ function LoginFormContent({
             />
           </div>
           <div className="grid gap-3">
-            <div className="flex items-center">
-              <Label htmlFor="password">Password</Label>
-              <button
-                type="button"
-                className="ml-auto inline-block text-sm underline-offset-4 hover:underline text-blue-600 bg-transparent border-0 p-0 cursor-pointer"
-                onClick={() => setForgotOpen(true)}
-              >
-                Forgot your password?
-              </button>
-            </div>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input 
                 id="password" 
@@ -233,6 +224,13 @@ function LoginFormContent({
                 )}
               </button>
             </div>
+            <button
+              type="button"
+              className="inline-block text-sm underline-offset-4 hover:underline text-blue-600 bg-transparent border-0 p-0 cursor-pointer self-start"
+              onClick={() => setForgotOpen(true)}
+            >
+              Forgot your password?
+            </button>
           </div>
           <div className="flex flex-col gap-3">
             <Button type="submit" className="w-full" disabled={loading}>
