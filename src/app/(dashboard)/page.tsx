@@ -22,6 +22,7 @@ import HiringProgressChart from "@/components/hiring-progress-chart"
 import WeeklyActivity from "@/components/weekly-activity-chart"
 import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SchoolJobsContainer } from "@/components/school-job-campaign"
+import HiringSummaryBar from "@/components/hiring-metric"
 
 
 
@@ -196,6 +197,7 @@ export default function Page() {
               value={dashboardStats?.offered || 0}
               icon={<BookText className="h-5 w-5 text-violet-600" />} />
           </div>
+          {/* <HiringSummaryBar /> */}
 
           <div>
             <div className="flex items-center justify-between mb-3">

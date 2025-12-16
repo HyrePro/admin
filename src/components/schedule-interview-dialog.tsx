@@ -96,6 +96,36 @@ export function ScheduleInterviewDialog({
   const { schoolId: storeSchoolId } = useAuthStore(); // Get schoolId from store
   const [schoolId, setSchoolId] = useState<string | null>(storeSchoolId); // Local state for schoolId
   console.log('School ID:', schoolId);
+  
+  // Helper function to get the next 30-minute interval
+  const getNext30MinInterval = () => {
+    const now = new Date();
+    // Round up to the next 30-minute interval
+    const minutes = now.getMinutes();
+    
+    // If current time is past 30 minutes, round up to next hour
+    if (minutes > 30) {
+      now.setHours(now.getHours() + 1);
+      now.setMinutes(0);
+    } else {
+      // Otherwise round up to 30 minutes
+      now.setMinutes(30);
+    }
+    
+    now.setSeconds(0);
+    now.setMilliseconds(0);
+    
+    // Format date as YYYY-MM-DD
+    const date = now.toISOString().split('T')[0];
+    
+    // Format time as HH:MM
+    const hours = now.getHours().toString().padStart(2, '0');
+    const mins = now.getMinutes().toString().padStart(2, '0');
+    const time = `${hours}:${mins}`;
+    
+    return { date, time };
+  };
+
   const [scheduleForm, setScheduleForm] = useState<ScheduleInterviewForm>({
     date: '',
     time: '09:00',
@@ -737,6 +767,13 @@ export function ScheduleInterviewDialog({
     const startDate = new Date(dateTimeString);
     if (isNaN(startDate.getTime())) {
       toast.error("Please enter a valid date and time");
+      return;
+    }
+    
+    // Check if the selected date and time is in the past
+    const now = new Date();
+    if (startDate < now) {
+      toast.error("Cannot schedule an interview in the past. Please select a future date and time.");
       return;
     }
     
