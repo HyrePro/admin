@@ -169,7 +169,7 @@ export function SignupProgressDialog({
                   </h2>
                   <div className="space-y-2">
                     <p className="text-base text-gray-600 leading-relaxed">
-                      To complete your registration, please click the verification link we've sent to:
+                      To complete your registration, please click the verification link we&apos;ve sent to:
                     </p>
                     <p className="text-base font-semibold text-blue-600 break-all px-2">
                       {email}
@@ -184,7 +184,7 @@ export function SignupProgressDialog({
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        <span className="font-semibold text-gray-900">Didn't receive the email?</span> Check your spam folder, wait a few minutes for delivery, or request a new verification email below.
+                        <span className="font-semibold text-gray-900">Didn&apos;t receive the email?</span> Check your spam folder, wait a few minutes for delivery, or request a new verification email below.
                       </p>
                     </div>
                   </div>
