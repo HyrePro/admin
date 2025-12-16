@@ -8,6 +8,23 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Enable advanced optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
+  },
+  // Optimize images
+  images: {
+    minimumCacheTTL: 60,
+  },
+  // Enable webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    // Replace moment.js with dayjs if moment is used
+    if (!dev && !isServer) {
+      config.resolve.alias.moment = 'dayjs';
+    }
+    
+    return config;
+  },
 };
 
 export default nextConfig;

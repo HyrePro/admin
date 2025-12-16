@@ -11,12 +11,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Copy, Edit, Eye, Check } from "lucide-react";
-import { ToastContainer, toast } from "react-toastify";
+import { ChevronLeft, ChevronRight, Copy, Edit, Eye, Check } from "@/components/icons";
+import dynamic from "next/dynamic";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/api/client";
+
+// Dynamically import toast to reduce initial bundle size
+const ToastContainer = dynamic(() => import("react-toastify").then(mod => mod.ToastContainer), {
+  ssr: false
+});
 
 interface Job {
   id: string;
@@ -111,10 +116,14 @@ export function DashboardTable({ schoolId }: DashboardTableProps) {
     try {
       await navigator.clipboard.writeText(jobLink);
       setCopiedJobId(jobId);
+      // Dynamically import toast and show success message
+      const { toast } = await import("react-toastify");
       toast.success("Job Link copied to clipboard");
       setTimeout(() => setCopiedJobId(null), 2000); // Reset after 2 seconds
     } catch (err) {
       console.error("Failed to copy link:", err);
+      // Dynamically import toast and show error message
+      const { toast } = await import("react-toastify");
       toast.error("Failed to copy job link");
     }
   };

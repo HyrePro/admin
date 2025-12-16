@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Rocket, MessageSquare, Users, Users2, UsersIcon, TvMinimalIcon, BookText, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, Users, TvMinimalIcon, BookText, MoreVertical } from "@/components/icons";
 import { createClient } from '@/lib/supabase/api/client';
 import { Card, CardDescription, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -154,7 +154,7 @@ const JobCard: React.FC<JobCardProps> = ({ data }) => {
         </div>
 
         <Button variant="ghost" size="icon" className="text-gray-400">
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreVertical className="h-4 w-4" />
         </Button>
       </div>
 

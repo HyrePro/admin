@@ -314,16 +314,7 @@ export function SignupForm({
           ? "Please check your email to confirm your account. Check your spam folder if you don't see it. You must confirm your email before logging in."
           : "Account created! However, we may not have sent the confirmation email. Please contact support if you need assistance."
 
-        toast.success("Signup Successful!", {
-          description: successMessage,
-          duration: 15000,
-          action: {
-            label: "Resend Email",
-            onClick: () => {
-              handleResendEmail()
-            }
-          }
-        })
+       
         
         setMessage("Account created successfully! Please check your email and click the verification link to activate your account. You must confirm your email before logging in.")
         
@@ -659,8 +650,8 @@ export function SignupForm({
 
         <div className="text-center text-sm text-muted-foreground">
           By continuing, you agree to our{' '}
-          <a href="/terms" className="text-primary hover:underline font-medium">Terms of Service</a>{' '}and{' '}
-          <a href="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</a>
+          <a href="https://hyriki.com/terms" className="text-primary hover:underline font-medium">Terms of Service</a>{' '}and{' '}
+          <a href="https://hyriki.com/privacy" className="text-primary hover:underline font-medium">Privacy Policy</a>
         </div>
       </form>
 

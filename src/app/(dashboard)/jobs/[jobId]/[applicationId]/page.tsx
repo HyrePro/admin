@@ -15,7 +15,7 @@ import {
   MessageSquare,
   Edit3,
   FileText
-} from "lucide-react";
+} from "@/components/icons";
 import {
   getJobApplication,
   getAIEvaluation,
@@ -24,11 +24,7 @@ import {
   type AIEvaluation
 } from "@/lib/supabase/api/get-job-application";
 import { cn } from "@/lib/utils";
-import { CandidateInfo as CandidateInfoComponent } from "@/components/candidate-info";
-import { MCQAssessment } from "@/components/mcq-assessment";
-import { VideoAssessment } from "@/components/video-assessment";
-import { PanelistReview } from "@/components/panelist-review";
-import { AIRecommendation } from "@/components/ai-recommendation";
+import dynamic from "next/dynamic";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/api/client";
@@ -36,6 +32,62 @@ import { statusColors } from "../../../../../../utils/statusColor";
 import { MakeOfferDialog } from "@/components/make-offer-dialog";
 import { RejectCandidateDialog } from "@/components/reject-candidate-dialog";
 import { toast } from "sonner";
+
+// Dynamically import heavy components to reduce initial bundle size
+const CandidateInfoComponent = dynamic(() => import("@/components/candidate-info").then(mod => mod.CandidateInfo), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4 space-y-6">
+      <div className="h-6 bg-gray-200 rounded animate-pulse w-1/3"></div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const MCQAssessment = dynamic(() => import("@/components/mcq-assessment").then(mod => mod.MCQAssessment), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4 space-y-4">
+      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const VideoAssessment = dynamic(() => import("@/components/video-assessment").then(mod => mod.VideoAssessment), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4">
+      <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+});
+
+const PanelistReview = dynamic(() => import("@/components/panelist-review").then(mod => mod.PanelistReview), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4">
+      <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+});
+
+const AIRecommendation = dynamic(() => import("@/components/ai-recommendation").then(mod => mod.AIRecommendation), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4">
+      <div className="h-56 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+});
 
 interface ApplicationDetailsPageProps {
   params: Promise<{

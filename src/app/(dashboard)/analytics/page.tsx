@@ -5,10 +5,30 @@ import { useAuth } from "@/context/auth-context"
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
 import { useRouter } from "next/navigation"
-import HiringProgressChart from "@/components/hiring-progress-chart"
-import WeeklyActivity from "@/components/weekly-activity-chart"
+import dynamic from "next/dynamic"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { BarChartIcon } from "lucide-react"
+import { BarChartIcon } from "@/components/icons"
+
+// Dynamically import heavy components to reduce initial bundle size
+const HiringProgressChart = dynamic(() => import("@/components/hiring-progress-chart").then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="border rounded-lg p-4">
+      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+      <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+})
+
+const WeeklyActivity = dynamic(() => import("@/components/weekly-activity-chart").then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="border rounded-lg p-4">
+      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+      <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+})
 
 interface DashboardStats {
   total_applications: number

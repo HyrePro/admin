@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { CheckCircle, Upload, School, Clock, Loader2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { CheckCircle, Mail, Clock, AlertCircle, Loader2, HelpCircle, Upload, School } from 'lucide-react'
+import { createClient } from "@/lib/supabase/api/client"
+import { useRouter } from 'next/navigation'
 
 interface SchoolCreationProgressDialogProps {
   isOpen: boolean
@@ -75,101 +77,78 @@ export function SchoolCreationProgressDialog({
         showCloseButton={false}
       >
         <div className="flex flex-col items-center text-center p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center"
-            >
-              {/* Icon with optional spinner */}
-              <div className="relative mb-6">
-                {stepContent.showSpinner ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  >
-                    {stepContent.icon}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  >
-                    {stepContent.icon}
-                  </motion.div>
-                )}
-                
-                {stepContent.showSpinner && (
-                  <div className="absolute -bottom-2 -right-2">
-                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                  </div>
-                )}
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full mb-6">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <motion.div
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.5 }}
-                  />
+          <div
+            key={currentStep}
+            className="flex flex-col items-center animate-fade-in-up"
+          >
+            {/* Icon with optional spinner */}
+            <div className="relative mb-6">
+              {stepContent.showSpinner ? (
+                <div className="animate-spin-slow">
+                  {stepContent.icon}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{progress}% Complete</p>
-              </div>
-
-              {/* Title and Description */}
-              <motion.h2 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-2xl font-semibold mb-3 text-gray-800"
-              >
-                {stepContent.title}
-              </motion.h2>
+              ) : (
+                <div className="animate-scale-in">
+                  {stepContent.icon}
+                </div>
+              )}
               
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-muted-foreground text-lg leading-relaxed"
+              {stepContent.showSpinner && (
+                <div className="absolute -bottom-2 -right-2">
+                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">{progress}% Complete</p>
+            </div>
+
+            {/* Title and Description */}
+            <h2 
+              className="text-2xl font-semibold mb-3 text-gray-800 animate-fade-in"
+              style={{ animationDelay: '0.2s' }}
+            >
+              {stepContent.title}
+            </h2>
+            
+            <p 
+              className="text-muted-foreground text-lg leading-relaxed animate-fade-in"
+              style={{ animationDelay: '0.4s' }}
+            >
+              {stepContent.description}
+            </p>
+
+            {/* Additional info for uploading */}
+            {currentStep === 'uploading' && (
+              <div 
+                className="mt-4 flex items-center gap-2 text-sm text-gray-500 animate-fade-in"
+                style={{ animationDelay: '0.6s' }}
               >
-                {stepContent.description}
-              </motion.p>
+                <Clock className="w-4 h-4" />
+                <span>This may take a few moments...</span>
+              </div>
+            )}
 
-              {/* Additional info for uploading */}
-              {currentStep === 'uploading' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-4 flex items-center gap-2 text-sm text-gray-500"
-                >
-                  <Clock className="w-4 h-4" />
-                  <span>This may take a few moments...</span>
-                </motion.div>
-              )}
-
-              {/* Success redirect info */}
-              {currentStep === 'success' && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg"
-                >
-                  <p className="text-sm text-green-700">
-                    🎉 Your school has been created successfully! You will be redirected to the dashboard shortly.
-                  </p>
-                </motion.div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+            {/* Success redirect info */}
+            {currentStep === 'success' && (
+              <div 
+                className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in"
+                style={{ animationDelay: '0.6s' }}
+              >
+                <p className="text-sm text-green-700">
+                  🎉 Your school has been created successfully! You will be redirected to the dashboard shortly.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -16,14 +16,62 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit } from "lucide-react";
+import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/api/client";
-import { JobOverview } from "@/components/job-overview";
-import { JobCandidates } from "@/components/job-candidates";
-import { JobAnalytics } from "@/components/job-analytics";
-import { EditJobDetailsDialog } from "@/components/edit-job-details-dialog";
+import dynamic from "next/dynamic";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+
+// Dynamically import heavy components to reduce initial bundle size
+const JobOverview = dynamic(() => import("@/components/job-overview").then(mod => mod.JobOverview), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 p-4">
+      <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const JobCandidates = dynamic(() => import("@/components/job-candidates").then(mod => mod.JobCandidates), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4 space-y-4">
+      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+      <div className="space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const JobAnalytics = dynamic(() => import("@/components/job-analytics").then(mod => mod.JobAnalytics), {
+  ssr: false,
+  loading: () => (
+    <div className="grid gap-6 p-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-24 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-64 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const EditJobDetailsDialog = dynamic(() => import("@/components/edit-job-details-dialog").then(mod => mod.EditJobDetailsDialog), {
+  ssr: false
+});
 
 interface JobDetailsPageProps {
   params: Promise<{
@@ -498,15 +546,15 @@ export default function JobDetailsPage({ params }: JobDetailsPageProps) {
 
       {/* Scrollable content area */}
       <div className="flex-grow overflow-hidden">
-        {activeTab === "overview" && (
+        {activeTab === "overview" && job && (
           <JobOverview job={job} />
         )}
 
-        {activeTab === "candidates" && (
+        {activeTab === "candidates" && jobId && (
           <JobCandidates job_id={jobId} />
         )}
 
-        {activeTab === "analytics" && (
+        {activeTab === "analytics" && jobId && (
           <JobAnalytics jobId={jobId} />
         )}
       </div>

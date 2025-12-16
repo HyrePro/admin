@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Mail, Clock, AlertCircle, Loader2, HelpCircle } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { CheckCircle, Mail, Clock, AlertCircle, HelpCircle, X } from 'lucide-react'
 import { createClient } from "@/lib/supabase/api/client"
 import { useRouter } from 'next/navigation'
 
@@ -24,11 +23,12 @@ export function SignupProgressDialog({
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false)
+  const [isResending, setIsResending] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    if (currentStep === 'email-sent') {
+    if (currentStep === 'email-sent' && !canResend) {
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -41,17 +41,16 @@ export function SignupProgressDialog({
 
       return () => clearInterval(timer)
     }
-  }, [currentStep])
+  }, [currentStep, canResend])
 
   useEffect(() => {
     if (isOpen) {
-      // Reset to progress step when dialog opens
       setCurrentStep('progress')
       setCountdown(60)
       setCanResend(false)
       setIsEmailConfirmed(false)
+      setIsResending(false)
       
-      // Simulate signup progress
       const progressTimer = setTimeout(() => {
         setCurrentStep('success')
       }, 2000)
@@ -67,13 +66,11 @@ export function SignupProgressDialog({
     }
   }, [isOpen])
 
-  // Check if user's email is confirmed
   const checkEmailConfirmation = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email_confirmed_at) {
         setIsEmailConfirmed(true)
-        // Close dialog and redirect to select organization
         onClose()
         router.push("/select-organization")
         return true
@@ -85,16 +82,14 @@ export function SignupProgressDialog({
     }
   }
 
-  // Poll for email confirmation
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null
     
     if (isOpen && currentStep === 'email-sent' && !isEmailConfirmed) {
-      // Check every 3 seconds if email is confirmed
       intervalId = setInterval(async () => {
         const confirmed = await checkEmailConfirmation()
-        if (confirmed) {
-          if (intervalId) clearInterval(intervalId)
+        if (confirmed && intervalId) {
+          clearInterval(intervalId)
         }
       }, 3000)
     }
@@ -102,17 +97,21 @@ export function SignupProgressDialog({
     return () => {
       if (intervalId) clearInterval(intervalId)
     }
-  }, [isOpen, currentStep, isEmailConfirmed, onClose])
+  }, [isOpen, currentStep, isEmailConfirmed])
 
-  const handleResendEmail = () => {
-    onResendEmail()
-    setCountdown(60)
-    setCanResend(false)
+  const handleResendEmail = async () => {
+    setIsResending(true)
+    try {
+      await onResendEmail()
+      setCountdown(60)
+      setCanResend(false)
+    } finally {
+      setIsResending(false)
+    }
   }
 
   const handleNeedHelp = () => {
-    // Open a support email or help page
-    window.open('mailto:support@Hyriki.com?subject=Email Confirmation Issue&body=I am having trouble confirming my email address for my Hyriki account.', '_blank')
+    window.open('mailto:support@hyriki.com?subject=Email%20Confirmation%20Issue&body=I%20am%20having%20trouble%20confirming%20my%20email%20address%20for%20my%20Hyriki%20account.', '_blank')
   }
 
   const formatTime = (seconds: number) => {
@@ -123,198 +122,115 @@ export function SignupProgressDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md backdrop-blur-md bg-white/95 border-0 shadow-2xl">
-        <div className="flex flex-col items-center text-center p-8">
-          <AnimatePresence mode="wait">
+      <DialogContent className="sm:max-w-md backdrop-blur-xl bg-white/98 border border-gray-200/50 shadow-2xl p-0 gap-0 overflow-hidden">
+        
+
+        <div className="flex flex-col items-center text-center px-6 py-10 sm:px-10 sm:py-12">
+          <div className="flex flex-col items-center w-full">
             {currentStep === 'progress' && (
-              <motion.div
-                key="progress"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col items-center"
-              >
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 border-4 border-blue-200 rounded-full"></div>
+              <div className="flex flex-col items-center space-y-6 animate-in fade-in duration-500">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-blue-100 rounded-full"></div>
                   <div className="absolute inset-0 w-20 h-20 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
                 </div>
-                <motion.h2 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-2xl font-semibold mb-3 text-gray-800"
-                >
-                  Creating your account...
-                </motion.h2>
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-muted-foreground text-lg"
-                >
-                  Please wait while we set up your account
-                </motion.p>
-              </motion.div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-semibold text-gray-900">
+                    Creating your account
+                  </h2>
+                  <p className="text-base text-gray-600">
+                    Setting up your workspace...
+                  </p>
+                </div>
+              </div>
             )}
 
             {currentStep === 'success' && (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col items-center"
-              >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                >
-                  <CheckCircle className="w-20 h-20 text-green-500 mb-6" />
-                </motion.div>
-                <motion.h2 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-2xl font-semibold mb-3 text-gray-800"
-                >
-                  Account created successfully!
-                </motion.h2>
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="text-muted-foreground text-lg"
-                >
-                  Setting up your verification email...
-                </motion.p>
-              </motion.div>
+              <div className="flex flex-col items-center space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="relative">
+                  <div className="absolute inset-0 w-20 h-20 bg-green-100 rounded-full animate-ping opacity-30"></div>
+                  <CheckCircle className="relative w-20 h-20 text-green-500" strokeWidth={2} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-semibold text-gray-900">
+                    Account created!
+                  </h2>
+                  <p className="text-base text-gray-600">
+                    Preparing your verification email...
+                  </p>
+                </div>
+              </div>
             )}
 
             {currentStep === 'email-sent' && (
-              <motion.div
-                key="email-sent"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col items-center w-full"
-              >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                >
-                  <Mail className="w-20 h-20 text-blue-500 mb-6" />
-                </motion.div>
-                <motion.h2 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-2xl font-semibold mb-4 text-gray-800"
-                >
-                  Verification email sent!
-                </motion.h2>
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="text-muted-foreground mb-6 text-lg"
-                >
-                  We&apos;ve sent a verification email to{' '}
-                  <span className="font-semibold text-blue-600 break-all">{email}</span>
-                </motion.p>
+              <div className="flex flex-col items-center w-full space-y-6 animate-in fade-in duration-500">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-gray-900">
+                    Verify your email address
+                  </h2>
+                  <div className="space-y-2">
+                    <p className="text-base text-gray-600 leading-relaxed">
+                      To complete your registration, please click the verification link we've sent to:
+                    </p>
+                    <p className="text-base font-semibold text-blue-600 break-all px-2">
+                      {email}
+                    </p>
+                  </div>
+                </div>
                 
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6 w-full"
-                >
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-4 w-full shadow-sm">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
-                    <div className="text-left">
-                      <p className="text-sm text-blue-800 font-semibold mb-2">Check your email</p>
-                      <p className="text-sm text-blue-700 leading-relaxed">
-                        Please check your inbox and click the verification link. Don&apos;t forget to check your spam/junk folder if you don&apos;t see it.
+                    <div className="flex-shrink-0 mt-0.5">
+                      <AlertCircle className="w-5 h-5 text-amber-600" strokeWidth={2} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        <span className="font-semibold text-gray-900">Didn't receive the email?</span> Check your spam folder, wait a few minutes for delivery, or request a new verification email below.
                       </p>
-                      <p className="text-xs text-blue-600 mt-2 font-medium">
-                        💡 Didn&apos;t receive the email? Try these steps:
-                      </p>
-                      <ul className="text-xs text-blue-600 mt-1 list-disc pl-4 space-y-1">
-                        <li>Check spam/junk folders</li>
-                        <li>Wait 2-3 minutes for delivery</li>
-                        <li>Click &quot;Resend verification email&quot; below</li>
-                      </ul>
                     </div>
                   </div>
-                </motion.div>
+                </div>
 
-                <div className="w-full space-y-4">
-                  <AnimatePresence mode="wait">
-                    {!canResend ? (
-                      <motion.div
-                        key="countdown"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-2"
-                      >
-                        <Clock className="w-4 h-4" />
-                        <span>Resend available in {formatTime(countdown)}</span>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="resend-button"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full"
-                      >
-                        <Button 
-                          onClick={handleResendEmail}
-                          variant="outline" 
-                          className="w-full h-12 text-base"
-                        >
+                <div className="w-full space-y-3 pt-2">
+                  {!canResend ? (
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">
+                        Resend available in {formatTime(countdown)}
+                      </span>
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={handleResendEmail}
+                      disabled={isResending}
+                      variant="outline" 
+                      className="w-full h-11 text-sm font-medium border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
+                    >
+                      {isResending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
                           <Mail className="w-4 h-4 mr-2" />
                           Resend verification email
-                        </Button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.0 }}
-                  >
-                    <Button 
-                      onClick={onClose} 
-                      className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                    >
-                      Got it, thanks!
+                        </>
+                      )}
                     </Button>
-                  </motion.div>
+                  )}
                   
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.2 }}
+                  <Button 
+                    onClick={handleNeedHelp}
+                    variant="ghost"
+                    className="w-full h-11 text-sm text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors duration-200"
                   >
-                    <Button 
-                      onClick={handleNeedHelp}
-                      variant="ghost"
-                      className="w-full h-10 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                      Need help with email confirmation?
-                    </Button>
-                  </motion.div>
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Need help?
+                  </Button>
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

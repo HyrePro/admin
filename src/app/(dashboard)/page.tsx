@@ -1,7 +1,7 @@
 'use client'
 import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
-import { Plus, Users, Briefcase, TrendingUp, TvMinimalIcon, BookText, ChevronRight } from "lucide-react"
+import { Plus, Users, Briefcase, TrendingUp, TvMinimalIcon, BookText, ChevronRight } from "@/components/icons"
 import { useAuth } from "@/context/auth-context"
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
@@ -15,16 +15,74 @@ import {
 } from "@/components/ui/empty"
 import { useRouter } from "next/navigation"
 import { DashboardCard } from "@/components/dashboard-card"
-import { DashboardTable } from "@/components/dashboard-table"
+import dynamic from "next/dynamic"
 import { useState } from "react"
-import { ApplicationDistribution } from "@/components/application-distribution"
-import HiringProgressChart from "@/components/hiring-progress-chart"
-import WeeklyActivity from "@/components/weekly-activity-chart"
 import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SchoolJobsContainer } from "@/components/school-job-campaign"
-import HiringSummaryBar from "@/components/hiring-metric"
 
+// Dynamically import heavy components to reduce initial bundle size
+const DashboardTable = dynamic(() => import("@/components/dashboard-table").then(mod => mod.DashboardTable), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col h-full">
+      <div className="rounded-md border flex-grow flex flex-col">
+        <div className="bg-gray-50 p-3">
+          <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+        </div>
+        <div className="flex-grow">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="border-b p-3">
+              <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+})
 
+const ApplicationDistribution = dynamic(() => import("@/components/application-distribution").then(mod => mod.ApplicationDistribution), {
+  ssr: false,
+  loading: () => (
+    <div className="grid gap-6 md:grid-cols-2">
+      <div className="border rounded-lg p-4">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+        <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+      </div>
+      <div className="border rounded-lg p-4">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+        <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+      </div>
+    </div>
+  )
+})
+
+const HiringProgressChart = dynamic(() => import("@/components/hiring-progress-chart").then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="border rounded-lg p-4">
+      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+      <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+})
+
+const WeeklyActivity = dynamic(() => import("@/components/weekly-activity-chart").then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="border rounded-lg p-4">
+      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+      <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  )
+})
+
+const HiringSummaryBar = dynamic(() => import("@/components/hiring-metric").then(mod => mod.default), {
+  ssr: false,
+  loading: () => (
+    <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+  )
+})
 
 interface DashboardStats {
   total_applications: number

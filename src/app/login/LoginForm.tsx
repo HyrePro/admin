@@ -6,12 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/api/client"
 import { Alert, AlertDescription } from "../../components/ui/alert"
-import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { Loader2, AlertCircle, Eye, EyeOff } from "@/components/icons"
 import Image from "next/image"
 import { useState, useEffect } from "react"
-import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+
+// Dynamically import the forgot password dialog to reduce initial bundle size
+const ForgotPasswordDialog = dynamic(() => import("@/components/forgot-password-dialog").then(mod => mod.ForgotPasswordDialog), {
+  ssr: false
+})
 
 interface LoginFormProps extends React.ComponentProps<"form"> {
   email?: string | null
@@ -231,7 +236,6 @@ export function LoginForm({
 
         {error && (
           <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
@@ -338,14 +342,14 @@ export function LoginForm({
         <span className="text-sm text-muted-foreground">
           By continuing, you agree to our{" "}
           <a
-            href="/terms"
+            href="https://hyriki.com/terms"
             className="hover:underline underline-offset-4 text-blue-600"
           >
             Terms of Service
           </a>{" "}
           and{" "}
           <a
-            href="/privacy"
+            href="https://hyriki.com/privacy"
             className="hover:underline underline-offset-4 text-blue-600"
           >
             Privacy Policy
