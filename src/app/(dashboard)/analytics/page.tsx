@@ -1,13 +1,13 @@
 'use client'
 
+import React from 'react'
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/context/auth-context"
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
-import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { BarChartIcon } from "@/components/icons"
+import { SchoolKPIs } from "@/components/analytics/school-kpis"
 
 // Dynamically import heavy components to reduce initial bundle size
 const HiringProgressChart = dynamic(() => import("@/components/hiring-progress-chart").then(mod => mod.default), {
@@ -30,12 +30,6 @@ const WeeklyActivity = dynamic(() => import("@/components/weekly-activity-chart"
   )
 })
 
-interface DashboardStats {
-  total_applications: number
-  interview_ready: number
-  offered: number
-}
-
 // Fetcher function - reusable and testable
 const fetchSchoolInfo = async (userId: string) => {
   if (!userId) return null
@@ -53,12 +47,11 @@ const fetchSchoolInfo = async (userId: string) => {
 
 export default function AnalyticsPage() {
   const { user } = useAuth()
-  const router = useRouter()
 
   // SWR handles caching, revalidation, and loading states
   const { data: schoolId, error: schoolError, isLoading: schoolLoading } = useSWR(
     user?.id ? ['school-info', user.id] : null,
-    ([_, userId]) => fetchSchoolInfo(userId),
+    ([, userId]) => fetchSchoolInfo(userId),
     {
       revalidateOnFocus: false, // Don't refetch on window focus
       dedupingInterval: 60000, // Cache for 1 minute
@@ -115,27 +108,32 @@ export default function AnalyticsPage() {
     <AuthGuard>
       <div className="flex flex-1 flex-col px-4 pb-8">
         <div className="@container/main flex flex-1 flex-col gap-6">
-          <div className="flex items-center gap-3 py-4">
-            <BarChartIcon className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold">Analytics</h1>
+          {/* Header similar to candidates page */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b">
+            <div className="flex items-center gap-3">
+              <BarChartIcon className="h-6 w-6 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold">Analytics</h1>
+                <p className="text-muted-foreground text-sm">
+                  Comprehensive overview of hiring performance and candidate pipeline
+                </p>
+              </div>
+            </div>
           </div>
           
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Hiring Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-6 flex-col lg:flex-row">
-                  <div className="lg:w-1/3">
-                    <HiringProgressChart schoolId={schoolId} />
-                  </div>
-                  <div className="lg:w-2/3">
-                    <WeeklyActivity schoolId={schoolId} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Use the new SchoolKPIs component for main KPIs and charts */}
+          <SchoolKPIs schoolId={schoolId} />
+
+          {/* Keep the existing hiring metrics charts as additional information */}
+          <div className="grid grid-cols-1 gap-6">
+            <div className="flex gap-6 flex-col lg:flex-row">
+              <div className="lg:w-1/3">
+                <HiringProgressChart schoolId={schoolId} />
+              </div>
+              <div className="lg:w-2/3">
+                <WeeklyActivity schoolId={schoolId} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

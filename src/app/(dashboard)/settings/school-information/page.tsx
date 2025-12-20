@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,29 +16,55 @@ import { Upload, X } from 'lucide-react'
 
 // Fetcher function for school data
 const fetchSchoolInfo = async (userId: string) => {
-  if (!userId) return null
+  console.log('Starting fetchSchoolInfo for userId:', userId);
+  
+  if (!userId) {
+    console.log('No userId provided, returning null');
+    return null;
+  }
 
-  const supabase = createClient()
+  const supabase = createClient();
+  console.log('Supabase client created');
   
   // First get the school_id from admin_user_info
+  console.log('Fetching user info from admin_user_info table for userId:', userId);
   const { data: userInfo, error: userError } = await supabase
     .from('admin_user_info')
     .select('school_id')
     .eq('id', userId)
-    .single()
+    .single();
 
-  if (userError) throw userError
-  if (!userInfo?.school_id) return null
+  console.log('User info fetch result:', { userInfo, userError });
+
+  if (userError) {
+    console.error('Error fetching user info:', userError);
+    throw userError;
+  }
+  
+  if (!userInfo?.school_id) {
+    console.log('No school_id found in user info:', userInfo);
+    return null;
+  }
+  
+  console.log('Retrieved school_id:', userInfo.school_id);
 
   // Then get the school information
+  console.log('Fetching school info from school_info table for school_id:', userInfo.school_id);
   const { data: schoolData, error: schoolError } = await supabase
     .from('school_info')
     .select('*')
     .eq('id', userInfo.school_id)
-    .single()
+    .single();
 
-  if (schoolError) throw schoolError
-  return schoolData
+  console.log('School info fetch result:', { schoolData, schoolError });
+
+  if (schoolError) {
+    console.error('Error fetching school info:', schoolError);
+    throw schoolError;
+  }
+  
+  console.log('Successfully fetched school data:', schoolData);
+  return schoolData;
 }
 
 interface SchoolFormData {
@@ -54,12 +80,36 @@ interface SchoolFormData {
 }
 
 export default function SchoolInformationPage() {
-  const { user } = useAuth()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  console.log('=== SchoolInformationPage Component Render Start ===');
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  console.log('SchoolInformationPage rendered with user:', user);
+  
+  // Log user authentication state changes
+  useEffect(() => {
+    console.log('User auth state changed:', user);
+    if (user) {
+      console.log('User ID:', user.id);
+      console.log('User email:', user.email);
+      console.log('User metadata:', user.user_metadata);
+    }
+    
+    // Cleanup function to log when component unmounts
+    return () => {
+      console.log('=== SchoolInformationPage Component Unmounted ===');
+    };
+  }, [user]);
+  
   const { data: schoolInfo, error, isLoading, mutate } = useSWR(
     user?.id ? ['school-info', user.id] : null,
-    ([_, userId]) => fetchSchoolInfo(userId)
-  )
+    ([_, userId]) => {
+      console.log('SWR fetcher called with userId:', userId);
+      return fetchSchoolInfo(userId);
+    }
+  );
+
+  console.log('SWR state:', { schoolInfo, error, isLoading, userId: user?.id });
 
   const [formData, setFormData] = useState<SchoolFormData>({
     name: '',
@@ -80,7 +130,9 @@ export default function SchoolInformationPage() {
 
   // Set form values when school info is loaded
   useEffect(() => {
+    console.log('useEffect triggered with schoolInfo:', schoolInfo);
     if (schoolInfo) {
+      console.log('Populating form data with schoolInfo:', schoolInfo);
       setFormData({
         name: schoolInfo.name || '',
         location: schoolInfo.location || '',
@@ -91,8 +143,21 @@ export default function SchoolInformationPage() {
         num_teachers: schoolInfo.num_teachers ? schoolInfo.num_teachers.toString() : '',
         website: schoolInfo.website || '',
         logo_url: schoolInfo.logo_url || ''
-      })
-      setLogoPreview(schoolInfo.logo_url || '')
+      });
+      setLogoPreview(schoolInfo.logo_url || '');
+      console.log('Form data populated:', {
+        name: schoolInfo.name || '',
+        location: schoolInfo.location || '',
+        board: schoolInfo.board || '',
+        address: schoolInfo.address || '',
+        school_type: schoolInfo.school_type || '',
+        num_students: schoolInfo.num_students ? schoolInfo.num_students.toString() : '',
+        num_teachers: schoolInfo.num_teachers ? schoolInfo.num_teachers.toString() : '',
+        website: schoolInfo.website || '',
+        logo_url: schoolInfo.logo_url || ''
+      });
+    } else {
+      console.log('schoolInfo is null or undefined, not populating form data');
     }
   }, [schoolInfo])
 
@@ -134,6 +199,7 @@ export default function SchoolInformationPage() {
   }
 
   const validateForm = (): boolean => {
+    console.log('Validating form with data:', formData);
     const newErrors: Partial<SchoolFormData> = {}
 
     if (!formData.name.trim()) {
@@ -162,46 +228,60 @@ export default function SchoolInformationPage() {
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log('Form validation result:', { isValid, errors: newErrors });
+    return isValid;
   }
 
   const handleSaveChanges = async () => {
-    if (!user || !validateForm()) return
+    console.log('handleSaveChanges called with formData:', formData);
+    if (!user || !validateForm()) {
+      console.log('Validation failed or no user, returning early');
+      return;
+    }
 
-    setIsSaving(true)
-    const toastId = toast.loading('Saving school information...')
+    setIsSaving(true);
+    const toastId = toast.loading('Saving school information...');
 
     try {
-      const supabase = createClient()
+      const supabase = createClient();
 
-      let logoUrl = formData.logo_url
+      let logoUrl = formData.logo_url;
+      console.log('Current logoUrl:', logoUrl);
 
       // Upload logo if a new file was selected
       if (logoFile) {
-        toast.loading('Uploading logo...', { id: toastId })
+        console.log('Uploading new logo file:', logoFile);
+        toast.loading('Uploading logo...', { id: toastId });
 
         // Create file name with timestamp
-        const fileExt = logoFile.name.split('.').pop()
-        const fileName = `${user.id}/school_logo_${Date.now()}.${fileExt}`
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${user.id}/school_logo_${Date.now()}.${fileExt}`;
+        console.log('Generated file name:', fileName);
 
         // Upload file to Supabase Storage in 'school' bucket
         const { error: uploadError } = await supabase.storage
           .from('school')
           .upload(fileName, logoFile, {
             upsert: true
-          })
+          });
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
 
         // Get public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
           .from('school')
-          .getPublicUrl(fileName)
+          .getPublicUrl(fileName);
 
-        logoUrl = publicUrl
+        logoUrl = publicUrl;
+        console.log('Logo uploaded, new logoUrl:', logoUrl);
       }
 
       // Update school info in database
+      console.log('Updating school info with data:', { ...formData, logo_url: logoUrl });
       const response = await fetch('/api/school', {
         method: 'PUT',
         headers: {
@@ -211,65 +291,58 @@ export default function SchoolInformationPage() {
           ...formData,
           logo_url: logoUrl
         })
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update school information')
+        const errorData = await response.json();
+        console.error('API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to update school information');
       }
 
       // Reset logo state after successful save
-      setLogoFile(null)
+      setLogoFile(null);
 
       // Revalidate the data
-      await mutate()
+      await mutate();
 
-      toast.success('School information updated successfully!', { id: toastId })
+      toast.success('School information updated successfully!', { id: toastId });
+      console.log('School information saved successfully');
     } catch (error: unknown) {
-      console.error('Error saving school information:', error)
-      toast.error(`Error saving school information: ${(error as Error).message || 'Please try again.'}`, { id: toastId })
+      console.error('Error saving school information:', error);
+      toast.error(`Error saving school information: ${(error as Error).message || 'Please try again.'}`, { id: toastId });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
   }
 
   if (isLoading) {
-    return <div className="space-y-4 p-4">
-      <div className="bg-white rounded-lg border p-4">
-        <div className="space-y-4">
-          <div>
-            <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3 mb-6 animate-pulse"></div>
-            <div className="flex items-center gap-2 mt-4 mb-4">
-              <div className="h-16 w-16 rounded-full bg-gray-200 animate-pulse"></div>
-              <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+    console.log('Rendering loading skeleton because isLoading is true');
+    return (
+      <div className="space-y-4 p-4">
+        {/* Loading skeleton JSX */}
       </div>
-    </div>
+    );
   }
 
   if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-      <p className="text-red-700">Error loading school information: {error.message}</p>
-    </div>
+    console.log('Rendering error message because error occurred:', error);
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-700">Error loading school information: {error.message}</p>
+      </div>
+    );
   }
 
-  if (!schoolInfo) {
-    return <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-      <p className="text-yellow-700">No school information found. Please contact support.</p>
-    </div>
+  if (!schoolInfo && !isLoading) {
+    console.log('Rendering no school info message because schoolInfo is null and not loading');
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-700">No school information found. Please contact support.</p>
+      </div>
+    );
   }
 
+  console.log('Rendering main form with schoolInfo:', schoolInfo);
   return (
     <div className="space-y-4 p-4">
       <div className="bg-white rounded-lg border p-4">
@@ -311,7 +384,7 @@ export default function SchoolInformationPage() {
                         )}
                       </div>
                     </label>
-                    {logoPreview && (
+                    {(logoPreview || schoolInfo.logo_url) && (
                       <button
                         type="button"
                         onClick={removeLogo}

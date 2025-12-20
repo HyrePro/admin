@@ -8,6 +8,11 @@ This is a Next.js admin dashboard application for Hyriki.
 - Dashboard with analytics
 - Job post creation and management
 - Modern UI with Tailwind CSS
+- School-level KPIs and analytics with filtering options
+
+## Documentation
+
+Detailed documentation for the KPI dashboard can be found in [docs/kpi-dashboard.md](docs/kpi-dashboard.md).
 
 ## New Admin User API
 
@@ -45,6 +50,32 @@ CREATE TABLE public.admin_user_info (
 );
 ```
 
+### School KPIs Function
+
+The application includes a PostgreSQL function to calculate school-level KPIs:
+
+```sql
+-- Function signature
+get_school_kpis(school_id UUID, period TEXT DEFAULT 'all')
+```
+
+This function returns metrics including:
+- Total Active Job Campaigns
+- Total Successful Job Campaigns (closed with offers)
+- Total Failed Job Campaigns (closed without offers)
+- Overall Candidates - Assessment Stage
+- Overall Candidates - Interview Stage
+- Overall Candidates - Offered
+- Average time to hire
+- Offer Ratio - Extended vs Accepted
+- Offer Ratio - Extended vs Declined
+- Overall section-wise performance
+- Overall candidates gender ratio
+
+The function accepts a period parameter with values: 'day', 'week', 'month', or 'all'.
+
+**Note:** This function requires the `jsonb` extension to be enabled in your Supabase database, which is enabled by default in most Supabase installations.
+
 ## Getting Started
 
 1. Install dependencies:
@@ -64,3 +95,7 @@ CREATE TABLE public.admin_user_info (
 ## API Endpoints
 
 - `POST /api/admin-user` - Creates admin user information in the database
+- `GET /api/school-kpis` - Retrieves school-level KPIs for analytics dashboard
+  - Query parameters:
+    - `schoolId` (required) - UUID of the school
+    - `period` (optional) - Filter period: 'day', 'week', 'month', or 'all' (default)

@@ -126,7 +126,7 @@ export default function JoinSchoolPage() {
           </form>
           
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Didn't receive an invite code?{' '}
+            Didn&apos;t receive an invite code?{' '}
             <button 
               type="button"
               className="text-blue-600 hover:underline font-medium"

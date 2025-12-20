@@ -1,0 +1,1598 @@
+[
+  {
+    "out_schema_name": "public",
+    "out_table_name": "user_otps",
+    "table_definition": "create table public.user_otps (\n  id uuid,\n  user_id uuid,\n  otp_code text,\n  expires_at timestamp with time zone,\n  verified boolean,\n  created_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "1c004229-e829-4494-97b2-1bbf28c8f78d",
+      "user_id": "b68893c9-28b8-414a-a554-0bdd89c7d360",
+      "otp_code": "871149",
+      "verified": false,
+      "created_at": "2025-07-16T17:53:41.795852+00:00",
+      "expires_at": "2025-07-16T18:03:41.594+00:00"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_video_assessment",
+    "table_definition": "create table public.application_video_assessment (\n  id uuid,\n  created_at timestamp with time zone,\n  video_url text,\n  transcript text,\n  frames jsonb,\n  status text,\n  score real,\n  rubrics jsonb,\n  notify boolean\n);",
+    "sample_row": {
+      "id": "f2184161-6c3a-451f-be22-dec4d4f7ba8c",
+      "score": null,
+      "frames": [
+        {
+          "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/frame_00_1765175487108.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL2ZyYW1lXzAwXzE3NjUxNzU0ODcxMDguanBnIiwiaWF0IjoxNzY1MTc1NDg4LCJleHAiOjE3NzI5NTE0ODh9.UTs-8KYdhQ_px2YZT0NUGmzWkOG2d66H9I9uwFgJB8Y",
+          "filename": "frame_00_1765175487108.jpg"
+        },
+        {
+          "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/frame_01_1765175487108.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL2ZyYW1lXzAxXzE3NjUxNzU0ODcxMDguanBnIiwiaWF0IjoxNzY1MTc1NDkwLCJleHAiOjE3NzI5NTE0OTB9.UCFBuYW0tzpfNei8VkF5ZXU4OCsxRZgEweB6BgKbp1o",
+          "filename": "frame_01_1765175487108.jpg"
+        },
+        {
+          "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/frame_02_1765175487108.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL2ZyYW1lXzAyXzE3NjUxNzU0ODcxMDguanBnIiwiaWF0IjoxNzY1MTc1NDkyLCJleHAiOjE3NzI5NTE0OTJ9.H5yJOaZ-noOwS42K7WYS5y2O76TK7Yk6wSQxGQRopm0",
+          "filename": "frame_02_1765175487108.jpg"
+        },
+        {
+          "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/frame_03_1765175487108.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL2ZyYW1lXzAzXzE3NjUxNzU0ODcxMDguanBnIiwiaWF0IjoxNzY1MTc1NDk0LCJleHAiOjE3NzI5NTE0OTR9.xu98OcIV1bFPqfQ7Ivt3j1YN4U-GUKDdwbLaX2tO6ho",
+          "filename": "frame_03_1765175487108.jpg"
+        },
+        {
+          "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/frame_04_1765175487108.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL2ZyYW1lXzA0XzE3NjUxNzU0ODcxMDguanBnIiwiaWF0IjoxNzY1MTc1NDk2LCJleHAiOjE3NzI5NTE0OTZ9.TZx901Ii4bjeTVr3Fjl6W0EI-D6EsxmwA9TilMVhvts",
+          "filename": "frame_04_1765175487108.jpg"
+        }
+      ],
+      "notify": false,
+      "status": "completed",
+      "rubrics": "{\n  \"meta\": {\n    \"can_access_video\": true,\n    \"notes\": \"The transcript provided is completely focused on explaining fractions, deviating from the expected topic of connecting patterns in music and mathematics.\"\n  },\n  \"scores\": {\n    \"subject_knowledge\": 2.0,\n    \"language_fluency_vocabulary\": 8.0,\n    \"grammar_sentence_structure\": 9.0,\n    \"eye_contact\": 8.0,\n    \"body_language\": 8.0,\n    \"confidence\": 9.0,\n    \"voice_modulation\": 9.0\n  },\n  \"overall\": {\n    \"overall_score_out_of_10\": 7.6,\n    \"summary\": \"The presenter demonstrated clear language and strong confidence in explaining the concept of fractions. However, the demo did not align with the expected topic of understanding patterns in music and mathematics. The content was accurate for fractions but unrelated to the planned structure.\"\n  },\n  \"evidence\": {\n    \"subject_knowledge\": \"Focused on fractions rather than patterns in music and math; did not adhere to expected structure.\",\n    \"language_fluency_vocabulary\": \"Fluent and natural with appropriate vocabulary.\",\n    \"grammar_sentence_structure\": \"Clear and grammatically sound sentence structures.\",\n    \"eye_contact\": \"Consistent eye contact with the camera, maintaining engagement.\",\n    \"body_language\": \"Open posture and purposeful gestures throughout the presentation.\",\n    \"confidence\": \"Demonstrated poise and steady pace, with minimal filler words.\",\n    \"voice_modulation\": \"Effective use of pitch and pauses to emphasize points.\"\n  },\n  \"actionable_feedback\": {\n    \"strengths\": [\n      \"Clear and confident delivery.\",\n      \"Effective use of visual aids and examples.\"\n    ],\n    \"areas_for_improvement\": [\n      \"Align content with expected topic on patterns in music and mathematics.\",\n      \"Follow the planned structure for timing and flow.\",\n      \"Incorporate connections between music and math patterns.\"\n    ],\n    \"red_flags\": [\n      \"Deviation from the expected topic and planned structure.\"\n    ]\n  }\n}",
+      "video_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/1742f58f-a56d-4612-a61a-493b19289181/f2184161-6c3a-451f-be22-dec4d4f7ba8c/video/uploaded_video_1765175476359.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby8xNzQyZjU4Zi1hNTZkLTQ2MTItYTYxYS00OTNiMTkyODkxODEvZjIxODQxNjEtNmMzYS00NTFmLWJlMjItZGVjNGQ0ZjdiYThjL3ZpZGVvL3VwbG9hZGVkX3ZpZGVvXzE3NjUxNzU0NzYzNTkubXA0IiwiaWF0IjoxNzY1MTc1NDgyLCJleHAiOjE3NzI5NTE0ODJ9._xuml2InooKl7j1PnyaM50wTp9EpfuKWJtstzogFJtw",
+      "created_at": "2025-12-08T06:31:37.962+00:00",
+      "transcript": "If you've been learning math for a while, then you probably already know a thing or two about fractions. And if you've ever had to, well, break a cookie in half to share with a friend, well then you've used fractions in real life. Oh, well, thank you. That's because fractions are used to represent smaller pieces or parts of things. When you're first learning about fractions, it can help to draw pictures to see how they work. So let's start by drawing a circle. Now this circle represents what we call a hole. Now, not the kind of hole you can fall into. More like a whole cookie or a whole pizza. Now if we divide that circle, or whole amount, into four parts, then we call each of those parts a fraction of the original whole circle. Because this is math and not art, we can't just keep on drawing pictures. We need to learn how to write out fractions using the language of math. Yep… you guessed it… that means using numbers. Unlike a regular number, to write a fraction you need two numbers. One number on top, one number on bottom, and a line between them. I'll explain exactly what the line's for later in the video, but for now, let's figure out what those two numbers mean. Remember, fractions are used to represent parts of something. And the number on the bottom tells us how many parts that something is divided into. The number on top tells us how many of those parts we have. For example, let's write a fraction for our drawing here. I divided this circle into four parts, right? So the number on the bottom will be 4. And I still have all four of those parts, so the number on top will also be 4. I have 4 out of 4 parts. That means I still have a whole circle. But what if somebody came by and took away one part from the circle? Well, the circle's still divided into four parts, so the bottom number would still be 4. But I only have three of those parts left, so that means the top number will change to 3. So I have 3 over 4, or three-fourths of a circle. Make sense so far? Good! Let's try another example. Let's say that I divide a rectangle up into eight parts, and I give you three of those parts. Since the total number of parts is 8, the bottom number will be 8. And since you have three of those parts, the top number will be 3. So the fraction I'm giving you is 3 over 8, or three-eighths of the rectangle. No, no, no… no need to thank me. Oh, and it's important to remember that for fractions to work right, the parts that you divide the whole up into have to be equal. We can't like… well… take a candy bar and say, I'm gonna divide it into two parts, so this is your half, and here's my half. Let's look at a few more examples so you can really see the pattern of how fractions can represent parts of objects. This rectangle is divided up into three equal parts, and two of them are shaded red. So 2 over 3, or two-thirds of the rectangle, is shaded red. The circle is divided into 12 equal parts, and 7 of those parts are shaded green. So 7 over 12, or seven-twelfths of the circle, is shaded green. The hexagon is divided into 6 equal parts, and 5 of those parts are shaded blue. So 5 over 6, or five-sixths of the hexagon, is shaded blue. Alright, so you can see how fractions can be used to represent parts of objects like circles and rectangles. But fractions can be used for more than that. They can be used to represent parts of… well… anything. Like… like pets for example. Let's say you have 7 pets… 4 dogs, 2 cats, and a big fat hamster. Well that means that 4 over 7, or four-sevenths of your pets are dogs, and 2 over 7, or two-sevenths of your pets are cats, and 1 over 7, or one-seventh of your pets are hamsters. It also means that your house probably smells like a pet store. Okay, so fractions can be used to represent anything from parts of a circle to kitty cats. But did you know that fractions can also be used to represent things you can't even see? Well, like a test score for example. Let's say you take a math test and there's 20 questions on the test, and you get 17 of those questions right. That means that you got 17 over 20, or 17-twentieths of the questions right. Alright, so that's the basic idea of how fractions can be used to represent parts of things. But there's a lot more to fractions than that. In the next section, we're going to be looking at some of the other things we can do with fractions. But before that, let's review. Fractions are used to represent parts of a whole. Fractions are written in the form of a top number over a bottom number with a line between them. The bottom number represents how many parts the whole is divided into, and the top number represents how many of those parts you have. And finally, the parts that a whole is divided up into must be equal for fractions to work right. To really understand how fractions are used to represent parts of things, be sure to do the exercises. And I'll see you in section two. Learn more at www.mathantics.com"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "questionnaire_answers",
+    "table_definition": "create table public.questionnaire_answers (\n  id uuid,\n  application_id uuid,\n  answers_json jsonb,\n  submitted_at timestamp without time zone,\n  job_id uuid\n);",
+    "sample_row": {
+      "id": "b4c870f7-8327-4e31-8386-0284adad7e72",
+      "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+      "answers_json": [
+        {
+          "id": 0,
+          "answerIndex": 0
+        },
+        {
+          "id": 1,
+          "answerIndex": 3
+        },
+        {
+          "id": 2,
+          "answerIndex": 2
+        },
+        {
+          "id": 3,
+          "answerIndex": 2
+        },
+        {
+          "id": 4,
+          "answerIndex": 1
+        }
+      ],
+      "submitted_at": "2025-10-27T08:39:29.642714",
+      "application_id": "d4f42a1c-38cc-45d0-93d9-179b7f40db6d"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "admin_user_info",
+    "table_definition": "create table public.admin_user_info (\n  id uuid,\n  created_at timestamp with time zone,\n  first_name text,\n  last_name text,\n  school_id uuid,\n  email text,\n  phone_no text,\n  avatar text,\n  role user_role\n);",
+    "sample_row": {
+      "id": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "role": "admin",
+      "email": "rahuljainrj007luv@gmail.com",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKcW8XhlQW-9hiAycb0tMASBdBKmXfW-HYS7XLAiYlAHPtRIQ=s96-c",
+      "phone_no": "9738731329",
+      "last_name": "Jain",
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-10-07T05:49:44.524781+00:00",
+      "first_name": "Rahul "
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "jobs",
+    "table_definition": "create table public.jobs (\n  id uuid,\n  title text,\n  job_type text,\n  mode text,\n  grade_levels text[],\n  subjects text[],\n  salary_range text,\n  openings integer,\n  job_description text,\n  assessment_difficulty jsonb,\n  created_at timestamp with time zone,\n  school_id uuid,\n  number_of_questions smallint,\n  status text,\n  minimum_passing_marks numeric,\n  created_by uuid,\n  demo_duration numeric,\n  demo_passing_score numeric,\n  assessment_type text,\n  plan text,\n  max_applications numeric,\n  updated_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "14f59c54-d0da-4366-ab26-952bd7bc232d",
+      "mode": "any",
+      "plan": "Free Plan",
+      "title": "MT",
+      "status": "OPEN",
+      "job_type": "full-time",
+      "openings": 1,
+      "subjects": [
+        "Mathematics"
+      ],
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-12-04T06:08:05.357+00:00",
+      "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "updated_at": null,
+      "grade_levels": [
+        "Senior Secondary (11-12)"
+      ],
+      "salary_range": "",
+      "demo_duration": 2,
+      "assessment_type": "medium",
+      "job_description": "s",
+      "max_applications": 50,
+      "demo_passing_score": 1,
+      "number_of_questions": 5,
+      "assessment_difficulty": {
+        "includeInterview": true,
+        "subjectScreening": true,
+        "includeVideoAssessment": true
+      },
+      "minimum_passing_marks": 0
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_attendees",
+    "table_definition": "create table public.interview_attendees (\n  id uuid,\n  interview_schedule_id uuid,\n  email text,\n  name text,\n  role text,\n  response_status text,\n  responded_at timestamp with time zone,\n  created_at timestamp with time zone,\n  updated_at timestamp with time zone\n);",
+    "sample_row": null
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "job_application_status_events",
+    "table_definition": "create table public.job_application_status_events (\n  id uuid,\n  application_id uuid,\n  old_status application_status,\n  new_status application_status,\n  changed_at timestamp with time zone,\n  changed_by uuid\n);",
+    "sample_row": null
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "school_info",
+    "table_definition": "create table public.school_info (\n  id uuid,\n  created_at timestamp with time zone,\n  created_by uuid,\n  name text,\n  location text,\n  board text,\n  address text,\n  school_type text,\n  num_students integer,\n  num_teachers integer,\n  website text,\n  logo_url text,\n  updated_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "2317e986-3ebe-415e-b402-849d80f714a0",
+      "name": "Sample International School",
+      "board": "IB",
+      "address": null,
+      "website": null,
+      "location": "Mumbai",
+      "logo_url": null,
+      "created_at": "2025-07-24T05:29:40.544638+00:00",
+      "created_by": null,
+      "updated_at": null,
+      "school_type": null,
+      "num_students": null,
+      "num_teachers": null
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "applicant_info",
+    "table_definition": "create table public.applicant_info (\n  id uuid,\n  user_id uuid,\n  first_name text,\n  email text,\n  created_at timestamp without time zone,\n  resume_url text,\n  status text,\n  last_name text,\n  phone_number text,\n  address text,\n  city text,\n  district text,\n  state text,\n  pin_code text,\n  teaching_experience jsonb,\n  education_qualifications jsonb,\n  subjects text[],\n  job_id uuid,\n  resume_file_name text,\n  avatar text,\n  gender text\n);",
+    "sample_row": {
+      "id": "6b74d2cb-13f2-455f-9649-23d3560cf18b",
+      "city": "Bangalore",
+      "email": "iyach@gmail.comaaaaavaaa",
+      "state": "Karnataka",
+      "avatar": null,
+      "gender": "Male",
+      "job_id": "48adfdf2-4911-4598-8187-18529c837cb9",
+      "status": "application_submitted",
+      "address": "Bangalore, Karnataka | +91 9876543210 | priyasharma.teach@gmail.com LinkedIn: linkedin.com/in/priyasharma-teach",
+      "user_id": "b68893c9-28b8-414a-a554-0bdd89c7d360",
+      "district": "Dharwad",
+      "pin_code": "123131",
+      "subjects": [
+        "Physics",
+        "Mathematics"
+      ],
+      "last_name": "Sharma",
+      "created_at": "2025-08-07T10:58:14.949143",
+      "first_name": "Priya",
+      "resume_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/b68893c9-28b8-414a-a554-0bdd89c7d360/Indian_Teacher_Resume_Priya_Sharma_1754564293914_cj1yn5.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvYjY4ODkzYzktMjhiOC00MTRhLWE1NTQtMGJkZDg5YzdkMzYwL0luZGlhbl9UZWFjaGVyX1Jlc3VtZV9Qcml5YV9TaGFybWFfMTc1NDU2NDI5MzkxNF9jajF5bjUucGRmIiwiaWF0IjoxNzU0NTY0Mjk0LCJleHAiOjE3NTQ1NjQ1OTR9.LPhdRNO3-BUCbMJyeGu9vyFuyyrMig2LSgQ-jNcEkxw",
+      "phone_number": "+91 9876543210",
+      "resume_file_name": "Indian_Teacher_Resume_Priya_Sharma.pdf",
+      "teaching_experience": [
+        {
+          "city": "Bangalore",
+          "school": "Delhi Public School",
+          "endDate": "",
+          "startDate": "2020-06-01",
+          "designation": "Mathematics & Science Teacher"
+        }
+      ],
+      "education_qualifications": [
+        {
+          "degree": "B.Ed.",
+          "endDate": "2018-01-01",
+          "startDate": "2025-08-16",
+          "institution": "Christ University, Bangalore",
+          "specialization": "Bachelor of Education (Mathematics & Science)"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "job_applications",
+    "table_definition": "create table public.job_applications (\n  id uuid,\n  applicant_id uuid,\n  job_id uuid,\n  submitted_at timestamp without time zone,\n  score integer,\n  category_scores jsonb,\n  created_at timestamp without time zone,\n  status application_status,\n  updated_at timestamp with time zone,\n  detailed_results jsonb,\n  overall jsonb,\n  video_url text,\n  user_id uuid,\n  demo_score real\n);",
+    "sample_row": {
+      "id": "939817bf-8153-4fc8-a2fc-da768a5a6407",
+      "score": 10,
+      "job_id": "3242a453-dfbc-4e70-9215-16bf76769ccb",
+      "status": "demo_ready",
+      "overall": {
+        "score": 10,
+        "attempted": 10,
+        "total_questions": 10
+      },
+      "user_id": "b68893c9-28b8-414a-a554-0bdd89c7d360",
+      "video_url": null,
+      "created_at": "2025-09-06T05:35:45.939544",
+      "demo_score": null,
+      "updated_at": "2025-09-06T05:35:45.939544+00:00",
+      "applicant_id": "5af43de1-21da-472d-819d-a8c39d51ec03",
+      "submitted_at": null,
+      "category_scores": {
+        "Science": {
+          "score": 4,
+          "attempted": 4,
+          "total_questions": 4
+        },
+        "Pedagogy": {
+          "score": 3,
+          "attempted": 3,
+          "total_questions": 3
+        },
+        "Communication": {
+          "score": 1,
+          "attempted": 1,
+          "total_questions": 1
+        },
+        "Digital Literacy": {
+          "score": 2,
+          "attempted": 2,
+          "total_questions": 2
+        }
+      },
+      "detailed_results": [
+        {
+          "category": "Pedagogy",
+          "question": "Which of the following is the most effective way to explain the concept of photosynthesis to middle school students?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "0",
+          "user_answer": "1",
+          "correct_answer": "1"
+        },
+        {
+          "category": "Communication",
+          "question": "When discussing a complex scientific topic, which communication technique is most effective for ensuring understanding?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "1",
+          "user_answer": "2",
+          "correct_answer": "2"
+        },
+        {
+          "category": "Digital Literacy",
+          "question": "Which digital tool would be most appropriate for creating an interactive quiz on the periodic table?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "2",
+          "user_answer": "2",
+          "correct_answer": "2"
+        },
+        {
+          "category": "Digital Literacy",
+          "question": "How can a teacher best incorporate technology to enhance a lesson on chemical reactions?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "3",
+          "user_answer": "0",
+          "correct_answer": "0"
+        },
+        {
+          "category": "Pedagogy",
+          "question": "What is the primary purpose of using formative assessments in a science classroom?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "4",
+          "user_answer": "1",
+          "correct_answer": "1"
+        },
+        {
+          "category": "Science",
+          "question": "In a lesson about the water cycle, which activity would best help students understand evaporation?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "5",
+          "user_answer": "2",
+          "correct_answer": "2"
+        },
+        {
+          "category": "Science",
+          "question": "Which property of metals is most relevant when discussing why copper is used in electrical wiring?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "6",
+          "user_answer": "2",
+          "correct_answer": "2"
+        },
+        {
+          "category": "Science",
+          "question": "Which of the following best describes the role of mitochondria in a cell?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "7",
+          "user_answer": "1",
+          "correct_answer": "1"
+        },
+        {
+          "category": "Science",
+          "question": "During a lesson on ecosystems, a student asks why biodiversity is important. What is the best response?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "8",
+          "user_answer": "3",
+          "correct_answer": "3"
+        },
+        {
+          "category": "Pedagogy",
+          "question": "Which teaching method would be most effective for a lesson on Newton's Laws of Motion?",
+          "attempted": true,
+          "is_correct": true,
+          "question_id": "9",
+          "user_answer": "1",
+          "correct_answer": "1"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_questionnaires",
+    "table_definition": "create table public.application_questionnaires (\n  id uuid,\n  application_id uuid,\n  questions_json jsonb,\n  created_at timestamp without time zone,\n  answer_json jsonb,\n  job_id uuid\n);",
+    "sample_row": {
+      "id": "7ebb4e27-c852-4579-82c9-1b658054e529",
+      "job_id": null,
+      "created_at": "2025-10-06T15:50:39.809719",
+      "answer_json": [
+        {
+          "id": 0,
+          "answer": 0
+        },
+        {
+          "id": 1,
+          "answer": 1
+        },
+        {
+          "id": 2,
+          "answer": 1
+        },
+        {
+          "id": 3,
+          "answer": 0
+        },
+        {
+          "id": 4,
+          "answer": 0
+        },
+        {
+          "id": 5,
+          "answer": 1
+        },
+        {
+          "id": 6,
+          "answer": 0
+        },
+        {
+          "id": 7,
+          "answer": 0
+        },
+        {
+          "id": 8,
+          "answer": 1
+        },
+        {
+          "id": 9,
+          "answer": 1
+        }
+      ],
+      "application_id": "22f3d7ff-6326-4cb5-a661-67990eebb8bf",
+      "questions_json": [
+        {
+          "id": 0,
+          "options": [
+            "Using real-life examples like pizza slices",
+            "Lecturing on the theory of fractions",
+            "Reading from the textbook",
+            "Assigning more homework"
+          ],
+          "category": "Pedagogy",
+          "question": "Which teaching strategy is most effective for helping students understand the concept of fractions?"
+        },
+        {
+          "id": 1,
+          "options": [
+            "Speak quickly to cover more material",
+            "Use simple language and visual aids",
+            "Dismiss questions for later",
+            "Encourage students to read the textbook independently"
+          ],
+          "category": "Communication",
+          "question": "How should a teacher communicate complex mathematical concepts to students with varying levels of understanding?"
+        },
+        {
+          "id": 2,
+          "options": [
+            "Microsoft Word",
+            "Google Forms",
+            "Adobe Photoshop",
+            "Notepad"
+          ],
+          "category": "Digital Literacy",
+          "question": "Which digital tool would be most effective for creating interactive math quizzes for middle school students?"
+        },
+        {
+          "id": 3,
+          "options": [
+            "5",
+            "3",
+            "15",
+            "10"
+          ],
+          "category": "Mathematics",
+          "question": "What is the value of 'x' in the equation 3x + 5 = 20?"
+        },
+        {
+          "id": 4,
+          "options": [
+            "Discussing symmetry in nature",
+            "Memorizing definitions",
+            "Copying notes from the board",
+            "Assigning a research project"
+          ],
+          "category": "Pedagogy",
+          "question": "Which of the following approaches is best for teaching students the concept of symmetry?"
+        },
+        {
+          "id": 5,
+          "options": [
+            "80 degrees",
+            "85 degrees",
+            "90 degrees",
+            "100 degrees"
+          ],
+          "category": "Mathematics",
+          "question": "A triangle has angles measuring 45 degrees and 55 degrees. What is the measure of the third angle?"
+        },
+        {
+          "id": 6,
+          "options": [
+            "Using a geometry sketching software",
+            "Writing notes on a blackboard",
+            "Reading from a printed textbook",
+            "Drawing diagrams by hand"
+          ],
+          "category": "Digital Literacy",
+          "question": "How can a teacher best incorporate technology to enhance a lesson on geometry?"
+        },
+        {
+          "id": 7,
+          "options": [
+            "Giving a multiple-choice test",
+            "Asking students to write essays",
+            "Oral exams",
+            "Group discussions"
+          ],
+          "category": "Pedagogy",
+          "question": "What is an effective way to assess students' understanding of algebraic expressions?"
+        },
+        {
+          "id": 8,
+          "options": [
+            "Pointing out the mistake and walking away",
+            "Explaining the correct method and guiding them through it",
+            "Ignoring the mistake",
+            "Telling them to try again without guidance"
+          ],
+          "category": "Communication",
+          "question": "If a student solves the equation x - 7 = 10 incorrectly, what is a constructive feedback method?"
+        },
+        {
+          "id": 9,
+          "options": [
+            "6",
+            "12",
+            "18",
+            "24"
+          ],
+          "category": "Mathematics",
+          "question": "What is the greatest common divisor of 36 and 48?"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "offer_letters",
+    "table_definition": "create table public.offer_letters (\n  id uuid,\n  application_id uuid,\n  job_id uuid,\n  school_id uuid,\n  offer_letter_url text,\n  offer_message text,\n  created_at timestamp with time zone,\n  created_by uuid\n);",
+    "sample_row": {
+      "id": "78b9be66-ce70-47d3-a629-d7bda7a33475",
+      "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-11-17T06:00:45.980176+00:00",
+      "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "offer_message": "Dear Priya Sharma,\n\nWe are pleased to inform you that after careful consideration, we would like to extend an offer for the position of Mathematics Teacher at Shanti Niketan English Medium School.\n\nPlease find the attached offer letter for your review. If you have any questions or need clarification on any points, please don't hesitate to reach out.\n\nWe look forward to having you on our team!\n\nBest regards,\nrahuljainrj007luv@gmail.com",
+      "application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7",
+      "offer_letter_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/offer_letters/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/1763359244577_chai%20sutta%20bar%20csb%201.docx?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvb2ZmZXJfbGV0dGVycy8wYjdkNDA4Ny0yYjQzLTQ2ZWQtOWIxYS1lNTI0NDA0NWYxZjcvMTc2MzM1OTI0NDU3N19jaGFpIHN1dHRhIGJhciBjc2IgMS5kb2N4IiwiaWF0IjoxNzYzMzU5MjQ1LCJleHAiOjE3NzExMzUyNDV9.FuATpVdThuOVh1aQ1tMkQCJbXf0_VEe_0-IDIy16hkI"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "contact_sales_submissions",
+    "table_definition": "create table public.contact_sales_submissions (\n  id integer,\n  name text,\n  email text,\n  phone text,\n  school text,\n  location text,\n  selected_plan text,\n  created_at timestamp with time zone,\n  role text\n);",
+    "sample_row": {
+      "id": 2,
+      "name": "Rqhul",
+      "role": null,
+      "email": "Rahuljainrj1329@gmail.com",
+      "phone": "1231231231",
+      "school": "School Name",
+      "location": "Hublie",
+      "created_at": "2025-12-17T05:24:15.63443+00:00",
+      "selected_plan": "GOLD"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "assessment_monitoring_logs",
+    "table_definition": "create table public.assessment_monitoring_logs (\n  id uuid,\n  user_id uuid,\n  application_id uuid,\n  job_id uuid,\n  image_path text,\n  captured_at timestamp with time zone,\n  violation_type text,\n  created_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "6ecd5b40-45a5-4338-91ee-75a73bea0f61",
+      "job_id": "3242a453-dfbc-4e70-9215-16bf76769ccb",
+      "user_id": "1544348b-4c04-47b6-840e-148a85cbd8ed",
+      "created_at": "2025-09-01T10:04:45.648674+00:00",
+      "image_path": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/1544348b-4c04-47b6-840e-148a85cbd8ed/assessment_monitoring/violation_no_face_1756721084388_6u04ab.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvMTU0NDM0OGItNGMwNC00N2I2LTg0MGUtMTQ4YTg1Y2JkOGVkL2Fzc2Vzc21lbnRfbW9uaXRvcmluZy92aW9sYXRpb25fbm9fZmFjZV8xNzU2NzIxMDg0Mzg4XzZ1MDRhYi5qcGciLCJpYXQiOjE3NTY3MjEwODUsImV4cCI6MTc4ODI1NzA4NX0.QR-chgOGfMZW1Gg_1I3ADCsRVjaNZTbZsB9h09zd7f0",
+      "captured_at": "2025-09-01T10:04:45.512+00:00",
+      "application_id": "200088cb-6b8a-43b8-bd95-2288e4d1a794",
+      "violation_type": "no_face_detected"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_interview_slots",
+    "table_definition": "create table public.application_interview_slots (\n  id uuid,\n  created_at timestamp with time zone,\n  selected_slots jsonb\n);",
+    "sample_row": {
+      "id": "d50d7976-5542-46be-bb21-538e7d34fd74",
+      "created_at": "2025-12-07T05:48:32.202976+00:00",
+      "selected_slots": [
+        {
+          "id": "tuesday-1764659513056-0.5975116662345119",
+          "day": "tuesday",
+          "duration": "30",
+          "start_time": "09:00"
+        },
+        {
+          "id": "tuesday-1764659513056-0.5975116662345119",
+          "day": "tuesday",
+          "duration": "30",
+          "start_time": "09:00"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "user_application_info",
+    "table_definition": "create table public.user_application_info (\n  id uuid,\n  user_id uuid,\n  first_name text,\n  email text,\n  created_at timestamp without time zone,\n  resume_url text,\n  status text,\n  last_name text,\n  phone_number text,\n  address text,\n  city text,\n  district text,\n  state text,\n  pin_code text,\n  teaching_experience jsonb,\n  education_qualifications jsonb,\n  subjects text[],\n  resume_file_name text\n);",
+    "sample_row": {
+      "id": "94eb59e2-ea4a-45f7-82ae-fc6f8e964179",
+      "city": "Dharwad",
+      "email": "rahuljainrj1329@gmail.com",
+      "state": "Karnataka",
+      "status": "application_submitted",
+      "address": "Rajendra residency, New Hubli, Gantigeri\nF 2",
+      "user_id": "b8b7019d-c15f-412d-aec2-4615b27043d9",
+      "district": "Dh",
+      "pin_code": "580028",
+      "subjects": [
+        "Mathematics",
+        "Physics",
+        "Chemistry",
+        "Biology"
+      ],
+      "last_name": "JAIN",
+      "created_at": "2025-08-09T10:50:11.364154",
+      "first_name": "RAHUL",
+      "resume_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/b8b7019d-c15f-412d-aec2-4615b27043d9/RAHUL-JAIN-Resume_1754736609336_bv3gkb.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvYjhiNzAxOWQtYzE1Zi00MTJkLWFlYzItNDYxNWIyNzA0M2Q5L1JBSFVMLUpBSU4tUmVzdW1lXzE3NTQ3MzY2MDkzMzZfYnYzZ2tiLnBkZiIsImlhdCI6MTc1NDczNjYxMSwiZXhwIjoxNzU0NzM2OTExfQ.VUcHHDLFhh7NMz2Ko3eX3kQNPbaWzhRVRsScPvkAEac",
+      "phone_number": "9738731329",
+      "resume_file_name": "RAHUL-JAIN-Resume.pdf",
+      "teaching_experience": [
+        {
+          "school": "Gtttt",
+          "endDate": "2025-08-09",
+          "startDate": "2025-08-09",
+          "designation": "Math ka kya "
+        }
+      ],
+      "education_qualifications": [
+        {
+          "degree": "2016",
+          "endDate": "2019-01-01",
+          "startDate": "2025-08-09",
+          "institution": "Fygf",
+          "specialization": "2019"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "video_analyses",
+    "table_definition": "create table public.video_analyses (\n  id uuid,\n  video_url text,\n  analysis_result jsonb,\n  debug_info jsonb,\n  processing_time_seconds numeric,\n  frame_count integer,\n  transcript_length integer,\n  overall_score numeric,\n  video_size_bytes bigint,\n  has_visual_analysis boolean,\n  created_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "95997183-721b-42db-83f7-19609a2418e9",
+      "video_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/48adfdf2-4911-4598-8187-18529c837cb9/13200b23-7d5c-455f-9927-a90f1e3f92de/video/camera.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvNDhhZGZkZjItNDkxMS00NTk4LTgxODctMTg1MjljODM3Y2I5LzEzMjAwYjIzLTdkNWMtNDU1Zi05OTI3LWE5MGYxZTNmOTJkZS92aWRlby9jYW1lcmEud2VibSIsImlhdCI6MTc1NTc1OTc5OCwiZXhwIjoxNzU2MzY0NTk4fQ.n7FjKXwf-o2rL6NoQbN-Spw8iDONnhMjRwlwVLXinhg",
+      "created_at": "2025-08-21T09:10:27.895+00:00",
+      "debug_info": {
+        "hasVideo": false,
+        "videoUrl": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/48adfdf2-4911-4598-8187-18529c837cb9/13200b23-7d5c-455f-9927-a90f1e3f92de/video/camera.webm?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvNDhhZGZkZjItNDkxMS00NTk4LTgxODctMTg1MjljODM3Y2I5LzEzMjAwYjIzLTdkNWMtNDU1Zi05OTI3LWE5MGYxZTNmOTJkZS92aWRlby9jYW1lcmEud2VibSIsImlhdCI6MTc1NTc1OTc5OCwiZXhwIjoxNzU2MzY0NTk4fQ.n7FjKXwf-o2rL6NoQbN-Spw8iDONnhMjRwlwVLXinhg",
+        "videoSize": 5906380,
+        "frameCount": 0,
+        "processingTime": "32.5s",
+        "transcriptLength": 23
+      },
+      "frame_count": 0,
+      "overall_score": 2.9,
+      "analysis_result": {
+        "meta": {
+          "notes": "The analysis is based solely on the transcript provided, which limits the assessment to audio-related categories. Visual elements such as eye contact and body language cannot be evaluated.",
+          "can_access_video": true
+        },
+        "scores": {
+          "confidence": 5,
+          "eye_contact": 0,
+          "body_language": 0,
+          "voice_modulation": 0,
+          "subject_knowledge": 0,
+          "grammar_sentence_structure": 5,
+          "language_fluency_vocabulary": 0
+        },
+        "overall": {
+          "summary": "The transcript provided is too brief to assess subject knowledge, language fluency, or voice modulation. However, the sentence is grammatically correct, indicating strong grammar skills. The speaker also appears confident based on the concise and clear message.",
+          "overall_score_out_of_10": 2.9
+        },
+        "evidence": {
+          "confidence": "The sentence is delivered clearly and concisely, suggesting confidence.",
+          "eye_contact": "Visual analysis not available.",
+          "body_language": "Visual analysis not available.",
+          "voice_modulation": "Not assessable due to lack of content.",
+          "subject_knowledge": "Not assessable due to lack of content.",
+          "grammar_sentence_structure": "The sentence 'Thank you for watching!' is grammatically correct.",
+          "language_fluency_vocabulary": "Not assessable due to lack of content."
+        },
+        "actionable_feedback": {
+          "red_flags": [
+            "Insufficient content to assess most categories."
+          ],
+          "strengths": [
+            "Grammatically correct sentence structure.",
+            "Confident delivery of the message."
+          ],
+          "areas_for_improvement": [
+            "Provide more content to assess subject knowledge.",
+            "Include varied vocabulary to evaluate language fluency.",
+            "Demonstrate voice modulation through varied pitch and pace."
+          ]
+        }
+      },
+      "video_size_bytes": 5906380,
+      "transcript_length": 23,
+      "has_visual_analysis": false,
+      "processing_time_seconds": 32.538
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_demo_videos",
+    "table_definition": "create table public.application_demo_videos (\n  id uuid,\n  created_at timestamp with time zone,\n  application_id uuid,\n  demo_prompt jsonb\n);",
+    "sample_row": {
+      "id": "58e7b5ff-662e-430c-a1d7-609201e7a60a",
+      "created_at": "2025-08-20T04:43:36.81109+00:00",
+      "demo_prompt": "{\n  \"demo_topic\": \"Introduction to Fractions\",\n  \"pointers\": [\n    {\"title\": \"Introduction to Fractions\", \"minute\": \"1\"},\n    {\"title\": \"Understanding Numerator and Denominator\", \"minute\": \"2\"},\n    {\"title\": \"Visual Representation of Fractions\", \"minute\": \"2\"},\n    {\"title\": \"Equivalent Fractions\", \"minute\": \"2\"},\n    {\"title\": \"Simple Addition of Fractions\", \"minute\": \"2\"},\n    {\"title\": \"Conclusion and Closing Remark\", \"minute\": \"1\"}\n  ]\n}",
+      "application_id": "0ed93296-5a68-4fd5-9415-ccb14bbb8bf3"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "trigger_log",
+    "table_definition": "create table public.trigger_log (\n  id integer,\n  trigger_name text,\n  event text,\n  row_data jsonb,\n  created_at timestamp without time zone\n);",
+    "sample_row": {
+      "id": 3,
+      "event": "UPDATE",
+      "row_data": {
+        "id": "020652ed-2866-4d21-8ab0-adfa99d02752",
+        "score": 1,
+        "job_id": "0623659d-0035-4055-9581-c271fa4014bc",
+        "status": "assessment_evaluated",
+        "overall": {
+          "score": 1,
+          "attempted": 2,
+          "total_questions": 10
+        },
+        "created_at": "2025-08-11T16:50:49.28622",
+        "updated_at": "2025-08-11T16:50:49.28622+00:00",
+        "applicant_id": "7ce9d06d-f83d-45cc-b22c-d69c52d3648d",
+        "submitted_at": null,
+        "category_scores": {
+          "English": {
+            "score": 0,
+            "attempted": 0,
+            "total_questions": 3
+          },
+          "Pedagogy": {
+            "score": 1,
+            "attempted": 1,
+            "total_questions": 3
+          },
+          "Communication": {
+            "score": 0,
+            "attempted": 1,
+            "total_questions": 2
+          },
+          "Digital Literacy": {
+            "score": 0,
+            "attempted": 0,
+            "total_questions": 2
+          }
+        },
+        "detailed_results": [
+          {
+            "category": "Pedagogy",
+            "question": "Which of the following techniques is most effective for teaching vocabulary to primary students?",
+            "attempted": true,
+            "is_correct": true,
+            "question_id": "0",
+            "user_answer": "2",
+            "correct_answer": "2"
+          },
+          {
+            "category": "Communication",
+            "question": "When giving feedback to young students, which approach is most appropriate?",
+            "attempted": true,
+            "is_correct": false,
+            "question_id": "1",
+            "user_answer": "0",
+            "correct_answer": "1"
+          },
+          {
+            "category": "Digital Literacy",
+            "question": "Which tool would be most suitable for creating interactive English lessons for primary students?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "2",
+            "user_answer": null,
+            "correct_answer": "2"
+          },
+          {
+            "category": "Pedagogy",
+            "question": "A child in your class struggles to understand the concept of 'opposites'. Which activity would best help reinforce this concept?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "3",
+            "user_answer": null,
+            "correct_answer": "1"
+          },
+          {
+            "category": "English",
+            "question": "How can a teacher encourage reading habits among primary students?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "4",
+            "user_answer": null,
+            "correct_answer": "1"
+          },
+          {
+            "category": "Pedagogy",
+            "question": "What is the best way to introduce a new storybook to young learners?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "5",
+            "user_answer": null,
+            "correct_answer": "1"
+          },
+          {
+            "category": "English",
+            "question": "Which is an appropriate method to enhance listening skills in primary students?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "6",
+            "user_answer": null,
+            "correct_answer": "0"
+          },
+          {
+            "category": "Communication",
+            "question": "What is a key component of clear communication when instructing young students?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "7",
+            "user_answer": null,
+            "correct_answer": "2"
+          },
+          {
+            "category": "English",
+            "question": "Which activity best helps students learn sentence formation?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "8",
+            "user_answer": null,
+            "correct_answer": "1"
+          },
+          {
+            "category": "Digital Literacy",
+            "question": "A teacher wants to use a digital platform to assign homework. Which tool is best suited for this task?",
+            "attempted": false,
+            "is_correct": false,
+            "question_id": "9",
+            "user_answer": null,
+            "correct_answer": "1"
+          }
+        ]
+      },
+      "created_at": "2025-08-14T05:16:57.668075",
+      "trigger_name": "trg_call_generate_demo"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "job_invitations",
+    "table_definition": "create table public.job_invitations (\n  id uuid,\n  job_id uuid,\n  candidate_email text,\n  invited_by uuid,\n  invited_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "c21ebf39-53e1-4439-968f-c3e7909835fd",
+      "job_id": "cd80ff1a-b1a7-49f9-8d32-e8c1a45619bb",
+      "invited_at": "2025-11-19T06:05:10.324008+00:00",
+      "invited_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "candidate_email": "rahuljainrj1329@gmail.com"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "meet_generation_queue",
+    "table_definition": "create table public.meet_generation_queue (\n  id uuid,\n  interview_id uuid,\n  payload jsonb,\n  processed boolean,\n  created_at timestamp with time zone,\n  processed_at timestamp with time zone\n);",
+    "sample_row": null
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "job_meeting_settings",
+    "table_definition": "create table public.job_meeting_settings (\n  id uuid,\n  school_id uuid,\n  default_interview_type text,\n  default_duration text,\n  candidate_reminder_hours text,\n  interviewer_reminder_hours text,\n  custom_instructions text,\n  created_at timestamp with time zone,\n  slots jsonb,\n  job_id uuid\n);",
+    "sample_row": {
+      "id": "4ac4dc05-acb3-47c5-8881-507019c5d990",
+      "slots": [
+        {
+          "id": "monday-1764657465651",
+          "day": "monday",
+          "duration": "30",
+          "start_time": "09:00"
+        },
+        {
+          "id": "sunday-1764657465651",
+          "day": "sunday",
+          "duration": "30",
+          "start_time": "09:00"
+        },
+        {
+          "id": "tuesday-1764659513056-0.5975116662345119",
+          "day": "tuesday",
+          "duration": "30",
+          "start_time": "09:00"
+        }
+      ],
+      "job_id": "2df556de-9092-459e-af22-9af72cb6fade",
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-12-04T07:04:08.253497+00:00",
+      "default_duration": "30",
+      "custom_instructions": "Please arrive 10 minutes early for your interview.",
+      "default_interview_type": "in-person",
+      "candidate_reminder_hours": "0",
+      "interviewer_reminder_hours": "0"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "job_questionnaires",
+    "table_definition": "create table public.job_questionnaires (\n  id uuid,\n  questions_json jsonb,\n  created_at timestamp without time zone,\n  answer_json jsonb,\n  job_id uuid\n);",
+    "sample_row": {
+      "id": "d1bcb068-4fc6-4ad7-98d9-d49d4fa4b305",
+      "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+      "created_at": "2025-10-25T07:20:15.103181",
+      "answer_json": [
+        {
+          "id": 0,
+          "answer": 1
+        },
+        {
+          "id": 1,
+          "answer": 1
+        },
+        {
+          "id": 2,
+          "answer": 1
+        },
+        {
+          "id": 3,
+          "answer": 1
+        },
+        {
+          "id": 4,
+          "answer": 1
+        }
+      ],
+      "questions_json": [
+        {
+          "id": 0,
+          "options": [
+            "Using a textbook definition and asking students to memorize it",
+            "Demonstrating a simple daily task like making a sandwich and breaking it down into steps",
+            "Assigning a complex coding project to illustrate the use of algorithms",
+            "Giving a lecture on the history of algorithms without practical examples"
+          ],
+          "category": "Pedagogy",
+          "question": "Which of the following is the most effective way to introduce the concept of algorithms to middle school students?"
+        },
+        {
+          "id": 1,
+          "options": [
+            "Ignore the email until the next class session",
+            "Reply promptly with a short, clear response addressing their question",
+            "Respond with a detailed lecture on the topic",
+            "Wait to address it in the next class without a written response"
+          ],
+          "category": "Communication",
+          "question": "A student sends you an email with a question outside of class hours. How should you respond to model effective communication?"
+        },
+        {
+          "id": 2,
+          "options": [
+            "It allows students to watch videos without attending live classes",
+            "It helps in organizing resources, assignments, and tracking student progress effectively",
+            "It replaces the need for teachers in the classroom",
+            "It is only beneficial for grading purposes"
+          ],
+          "category": "Digital Literacy",
+          "question": "What is the primary benefit of using a learning management system (LMS) in a computer science class?"
+        },
+        {
+          "id": 3,
+          "options": [
+            "Lecturing about binary arithmetic and asking students to take notes",
+            "Using an interactive online tool that visualizes the conversion between binary and decimal numbers",
+            "Providing a worksheet with binary operations to solve",
+            "Showing a documentary on the history of binary numbers"
+          ],
+          "category": "Computer Science",
+          "question": "In a lesson about binary numbers, what is an engaging way to help students understand the concept?"
+        },
+        {
+          "id": 4,
+          "options": [
+            "Explaining variables with complex mathematical equations",
+            "Creating a simple game using a visual coding platform where students use variables to store scores",
+            "Reading a chapter on variables from a textbook",
+            "Watching a video about famous programmers discussing variables"
+          ],
+          "category": "Computer Science",
+          "question": "Which activity would best help students understand the concept of variables in programming?"
+        }
+      ]
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_schedule",
+    "table_definition": "create table public.interview_schedule (\n  id uuid,\n  school_id uuid,\n  candidate_email text,\n  panelists jsonb,\n  interview_date date,\n  interview_time time without time zone,\n  duration_minutes integer,\n  type interview_type,\n  meet_link text,\n  google_event_id text,\n  status interview_status,\n  metadata jsonb,\n  created_at timestamp with time zone,\n  updated_at timestamp with time zone,\n  created_by uuid,\n  job_id uuid,\n  candidate_id uuid\n);",
+    "sample_row": {
+      "id": "677a6e1b-3396-4d8e-8233-bc673960d78a",
+      "type": "offline",
+      "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+      "status": "scheduled",
+      "metadata": {},
+      "meet_link": null,
+      "panelists": [
+        {
+          "email": "rahuljainrj007luv@gmail.com"
+        }
+      ],
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-12-14T07:12:09.455478+00:00",
+      "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "updated_at": "2025-12-14T07:12:09.455478+00:00",
+      "candidate_id": "366ca2ba-16da-4224-852d-edc0df352039",
+      "interview_date": "2025-12-14",
+      "interview_time": "11:00:00",
+      "candidate_email": "rahuljainrj1329@gmail.cofm",
+      "google_event_id": null,
+      "duration_minutes": 60
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_meeting_settings",
+    "table_definition": "create table public.interview_meeting_settings (\n  id uuid,\n  school_id uuid,\n  default_interview_type text,\n  default_duration text,\n  buffer_time text,\n  working_hours_start text,\n  working_hours_end text,\n  candidate_reminder_hours text,\n  interviewer_reminder_hours text,\n  custom_instructions text,\n  working_days jsonb,\n  breaks jsonb,\n  created_at timestamp with time zone,\n  updated_at timestamp with time zone,\n  slots jsonb\n);",
+    "sample_row": {
+      "id": "6c2bac84-0b1f-4712-a842-14fb2874fb63",
+      "slots": null,
+      "breaks": [],
+      "school_id": null,
+      "created_at": "2025-11-30T05:41:18.907807+00:00",
+      "updated_at": "2025-11-30T05:42:17.715774+00:00",
+      "buffer_time": "15",
+      "working_days": [
+        {
+          "day": "monday",
+          "enabled": true,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "tuesday",
+          "enabled": true,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "wednesday",
+          "enabled": true,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "thursday",
+          "enabled": true,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "friday",
+          "enabled": true,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "saturday",
+          "enabled": false,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        },
+        {
+          "day": "sunday",
+          "enabled": false,
+          "end_time": "17:00",
+          "start_time": "09:00",
+          "slot_duration": "30"
+        }
+      ],
+      "default_duration": "30",
+      "working_hours_end": "17:00",
+      "custom_instructions": "Please arrive 10 minutes early for your interview.",
+      "working_hours_start": "09:00",
+      "default_interview_type": "in-person",
+      "candidate_reminder_hours": "24",
+      "interviewer_reminder_hours": "1"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_confirmations",
+    "table_definition": "create table public.interview_confirmations (\n  id uuid,\n  interview_id uuid,\n  recipient_email text,\n  recipient_type text,\n  status text,\n  response_token uuid,\n  suggested_times jsonb,\n  responded_at timestamp with time zone,\n  created_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "ab117c05-2937-4a91-b480-ae98da425b92",
+      "status": "pending",
+      "created_at": "2025-12-14T06:57:25.71728+00:00",
+      "interview_id": "c1559cd1-138d-43e9-ba27-70601a91f4ce",
+      "responded_at": null,
+      "recipient_type": "candidate",
+      "response_token": "605bb7a5-1593-4be0-a7c9-0edcdab4f0c3",
+      "recipient_email": "priyasharma.teach@gmail.com",
+      "suggested_times": null
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_panelists",
+    "table_definition": "create table public.interview_panelists (\n  id uuid,\n  created_at timestamp with time zone,\n  created_by uuid,\n  name text,\n  email text,\n  school_id uuid\n);",
+    "sample_row": {
+      "id": "b894d48d-ef4e-4083-8b0f-6fafb615b404",
+      "name": "Rahul",
+      "email": "rahuljainrj1239@gmail.com",
+      "school_id": null,
+      "created_at": "2025-11-01T05:21:44.127458+00:00",
+      "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_confirmation_emails",
+    "table_definition": "create table public.interview_confirmation_emails (\n  id uuid,\n  interview_id uuid,\n  sent_at timestamp with time zone,\n  recipient_email text,\n  status text,\n  error_message text,\n  retry_count integer\n);",
+    "sample_row": {
+      "id": "ce75e331-8569-4e67-9177-08220193fa0f",
+      "status": "sent",
+      "sent_at": "2025-12-14T07:30:03.335841+00:00",
+      "retry_count": 0,
+      "interview_id": "677a6e1b-3396-4d8e-8233-bc673960d78a",
+      "error_message": null,
+      "recipient_email": "rahuljainrj007luv@gmail.com"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_rejection",
+    "table_definition": "create table public.application_rejection (\n  id uuid,\n  created_at timestamp with time zone,\n  message text,\n  application_id uuid\n);",
+    "sample_row": {
+      "id": "edfaf5d6-f3f7-4447-9b99-e6482a96bc34",
+      "message": "Hi Priya Sharma,\n\nThank you for applying to the Mathematics Teacher role at Shanti Niketan English Medium School. Unfortunately, we have decided not to proceed with your candidacy at this stage. We appreciate the effort behind your application, and understand that news like this is always disappointing, no matter where you are in the job search process. \n\n\nThanks again for your interest in Shanti Niketan English Medium School and we wish you luck in your search.\n\nRegards,\nrahuljainrj007luv@gmail.com.\nShanti Niketan English Medium School",
+      "created_at": "2025-11-18T05:08:54.90088+00:00",
+      "application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "interview_rubrics",
+    "table_definition": "create table public.interview_rubrics (\n  id uuid,\n  school_id uuid,\n  name text,\n  description text,\n  type text,\n  out_of integer,\n  created_at timestamp with time zone,\n  updated_at timestamp with time zone,\n  criterion_id text\n);",
+    "sample_row": {
+      "id": "dc25a19d-1844-4c53-979d-0dfabfc2ffe8",
+      "name": "Subject Knowledge",
+      "type": "numeric",
+      "out_of": 10,
+      "school_id": null,
+      "created_at": "2025-11-12T04:41:22.461373+00:00",
+      "updated_at": "2025-11-12T04:41:22.461373+00:00",
+      "description": "Depth of understanding and accuracy in the subject matter relevant to the grade/subject taught.",
+      "criterion_id": "subject-knowledge"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "evaluation_tokens",
+    "table_definition": "create table public.evaluation_tokens (\n  id uuid,\n  job_application_id uuid,\n  panelist_email text,\n  token text,\n  expires_at timestamp with time zone,\n  used boolean,\n  used_at timestamp with time zone,\n  created_at timestamp with time zone,\n  rubric_id uuid,\n  school_id uuid\n);",
+    "sample_row": {
+      "id": "f72bc2b2-1c12-4050-bbce-9095a80c2c1b",
+      "used": true,
+      "token": "52beeaf715013e5b1ac1358db1b13f1f12041c1d393f2bef838822778826a6c4",
+      "used_at": "2025-11-14T05:20:23.59+00:00",
+      "rubric_id": null,
+      "school_id": null,
+      "created_at": "2025-11-14T05:08:02.360638+00:00",
+      "expires_at": "2025-11-15T05:08:01.952+00:00",
+      "panelist_email": "rahuljainrj1329@gmail.com",
+      "job_application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "panelist_evaluations",
+    "table_definition": "create table public.panelist_evaluations (\n  id uuid,\n  job_application_id uuid,\n  job_id uuid,\n  school_id uuid,\n  panelist_email text,\n  scores jsonb,\n  overall_score numeric,\n  comments text,\n  strengths text,\n  areas_for_improvement text,\n  recommendation text,\n  submitted_at timestamp with time zone,\n  created_at timestamp with time zone,\n  token_id uuid\n);",
+    "sample_row": {
+      "id": "7611bfe6-5fe1-4028-9e76-d9179e720de6",
+      "job_id": "4c59d95a-2f32-4a57-9023-d31a2258bdb1",
+      "scores": [
+        {
+          "id": "4f176c8b-d2e7-4097-9a09-741c3de0cc84",
+          "score": 6
+        },
+        {
+          "id": "333fe8ca-8bca-4f35-9302-1153ed5329a4",
+          "score": 9
+        },
+        {
+          "id": "8b1f0512-4963-4913-926c-4fdcddcace04",
+          "score": 10
+        },
+        {
+          "id": "d3cd201c-15cc-4bfc-90ea-9055245f5e50",
+          "score": 10
+        },
+        {
+          "id": "36013c8c-e1b2-47ec-8e6a-ca278df61667",
+          "score": 8
+        },
+        {
+          "id": "4a52faae-06cf-408b-a6aa-64ce307b8dea",
+          "score": 8
+        },
+        {
+          "id": "e39c92ca-346c-4c50-974f-8783dfd378e3",
+          "score": 8
+        },
+        {
+          "id": "5f3ba42f-eed1-4314-9238-75214f53c528",
+          "score": 10
+        },
+        {
+          "id": "dad9d687-7be9-4bf3-b5d2-f2138ef687dd",
+          "score": 10
+        },
+        {
+          "id": "340ee5ac-b63a-405d-a810-b6c0326ad456",
+          "score": 10
+        },
+        {
+          "id": "2581c301-b3ba-41f8-9329-77c733c17c37",
+          "score": 0
+        }
+      ],
+      "comments": "",
+      "token_id": "093da22f-5c70-45e2-b0a0-7074637693cd",
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "strengths": "",
+      "created_at": "2025-11-22T12:30:21.344324+00:00",
+      "submitted_at": "2025-11-22T12:30:21.344324+00:00",
+      "overall_score": null,
+      "panelist_email": "rahuljainrj007luv@gmail.com",
+      "recommendation": "not_recommend",
+      "job_application_id": "b6ae9ec5-a0b8-46f6-bd41-ad1342f4ab53",
+      "areas_for_improvement": ""
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "invitations",
+    "table_definition": "create table public.invitations (\n  id uuid,\n  school_id uuid,\n  invited_by uuid,\n  email text,\n  name text,\n  role text,\n  token text,\n  status text,\n  expires_at timestamp with time zone,\n  created_at timestamp with time zone,\n  updated_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "43e5bf4a-2c51-4e12-8f41-8a82af1f6c6f",
+      "name": "User",
+      "role": "viewer",
+      "email": "sivov41389@bipochub.com",
+      "token": "725013614a9e46c04c7fd27350d54a87189d8c5b1e30e8b1fd9114440d16f2c9",
+      "status": "pending",
+      "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+      "created_at": "2025-11-26T06:13:04.476301+00:00",
+      "expires_at": "2025-12-03T06:13:04.436+00:00",
+      "invited_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+      "updated_at": "2025-11-26T06:13:04.476301+00:00"
+    }
+  },
+  {
+    "out_schema_name": "public",
+    "out_table_name": "application_ai_evaluations",
+    "table_definition": "create table public.application_ai_evaluations (\n  id uuid,\n  application_id uuid,\n  final_recommendation text,\n  strengths jsonb,\n  areas_for_improvement jsonb,\n  raw_payload jsonb,\n  created_at timestamp with time zone\n);",
+    "sample_row": {
+      "id": "5dae8410-e637-4d62-bd5d-89ea8d3e2f9b",
+      "strengths": [
+        "Good use of visuals to explain concepts.",
+        "Fluent language and strong eye contact."
+      ],
+      "created_at": "2025-11-14T07:31:40.926794+00:00",
+      "raw_payload": {
+        "school": {
+          "id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+          "name": "Shanti Niketan English Medium School",
+          "board": "state",
+          "address": "Mangalwat Peth, Hubli",
+          "website": null,
+          "location": "Hubli",
+          "logo_url": null,
+          "created_at": "2025-10-07T06:26:34.591434+00:00",
+          "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+          "updated_at": "2025-11-03T05:17:22.716+00:00",
+          "school_type": "k8",
+          "num_students": 1000,
+          "num_teachers": 20,
+          "notification_settings": null
+        },
+        "rubrics": [
+          {
+            "id": "4f176c8b-d2e7-4097-9a09-741c3de0cc84",
+            "name": "Subject Knowledge",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Depth of understanding and accuracy in the subject matter relevant to the grade/subject taught.",
+            "criterion_id": null
+          },
+          {
+            "id": "333fe8ca-8bca-4f35-9302-1153ed5329a4",
+            "name": "Communication Clarity",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Ability to explain concepts clearly, use appropriate language level, and engage through articulation and tone.",
+            "criterion_id": null
+          },
+          {
+            "id": "8b1f0512-4963-4913-926c-4fdcddcace04",
+            "name": "Pedagogical Approach",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Use of age-appropriate methods, questioning techniques, and differentiation strategies.",
+            "criterion_id": null
+          },
+          {
+            "id": "d3cd201c-15cc-4bfc-90ea-9055245f5e50",
+            "name": "Engagement & Interaction",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Encourages student participation, maintains attention, and adapts pacing dynamically.",
+            "criterion_id": null
+          },
+          {
+            "id": "36013c8c-e1b2-47ec-8e6a-ca278df61667",
+            "name": "Confidence & Professional Demeanor",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Displays confidence, posture, and professionalism consistent with a role model teacher.",
+            "criterion_id": null
+          },
+          {
+            "id": "4a52faae-06cf-408b-a6aa-64ce307b8dea",
+            "name": "Use of Teaching Aids / Technology",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Integrates blackboard, PPTs, or digital tools effectively to enhance clarity and retention.",
+            "criterion_id": null
+          },
+          {
+            "id": "e39c92ca-346c-4c50-974f-8783dfd378e3",
+            "name": "Language Proficiency",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Command over spoken English (and/or regional language), grammar, and pronunciation.",
+            "criterion_id": null
+          },
+          {
+            "id": "5f3ba42f-eed1-4314-9238-75214f53c528",
+            "name": "Adaptability & Responsiveness",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Reacts well to unexpected questions, adapts examples or explanations in real time.",
+            "criterion_id": null
+          },
+          {
+            "id": "dad9d687-7be9-4bf3-b5d2-f2138ef687dd",
+            "name": "Overall Teaching Effectiveness",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "General impression of ability to deliver a high-quality lesson independently.",
+            "criterion_id": null
+          },
+          {
+            "id": "340ee5ac-b63a-405d-a810-b6c0326ad456",
+            "name": "New",
+            "type": "numeric",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "This is description",
+            "criterion_id": null
+          },
+          {
+            "id": "2581c301-b3ba-41f8-9329-77c733c17c37",
+            "name": "Classroom Management",
+            "type": "boolean",
+            "out_of": 10,
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "description": "Demonstrates control, structure, and positive reinforcement techniques suitable for maintaining learning discipline.",
+            "criterion_id": null
+          }
+        ],
+        "video_demo": {
+          "id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7",
+          "score": null,
+          "frames": [
+            {
+              "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/frame_00_1761805027651.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2ZyYW1lXzAwXzE3NjE4MDUwMjc2NTEuanBnIiwiaWF0IjoxNzYxODA1MDI4LCJleHAiOjE3Njk1ODEwMjh9.Q7T1uJhncBsTp-xV5Y6TFI0sj2GiJY-t8OtWeEfQZBU",
+              "filename": "frame_00_1761805027651.jpg"
+            },
+            {
+              "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/frame_01_1761805027651.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2ZyYW1lXzAxXzE3NjE4MDUwMjc2NTEuanBnIiwiaWF0IjoxNzYxODA1MDI4LCJleHAiOjE3Njk1ODEwMjh9.9awm7UEdBQdkVcyCGLMhtFc2v_mlPpII51fCG3o7Dns",
+              "filename": "frame_01_1761805027651.jpg"
+            },
+            {
+              "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/frame_02_1761805027651.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2ZyYW1lXzAyXzE3NjE4MDUwMjc2NTEuanBnIiwiaWF0IjoxNzYxODA1MDI5LCJleHAiOjE3Njk1ODEwMjl9.mEli7W9N6U88vhkoS3tk8J699znXojo7hBBjSxU1O_Q",
+              "filename": "frame_02_1761805027651.jpg"
+            },
+            {
+              "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/frame_03_1761805027651.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2ZyYW1lXzAzXzE3NjE4MDUwMjc2NTEuanBnIiwiaWF0IjoxNzYxODA1MDI5LCJleHAiOjE3Njk1ODEwMjl9.qnnAIgf8JUMnGRxIDKL3_T4nTGZezcmNU6RsYHe9DgI",
+              "filename": "frame_03_1761805027651.jpg"
+            },
+            {
+              "url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/frame_04_1761805027651.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2ZyYW1lXzA0XzE3NjE4MDUwMjc2NTEuanBnIiwiaWF0IjoxNzYxODA1MDMwLCJleHAiOjE3Njk1ODEwMzB9.68vjkLcIsTk9_tMIgSDEHTEdLjH1L6SI1cbDecZ3gNI",
+              "filename": "frame_04_1761805027651.jpg"
+            }
+          ],
+          "status": "completed",
+          "rubrics": "{\n  \"meta\": {\n    \"can_access_video\": true,\n    \"notes\": \"The transcript and images provided are focused on teaching fractions, not algorithms. The structure and content do not match the expected demo topic or structure.\"\n  },\n  \"scores\": {\n    \"subject_knowledge\": 2.0,\n    \"language_fluency_vocabulary\": 8.0,\n    \"grammar_sentence_structure\": 8.0,\n    \"eye_contact\": 9.0,\n    \"body_language\": 8.0,\n    \"confidence\": 8.0,\n    \"voice_modulation\": 8.0\n  },\n  \"overall\": {\n    \"overall_score_out_of_10\": 7.3,\n    \"summary\": \"The presentation effectively explained fractions with clear examples and visuals, but did not address the topic of algorithms as expected. The speaker used fluent language with varied vocabulary and maintained good eye contact and body language throughout.\"\n  },\n  \"evidence\": {\n    \"subject_knowledge\": \"The content focused on fractions rather than algorithms, deviating significantly from the expected topic.\",\n    \"language_fluency_vocabulary\": \"The language was fluent and vocabulary appropriate for explaining fractions.\",\n    \"grammar_sentence_structure\": \"Sentences were grammatically correct and well-structured.\",\n    \"eye_contact\": \"The speaker maintained consistent eye contact with the camera.\",\n    \"body_language\": \"The speaker used open posture and appropriate gestures.\",\n    \"confidence\": \"The presentation was delivered at a steady pace with minimal fillers.\",\n    \"voice_modulation\": \"The speaker varied pitch and pace effectively to maintain engagement.\"\n  },\n  \"actionable_feedback\": {\n    \"strengths\": [\n      \"Good use of visuals to explain concepts.\",\n      \"Fluent language and strong eye contact.\"\n    ],\n    \"areas_for_improvement\": [\n      \"Align content with the intended topic of algorithms.\",\n      \"Follow the planned structure for the algorithm introduction.\",\n      \"Ensure examples are relevant to the topic covered.\"\n    ],\n    \"red_flags\": [\n      \"Did not adhere to the expected topic of algorithms.\"\n    ]\n  }\n}",
+          "video_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/demo/4246c256-e89a-4c8e-86c8-c17c3ed92506/0b7d4087-2b43-46ed-9b1a-e5244045f1f7/video/demo_video_1761805019564.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvZGVtby80MjQ2YzI1Ni1lODlhLTRjOGUtODZjOC1jMTdjM2VkOTI1MDYvMGI3ZDQwODctMmI0My00NmVkLTliMWEtZTUyNDQwNDVmMWY3L3ZpZGVvL2RlbW9fdmlkZW9fMTc2MTgwNTAxOTU2NC5tcDQiLCJpYXQiOjE3NjE4MDUwMjYsImV4cCI6MTc2OTU4MTAyNn0.7igKhBs92gUtYQtGKmlh5OnjYloDhSXcBfHgrT4C7Rs",
+          "created_at": "2025-10-30T06:17:10.5+00:00",
+          "transcript": "If you've been learning math for a while, then you probably already know a thing or two about fractions. And if you've ever had to, well, break a cookie in half to share with a friend, well then you've used fractions in real life. Oh, well, thank you. That's because fractions are used to represent smaller pieces or parts of things. When you're first learning about fractions, it can help to draw pictures to see how they work. So let's start by drawing a circle. Now this circle represents what we call a hole. Now, not the kind of hole you can fall into. More like a whole cookie or a whole pizza. Now if we divide that circle, or whole amount, into four parts, then we call each of those parts a fraction of the original whole circle. Because this is math and not art, we can't just keep on drawing pictures. We need to learn how to write out fractions using the language of math. Yep… you guessed it… that means using numbers. Unlike a regular number, to write a fraction you need two numbers. One number on top, one number on bottom, and a line between them. I'll explain exactly what the line's for later in the video, but for now, let's figure out what those two numbers mean. Remember, fractions are used to represent parts of something. And the number on the bottom tells us how many parts that something is divided into. The number on top tells us how many of those parts we have. For example, let's write a fraction for our drawing here. I divided this circle into four parts, right? So the number on the bottom will be 4. And I still have all four of those parts, so the number on top will also be 4. I have 4 out of 4 parts. That means I still have a whole circle. But what if somebody came by and took away one part from the circle? Well, the circle's still divided into four parts, so the bottom number would still be 4. But I only have three of those parts left, so that means the top number will change to 3. So I have 3 over 4, or three-fourths of a circle. Make sense so far? Good! Let's try another example. Let's say that I divide a rectangle up into eight parts, and I give you three of those parts. Since the total number of parts is 8, the bottom number will be 8. And since you have three of those parts, the top number will be 3. So the fraction I'm giving you is 3 over 8, or three-eighths of the rectangle. No, no, no… no need to thank me. Oh, and it's important to remember that for fractions to work right, the parts that you divide the whole up into have to be equal. We can't like… well… take a candy bar and say, I'm gonna divide it into two parts, so this is your half, and here's my half. Let's look at a few more examples so you can really see the pattern of how fractions can represent parts of objects. This rectangle is divided up into three equal parts, and two of them are shaded red. So 2 over 3, or two-thirds of the rectangle, is shaded red. The circle is divided into 12 equal parts, and 7 of those parts are shaded green. So 7 over 12, or seven-twelfths of the circle, is shaded green. The hexagon is divided into 6 equal parts, and 5 of those parts are shaded blue. So 5 over 6, or five-sixths of the hexagon, is shaded blue. Alright, so you can see how fractions can be used to represent parts of objects like circles and rectangles. But fractions can be used for more than that. They can be used to represent parts of… well… anything. Like… like pets for example. Let's say you have 7 pets… 4 dogs, 2 cats, and a big fat hamster. Well that means that 4 over 7, or four-sevenths of your pets are dogs, and 2 over 7, or two-sevenths of your pets are cats, and 1 over 7, or one-seventh of your pets are hamsters. It also means that your house probably smells like a pet store. Okay, so fractions can be used to represent anything from parts of a circle to kitty cats. But did you know that fractions can also be used to represent things you can't even see? Well, like a test score for example. Let's say you take a math test and there's 20 questions on the test, and you get 17 of those questions right. That means that you got 17 over 20, or 17-twentieths of the questions right. Alright, so that's the basic idea of how fractions can be used to represent parts of things. But there's a lot more to fractions than that. In the next section, we're going to be looking at some of the other things we can do with fractions. But before that, let's review. Fractions are used to represent parts of a whole. Fractions are written in the form of a top number over a bottom number with a line between them. The bottom number represents how many parts the whole is divided into, and the top number represents how many of those parts you have. And finally, the parts that a whole is divided up into must be equal for fractions to work right. To really understand how fractions are used to represent parts of things, be sure to do the exercises. And I'll see you in section two. Learn more at www.mathantics.com"
+        },
+        "job_details": {
+          "id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+          "mode": "hybrid",
+          "plan": "Free Plan",
+          "title": "Mathematics Teacher",
+          "status": "PAUSED",
+          "job_type": "full-time",
+          "openings": 1,
+          "subjects": [
+            "Computer Science",
+            "Physical Education"
+          ],
+          "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+          "created_at": "2025-10-25T07:20:01.889+00:00",
+          "created_by": "0f5aef3d-a03c-439a-adc3-6222b9a28cf9",
+          "updated_at": "2025-11-10T06:41:12.246+00:00",
+          "grade_levels": [
+            "Middle (6-8)"
+          ],
+          "salary_range": "",
+          "demo_duration": 2,
+          "assessment_type": "medium",
+          "job_description": "this is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobvthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring jobthis is a demo Could not find the 'description' column of 'jobs' in the schema cache\nupdated_at this is again a boring job",
+          "max_applications": 50,
+          "demo_passing_score": 1,
+          "number_of_questions": 5,
+          "assessment_difficulty": {
+            "includeInterview": true,
+            "subjectScreening": true,
+            "includeVideoAssessment": true
+          },
+          "minimum_passing_marks": 20
+        },
+        "mcq_overall": 4,
+        "application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7",
+        "candidate_info": {
+          "id": "eab0344e-9158-4ba4-9b2c-357bd7b88b1e",
+          "city": "Bangalore",
+          "email": "1111111111priyasharma.teach@s.c11t111111123111",
+          "state": "Karnataka",
+          "avatar": null,
+          "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+          "status": "application_submitted",
+          "address": "Bangalore, Karnataka | +91 9876543210 | priyasharma.teach@gmail.com LinkedIn: linkedin.com/in/priyasharma-teach",
+          "user_id": "b68893c9-28b8-414a-a554-0bdd89c7d360",
+          "district": "dh",
+          "pin_code": "123123",
+          "subjects": [
+            "Physics",
+            "Mathematics",
+            "Chemistry"
+          ],
+          "last_name": "Sharma",
+          "created_at": "2025-10-30T06:16:20.762379",
+          "first_name": "Priya",
+          "resume_url": "https://fnrkxvvygersqubojfon.supabase.co/storage/v1/object/sign/applications/b68893c9-28b8-414a-a554-0bdd89c7d360/Google%20Search%20Console_1761804979760_k6zweq.pdf?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iY2MwM2NjNi0yMDZjLTQ1OWYtOTZkZC05OTc4ZjQ1ZmQ2Y2YiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhcHBsaWNhdGlvbnMvYjY4ODkzYzktMjhiOC00MTRhLWE1NTQtMGJkZDg5YzdkMzYwL0dvb2dsZSBTZWFyY2ggQ29uc29sZV8xNzYxODA0OTc5NzYwX2s2endlcS5wZGYiLCJpYXQiOjE3NjE4MDQ5ODAsImV4cCI6MTc5MzM0MDk4MH0.LMBZNc2zAq6IB2gnrGLNNBMtqBlTZhCumO43e50Ejp4",
+          "phone_number": "+91 9876543210",
+          "resume_file_name": "Google Search Console.pdf",
+          "teaching_experience": [
+            {
+              "city": "Bangalore",
+              "school": "Delhi Public School",
+              "endDate": "",
+              "isCurrent": true,
+              "startDate": "2020-06-01",
+              "designation": "Mathematics & Science Teacher"
+            }
+          ],
+          "education_qualifications": [
+            {
+              "degree": "B.Ed.",
+              "endDate": "2018-01-01",
+              "isCurrent": false,
+              "startDate": "2025-08-13",
+              "institution": "Christ University, Bangalore",
+              "specialization": "Bachelor of Education (Mathematics & Science)"
+            }
+          ]
+        },
+        "panelist_reviews": [
+          {
+            "id": "1679549d-a6d2-4e38-becd-62908a1d9b61",
+            "job_id": "4246c256-e89a-4c8e-86c8-c17c3ed92506",
+            "scores": [
+              {
+                "id": "4f176c8b-d2e7-4097-9a09-741c3de0cc84",
+                "score": 9
+              },
+              {
+                "id": "333fe8ca-8bca-4f35-9302-1153ed5329a4",
+                "score": 9
+              },
+              {
+                "id": "8b1f0512-4963-4913-926c-4fdcddcace04",
+                "score": 8
+              },
+              {
+                "id": "d3cd201c-15cc-4bfc-90ea-9055245f5e50",
+                "score": 9
+              },
+              {
+                "id": "36013c8c-e1b2-47ec-8e6a-ca278df61667",
+                "score": 10
+              },
+              {
+                "id": "4a52faae-06cf-408b-a6aa-64ce307b8dea",
+                "score": 10
+              },
+              {
+                "id": "e39c92ca-346c-4c50-974f-8783dfd378e3",
+                "score": 10
+              },
+              {
+                "id": "5f3ba42f-eed1-4314-9238-75214f53c528",
+                "score": 10
+              },
+              {
+                "id": "dad9d687-7be9-4bf3-b5d2-f2138ef687dd",
+                "score": 10
+              },
+              {
+                "id": "340ee5ac-b63a-405d-a810-b6c0326ad456",
+                "score": 10
+              },
+              {
+                "id": "2581c301-b3ba-41f8-9329-77c733c17c37",
+                "score": 1
+              }
+            ],
+            "comments": "",
+            "token_id": "f72bc2b2-1c12-4050-bbce-9095a80c2c1b",
+            "school_id": "e38fa407-ba1b-4728-9a01-566a000703f4",
+            "strengths": "",
+            "created_at": "2025-11-14T05:20:24.396876+00:00",
+            "submitted_at": "2025-11-14T05:20:24.396876+00:00",
+            "overall_score": null,
+            "panelist_email": "rahuljainrj1329@gmail.com",
+            "recommendation": "strongly_recommend",
+            "job_application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7",
+            "areas_for_improvement": ""
+          }
+        ],
+        "mcq_category_scores": {
+          "Pedagogy": {
+            "score": 1,
+            "attempted": 1,
+            "total_questions": 1
+          },
+          "Communication": {
+            "score": 1,
+            "attempted": 1,
+            "total_questions": 1
+          },
+          "Computer Science": {
+            "score": 1,
+            "attempted": 1,
+            "total_questions": 2
+          },
+          "Digital Literacy": {
+            "score": 1,
+            "attempted": 1,
+            "total_questions": 1
+          }
+        }
+      },
+      "application_id": "0b7d4087-2b43-46ed-9b1a-e5244045f1f7",
+      "final_recommendation": "neutral",
+      "areas_for_improvement": [
+        "Align content with the intended topic of algorithms.",
+        "Follow the planned structure for the algorithm introduction.",
+        "Ensure examples are relevant to the topic covered."
+      ]
+    }
+  }
+]

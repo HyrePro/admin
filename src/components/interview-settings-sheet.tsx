@@ -12,20 +12,23 @@ import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { SlotPreviewDialog } from "@/components/slot-preview-dialog";
 import { UpdateDefaultSettingsDialog } from "@/components/update-default-settings-dialog";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { InterviewSettingsData, WorkingDay, BreakPeriod, Slot, ExtendedInterviewSettings, IndividualSlot, DAYS_OF_WEEK } from "./screening-settings"
 
 interface SlotConfig {
   start_time: string;
+  end_time: string;
   slot_duration: string;
 }
 
 interface SettingsErrors {
-  default_interview_type?: string;
-  default_duration?: string;
-  candidate_reminder_hours?: string;
-  interviewer_reminder_hours?: string;
   working_days?: string;
   breaks?: string;
   slots?: string;
@@ -54,6 +57,19 @@ const doTimesOverlap = (start1: string, duration1: string, start2: string, durat
   return startTime1 < endTime2 && startTime2 < endTime1;
 };
 
+// Helper function to convert time string to minutes
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// Helper function to convert minutes to time string
+const minutesToTime = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
 export function InterviewSettingsSheet({ 
   open, 
   onOpenChange, 
@@ -67,6 +83,7 @@ export function InterviewSettingsSheet({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [newSlotConfig, setNewSlotConfig] = useState<SlotConfig>({
     start_time: '09:00',
+    end_time: '17:00',
     slot_duration: '30'
   });
   const [individualSlots, setIndividualSlots] = useState<IndividualSlot[]>([]);
@@ -316,29 +333,9 @@ export function InterviewSettingsSheet({
   const validateSettings = useCallback(() => {
     const errors: SettingsErrors = {};
     
-    // Validate required fields
-    if (!interviewSettings.default_interview_type) {
-      errors.default_interview_type = 'Interview type is required';
-    }
-    
-    if (!interviewSettings.default_duration) {
-      errors.default_duration = 'Default duration is required';
-    } else if (isNaN(Number(interviewSettings.default_duration)) || Number(interviewSettings.default_duration) <= 0) {
-      errors.default_duration = 'Duration must be a positive number';
-    }
-    
-    // Validate reminder hours
-    if (interviewSettings.candidate_reminder_hours && (isNaN(Number(interviewSettings.candidate_reminder_hours)) || Number(interviewSettings.candidate_reminder_hours) < 0)) {
-      errors.candidate_reminder_hours = 'Candidate reminder hours must be a non-negative number';
-    }
-    
-    if (interviewSettings.interviewer_reminder_hours && (isNaN(Number(interviewSettings.interviewer_reminder_hours)) || Number(interviewSettings.interviewer_reminder_hours) < 0)) {
-      errors.interviewer_reminder_hours = 'Interviewer reminder hours must be a non-negative number';
-    }
-    
     setSettingsErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [interviewSettings]);
+  }, []);
   
   // Add slot configuration for selected days
   const addSlotConfiguration = useCallback(() => {
@@ -349,19 +346,49 @@ export function InterviewSettingsSheet({
       return;
     }
     
+    // Validate that end time is after start time
+    const startTimeMinutes = timeToMinutes(newSlotConfig.start_time);
+    const endTimeMinutes = timeToMinutes(newSlotConfig.end_time);
+    const duration = parseInt(newSlotConfig.slot_duration);
+    
+    if (endTimeMinutes <= startTimeMinutes) {
+      toast.error('End time must be after start time');
+      return;
+    }
+    
+    if (duration <= 0) {
+      toast.error('Duration must be greater than 0');
+      return;
+    }
+    
+    // Calculate how many complete slots fit in the time range
+    const totalTimeRange = endTimeMinutes - startTimeMinutes;
+    const numberOfSlots = Math.floor(totalTimeRange / duration);
+    
+    if (numberOfSlots === 0) {
+      toast.error('Time range is too short for the specified duration');
+      return;
+    }
+    
     // Create new slots for each selected day
     const newSlots: IndividualSlot[] = [];
     const currentTime = new Date().getTime();
     
     selectedDays.forEach(day => {
-      const newSlot: IndividualSlot = {
-        id: `slot_${currentTime}_${day}`,
-        day: day,
-        start_time: newSlotConfig.start_time,
-        duration: newSlotConfig.slot_duration
-      };
-      
-      newSlots.push(newSlot);
+      // Create multiple slots within the time range
+      for (let i = 0; i < numberOfSlots; i++) {
+        const slotStartTimeMinutes = startTimeMinutes + (i * duration);
+        const slotEndTimeMinutes = slotStartTimeMinutes + duration;
+        
+        const newSlot: IndividualSlot = {
+          id: `slot_${currentTime}_${day}_${i}`,
+          day: day,
+          start_time: minutesToTime(slotStartTimeMinutes),
+          duration: newSlotConfig.slot_duration
+        };
+        
+        newSlots.push(newSlot);
+      }
     });
     
     console.log('Adding new slots:', newSlots);
@@ -371,7 +398,7 @@ export function InterviewSettingsSheet({
     // Mark slots as modified
     setSlotsModified(true);
     
-    toast.success(`Added slots for ${selectedDays.length} day(s)`);
+    toast.success(`Added ${numberOfSlots} slot(s) for ${selectedDays.length} day(s)`);
   }, [selectedDays, newSlotConfig]);
   
   // Remove individual slot
@@ -433,6 +460,8 @@ export function InterviewSettingsSheet({
         console.log('Showing update default dialog for school settings');
         setSettingsToSave(settingsToSave);
         setShowUpdateDefaultDialog(true);
+        // Dismiss the initial toast since we're showing a dialog
+        toast.dismiss(toastId);
       } 
       // Otherwise, save directly
       else {
@@ -483,17 +512,11 @@ export function InterviewSettingsSheet({
         
         // If existing job settings found, update them
         if (existingJobSettings && existingJobSettings.length > 0) {
-          console.log('Updating existing job settings');
           const { error: updateError } = await supabase
             .from('job_meeting_settings')
             .update({
               job_id: jobId,
               school_id: resolvedSchoolId || undefined,
-              default_interview_type: settingsToSave.default_interview_type,
-              default_duration: settingsToSave.default_duration,
-              candidate_reminder_hours: settingsToSave.candidate_reminder_hours,
-              interviewer_reminder_hours: settingsToSave.interviewer_reminder_hours,
-              custom_instructions: settingsToSave.custom_instructions,
               slots: settingsToSave.slots
             })
             .eq('id', existingJobSettings[0].id);
@@ -502,17 +525,11 @@ export function InterviewSettingsSheet({
         } 
         // Otherwise, insert new job settings
         else {
-          console.log('Inserting new job settings');
           const { error: insertError } = await supabase
             .from('job_meeting_settings')
             .insert({
               job_id: jobId,
               school_id: resolvedSchoolId || undefined,
-              default_interview_type: settingsToSave.default_interview_type,
-              default_duration: settingsToSave.default_duration,
-              candidate_reminder_hours: settingsToSave.candidate_reminder_hours,
-              interviewer_reminder_hours: settingsToSave.interviewer_reminder_hours,
-              custom_instructions: settingsToSave.custom_instructions,
               slots: settingsToSave.slots
             });
           
@@ -554,14 +571,9 @@ export function InterviewSettingsSheet({
               .from('interview_meeting_settings')
               .update({
                 school_id: resolvedSchoolId,
-                default_interview_type: settingsToSave.default_interview_type,
-                default_duration: settingsToSave.default_duration,
                 buffer_time: '15', // Default value
                 working_hours_start: settingsToSave.working_hours_start,
                 working_hours_end: settingsToSave.working_hours_end,
-                candidate_reminder_hours: settingsToSave.candidate_reminder_hours,
-                interviewer_reminder_hours: settingsToSave.interviewer_reminder_hours,
-                custom_instructions: settingsToSave.custom_instructions,
                 working_days: settingsToSave.working_days,
                 breaks: settingsToSave.breaks,
                 slots: settingsToSave.slots
@@ -576,14 +588,9 @@ export function InterviewSettingsSheet({
               .from('interview_meeting_settings')
               .insert({
                 school_id: resolvedSchoolId,
-                default_interview_type: settingsToSave.default_interview_type,
-                default_duration: settingsToSave.default_duration,
                 buffer_time: '15', // Default value
                 working_hours_start: settingsToSave.working_hours_start,
                 working_hours_end: settingsToSave.working_hours_end,
-                candidate_reminder_hours: settingsToSave.candidate_reminder_hours,
-                interviewer_reminder_hours: settingsToSave.interviewer_reminder_hours,
-                custom_instructions: settingsToSave.custom_instructions,
                 working_days: settingsToSave.working_days,
                 breaks: settingsToSave.breaks,
                 slots: settingsToSave.slots
@@ -634,7 +641,7 @@ export function InterviewSettingsSheet({
         <SheetHeader>
           <SheetTitle>Interview Settings</SheetTitle>
           <SheetDescription>
-            Configure the default interview workflow for this job post. Add multiple time slots for each day as needed.
+            Configure the interview workflow for this job post.
           </SheetDescription>
         </SheetHeader>
         
@@ -642,113 +649,18 @@ export function InterviewSettingsSheet({
           {/* Scheduling Window Section */}
           <div className="space-y-4">
             <div className="space-y-6 pt-2">
-              {/* Interview Type */}
-              <div className="space-y-2 px-4">
-                <Label htmlFor="default_interview_type">Default Interview Type</Label>
-                <Select 
-                  value={interviewSettings.default_interview_type} 
-                  onValueChange={(value) => setInterviewSettings(prev => ({ 
-                    ...prev, 
-                    default_interview_type: value as 'in-person' | 'online' | 'phone' 
-                  }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select interview type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in-person">In-person</SelectItem>
-                    <SelectItem value="online">Online (Google Meet / Zoom)</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                  </SelectContent>
-                </Select>
-                {settingsErrors.default_interview_type && (
-                  <p className="text-sm text-red-500">{settingsErrors.default_interview_type}</p>
-                )}
-              </div>
-              
-              {/* Default Duration */}
-              <div className="space-y-2 px-4">
-                <Label htmlFor="default_duration">Default Interview Duration (minutes)</Label>
-                <Input
-                  id="default_duration"
-                  type="number"
-                  min="15"
-                  step="15"
-                  value={interviewSettings.default_duration}
-                  onChange={(e) => setInterviewSettings(prev => ({ ...prev, default_duration: e.target.value }))}
-                  placeholder="30"
-                />
-                {settingsErrors.default_duration && (
-                  <p className="text-sm text-red-500">{settingsErrors.default_duration}</p>
-                )}
-              </div>
-              
-              {/* Reminders */}
-              <div className="space-y-4 px-4">
-                <h4 className="font-medium">Reminders</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="candidate_reminder_hours">Candidate Reminder (hours before)</Label>
-                    <Input
-                      id="candidate_reminder_hours"
-                      type="number"
-                      min="0"
-                      value={interviewSettings.candidate_reminder_hours}
-                      onChange={(e) => setInterviewSettings(prev => ({ ...prev, candidate_reminder_hours: e.target.value }))}
-                      placeholder="24"
-                    />
-                    {settingsErrors.candidate_reminder_hours && (
-                      <p className="text-sm text-red-500">{settingsErrors.candidate_reminder_hours}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="interviewer_reminder_hours">Interviewer Reminder (hours before)</Label>
-                    <Input
-                      id="interviewer_reminder_hours"
-                      type="number"
-                      min="0"
-                      value={interviewSettings.interviewer_reminder_hours}
-                      onChange={(e) => setInterviewSettings(prev => ({ ...prev, interviewer_reminder_hours: e.target.value }))}
-                      placeholder="1"
-                    />
-                    {settingsErrors.interviewer_reminder_hours && (
-                      <p className="text-sm text-red-500">{settingsErrors.interviewer_reminder_hours}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Custom Instructions */}
-              <div className="space-y-2 px-4">
-                <Label htmlFor="custom_instructions">Custom Instructions</Label>
-                <Textarea
-                  id="custom_instructions"
-                  value={interviewSettings.custom_instructions}
-                  onChange={(e) => setInterviewSettings(prev => ({ ...prev, custom_instructions: e.target.value }))}
-                  placeholder="Add any specific instructions for interviewers or candidates..."
-                  rows={3}
-                />
-              </div>
-              
               {/* Slot Configuration */}
               <div className="space-y-4 px-4">
                 <div className="flex justify-between items-center">
                   <h5 className="font-medium">Available Slots</h5>
-                  <SlotPreviewDialog 
-                    isOpen={isPreviewOpen}
-                    onOpenChange={setIsPreviewOpen}
-                    slotsByDay={slotsByDay}
-                    workingDays={interviewSettings.working_days}
-                    daysOfWeek={DAYS_OF_WEEK}
-                  />
+                 
                 </div>
                 
                 {/* Add New Slot Form */}
                 <div className="border rounded-lg p-4 m-4">
                   <h6 className="font-medium mb-4">Create Specific Time Slots</h6>
-                  <p className="text-sm text-gray-600 mb-4">Create individual time slots for specific days. Each slot will be available for scheduling interviews.</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <p className="text-sm text-gray-600 mb-4">Create individual time slots for specific days. Multiple slots will be generated within the time range based on the duration.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                     <div className="space-y-2">
                       <Label htmlFor="slot-start-time">Start Time</Label>
                       <Input
@@ -756,6 +668,16 @@ export function InterviewSettingsSheet({
                         type="time"
                         value={newSlotConfig.start_time}
                         onChange={(e) => setNewSlotConfig((prev: SlotConfig) => ({ ...prev, start_time: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="slot-end-time">End Time</Label>
+                      <Input
+                        id="slot-end-time"
+                        type="time"
+                        value={newSlotConfig.end_time}
+                        onChange={(e) => setNewSlotConfig((prev: SlotConfig) => ({ ...prev, end_time: e.target.value }))}
                       />
                     </div>
                     
@@ -785,65 +707,93 @@ export function InterviewSettingsSheet({
                   
                   <div className="space-y-2">
                     <Label>Select Days</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
-                      {DAYS_OF_WEEK.map((day) => {
-                        // Check if adding a slot for this day would cause a conflict
-                        // Sort existing slots by start time for consistent conflict checking
-                        const existingDaySlots = individualSlots
-                          .filter(slot => slot.day === day.value)
-                          .sort((a, b) => a.start_time.localeCompare(b.start_time));
-                        
-                        const hasConflict = selectedDays.includes(day.value) && 
-                          existingDaySlots
-                            .some(slot => 
+                    <TooltipProvider>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                        {DAYS_OF_WEEK.map((day) => {
+                          // Check if adding a slot for this day would cause a conflict
+                          // Sort existing slots by start time for consistent conflict checking
+                          const existingDaySlots = individualSlots
+                            .filter(slot => slot.day === day.value)
+                            .sort((a, b) => a.start_time.localeCompare(b.start_time));
+                          
+                          // Check for conflicts with the new slot configuration
+                          const hasConflict = selectedDays.includes(day.value) && 
+                            existingDaySlots.some(slot => 
                               doTimesOverlap(
                                 slot.start_time, 
                                 slot.duration, 
-                                newSlotConfig.start_time, 
-                                newSlotConfig.slot_duration
+                                newSlotConfig.start_time,
+                                (timeToMinutes(newSlotConfig.end_time) - timeToMinutes(newSlotConfig.start_time)).toString()
                               )
                             );
-                        
-                        return (
-                          <div 
-                            key={day.value} 
-                            className={`flex items-center space-x-2 border rounded p-2 cursor-pointer ${
-                              selectedDays.includes(day.value) 
-                                ? hasConflict 
-                                  ? 'bg-red-50 border-red-300' 
-                                  : 'bg-blue-50 border-blue-300'
-                                : 'hover:bg-gray-50'
-                            }`}
-                            onClick={() => {
-                              if (selectedDays.includes(day.value)) {
-                                setSelectedDays(prev => prev.filter(d => d !== day.value));
-                              } else {
-                                setSelectedDays(prev => [...prev, day.value]);
-                              }
-                            }}
-                          >
-                            <Checkbox
-                              id={`select-${day.value}`}
-                              checked={selectedDays.includes(day.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedDays(prev => [...prev, day.value]);
-                                } else {
+                          
+                          // Generate conflict message if needed
+                          let conflictMessage = "";
+                          if (hasConflict) {
+                            const conflictingSlot = existingDaySlots.find(slot => 
+                              doTimesOverlap(
+                                slot.start_time, 
+                                slot.duration, 
+                                newSlotConfig.start_time,
+                                (timeToMinutes(newSlotConfig.end_time) - timeToMinutes(newSlotConfig.start_time)).toString()
+                              )
+                            );
+                            
+                            if (conflictingSlot) {
+                              conflictMessage = `Conflicting slot exists: ${conflictingSlot.start_time} (${conflictingSlot.duration} min)`;
+                            } else {
+                              conflictMessage = "Conflicting slot exists for this time period";
+                            }
+                          }
+                          
+                          return (
+                            <div 
+                              key={day.value} 
+                              className={`flex items-center space-x-2 border rounded p-2 cursor-pointer relative ${
+                                selectedDays.includes(day.value) 
+                                  ? hasConflict 
+                                    ? 'bg-red-50 border-red-300' 
+                                    : 'bg-blue-50 border-blue-300'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                              onClick={() => {
+                                if (selectedDays.includes(day.value)) {
                                   setSelectedDays(prev => prev.filter(d => d !== day.value));
+                                } else {
+                                  setSelectedDays(prev => [...prev, day.value]);
                                 }
                               }}
-                              className="pointer-events-none"
-                            />
-                            <Label htmlFor={`select-${day.value}`} className="text-sm cursor-pointer">
-                              {day.label}
-                              {hasConflict && (
-                                <span className="text-red-500 ml-1">⚠️</span>
-                              )}
-                            </Label>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            >
+                              <Checkbox
+                                id={`select-${day.value}`}
+                                checked={selectedDays.includes(day.value)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedDays(prev => [...prev, day.value]);
+                                  } else {
+                                    setSelectedDays(prev => prev.filter(d => d !== day.value));
+                                  }
+                                }}
+                                className="pointer-events-none"
+                              />
+                              <Label htmlFor={`select-${day.value}`} className="text-sm cursor-pointer flex items-center">
+                                {day.label}
+                                {hasConflict && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertTriangle className="text-red-500 ml-1 w-4 h-4" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{conflictMessage}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </TooltipProvider>
                   </div>
                 </div>
                 
@@ -1014,13 +964,7 @@ export function InterviewSettingsSheet({
         
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
           <div className="flex justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsPreviewOpen(true)}
-            >
-              Preview Slots
-            </Button>
+            <div></div>
             <div className="flex gap-2">
               <Button 
                 type="button" 

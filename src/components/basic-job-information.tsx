@@ -1,6 +1,6 @@
 'use client'
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import {
@@ -10,6 +10,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Field, FormikProps } from "formik"
 import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Sparkles, Loader2 } from "@/components/icons"
+import { createClient } from "@/lib/supabase/api/client"
+import { toast } from "sonner"
 
 const subjects = [
   "Mathematics", "Science", "English", "Social Studies", "Hindi",
@@ -31,9 +36,46 @@ const experienceOptions = [
   { value: "1-3", label: "1–3 years" },
   { value: "3-5", label: "3–5 years" },
   { value: "5-10", label: "5–10 years" },
-  { value: "10+", label: "10+ years" },
 ]
 
+// Function to extract subjects from job title
+const extractSubjectsFromTitle = (title: string): string[] => {
+  const detectedSubjects: string[] = []
+  const normalizedTitle = title.toLowerCase()
+  
+  subjects.forEach(subject => {
+    // Skip "Other" as it's a special case
+    if (subject === "Other") return
+    
+    // Check for exact matches and common variations
+    const subjectVariations = getSubjectVariations(subject)
+    
+    if (subjectVariations.some(variation => 
+      normalizedTitle.includes(variation.toLowerCase())
+    )) {
+      detectedSubjects.push(subject)
+    }
+  })
+  
+  return detectedSubjects
+}
+
+// Helper function to get common variations of subject names
+const getSubjectVariations = (subject: string): string[] => {
+  const variations: Record<string, string[]> = {
+    "Mathematics": ["math", "maths", "mathematics", "pgt maths", "tgt maths", "math teacher"],
+    "Science": ["science", "physics", "chemistry", "biology", "pgt science", "tgt science"],
+    "English": ["english", "pgt english", "tgt english", "english teacher"],
+    "Social Studies": ["social studies", "sst", "history", "geography", "civics", "economics"],
+    "Hindi": ["hindi", "pgt hindi", "tgt hindi"],
+    "Computer Science": ["computer science", "cs", "computer", "programming", "coding"],
+    "Physical Education": ["physical education", "pe", "sports", "pt"],
+    "Art": ["art", "drawing", "painting", "fine arts"],
+    "Music": ["music", "vocal", "instrumental"]
+  }
+  
+  return variations[subject] || [subject]
+}
 
 type FormValues = {
   jobTitle: string
@@ -52,6 +94,100 @@ type BasicJobInformationProps = FormikProps<FormValues>
 
 export function BasicJobInformation(props: BasicJobInformationProps) {
   const { values, errors, touched, setFieldValue } = props
+  const [isGenerating, setIsGenerating] = useState(false)
+  
+  // Effect to automatically detect subjects when job title changes
+  useEffect(() => {
+    if (values.jobTitle && values.subjects.length === 0) {
+      const detectedSubjects = extractSubjectsFromTitle(values.jobTitle)
+      if (detectedSubjects.length > 0) {
+        setFieldValue("subjects", detectedSubjects)
+      }
+    }
+  }, [values.jobTitle, values.subjects.length, setFieldValue])
+  
+  // Function to generate job description using SQL function proxy
+  const generateJobDescription = async () => {
+    if (!values.jobTitle) {
+      toast.error("Please enter a job title first")
+      return
+    }
+    
+    setIsGenerating(true)
+    try {
+      const supabase = createClient()
+      
+      // Get school information from user metadata
+      const { data: { user } } = await supabase.auth.getUser()
+      const schoolId = user?.user_metadata?.school_id
+      
+      // If we don't have school info, we'll still try to generate but with limited data
+      let schoolName = ""
+      let board = ""
+      let schoolType = ""
+      
+      if (schoolId) {
+        const { data: schoolData, error: schoolError } = await supabase
+          .from('schools')
+          .select('name, board, type')
+          .eq('id', schoolId)
+          .single()
+        
+        if (!schoolError && schoolData) {
+          schoolName = schoolData.name || ""
+          board = schoolData.board || ""
+          schoolType = schoolData.type || ""
+        }
+      }
+      
+      // Prepare salary range string
+      let salaryRange = ""
+      if (values.salaryMin && values.salaryMax) {
+        salaryRange = `₹${values.salaryMin} - ₹${values.salaryMax}`
+      } else if (values.salaryMin) {
+        salaryRange = `₹${values.salaryMin}+`
+      } else if (values.salaryMax) {
+        salaryRange = `Up to ₹${values.salaryMax}`
+      }
+      
+      // Call the SQL function proxy
+      const { data, error } = await supabase.rpc('generate_job_description_via_edge', {
+        p_job_title: values.jobTitle,
+        p_subjects_to_teach: values.subjects.filter(s => s !== "Other"),
+        p_grade: values.gradeLevel.join(", "),
+        p_employment_type: values.employmentType,
+        p_experience: values.experience,
+        p_board: board,
+        p_school_type: schoolType,
+        p_school_name: schoolName,
+        p_salary_range: salaryRange,
+        p_existing_job_description: values.description || ""
+      })
+      
+      if (error) {
+        console.error("Error generating job description:", error)
+        toast.error("Failed to generate job description. Please try again.")
+        return
+      }
+      
+      // Extract job description from the response
+      // The SQL function returns a JSONB response from the Edge Function
+      const jobDescription = data?.job_description || data?.body?.job_description || data?.data?.job_description;
+      
+      if (jobDescription) {
+        setFieldValue("description", jobDescription)
+        toast.success("Job description generated successfully!")
+      } else {
+        toast.error("Failed to generate job description. Please try again.")
+      }
+    } catch (error) {
+      console.error("Error generating job description:", error)
+      toast.error("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+  
   return (
     <div className="space-y-6">
       {/* Job Title */}
@@ -75,17 +211,40 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         )}
       </div>
       {/* Description (optional) */}
-      <div>
+      <div className="relative">
         <Label htmlFor="description">Description</Label>
-        <div className="mt-2">
+        <div className="mt-2 relative">
           <Field
             as={Textarea}
             id="description"
             name="description"
             placeholder="Describe the job role, expectations, or any other details (optional)"
-            rows={3}
-            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
+            rows={6}
+            className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1 pr-10"
           />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute bottom-2 right-2 h-8 w-8 rounded-full hover:bg-gray-100"
+                  onClick={generateJobDescription}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-blue-500" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Generate job description with AI</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       {/* Subjects */}
@@ -272,7 +431,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               type="number"
               className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
             />
-            {touched.salaryMin && errors.salaryMin && (
+            {errors.salaryMin && (
               <div className="text-xs text-red-500 mt-1">{errors.salaryMin}</div>
             )}
           </div>
@@ -284,7 +443,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               type="number"
               className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
             />
-            {errors.salaryMax && (
+            { errors.salaryMax && (
               <div className="text-xs text-red-500 mt-1">{errors.salaryMax}</div>
             )}
           </div>

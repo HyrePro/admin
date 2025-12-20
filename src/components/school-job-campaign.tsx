@@ -29,6 +29,7 @@ interface JobData {
 
 interface JobCardProps {
     data: JobData;
+    router?: ReturnType<typeof useRouter>;
 }
 
 interface SchoolJobsContainerProps {
@@ -39,6 +40,7 @@ const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) =
   const [jobs, setJobs] = useState<JobData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     if (!schoolId) return
@@ -101,18 +103,58 @@ const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) =
     )
   }
 
+  // Calculate number of placeholder cards needed
+  const placeholderCount = Math.max(0, 3 - jobs.length);
+ const placeholders = Array.from({ length: placeholderCount }, (_, i) => (
+  <div 
+    key={`placeholder-${i}`}
+    className="group relative flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all duration-300 ease-out overflow-hidden gap-3 min-h-[200px]"
+    onClick={() => router.push('/jobs/create-job-post')}
+  >
+    {/* Subtle background gradient on hover */}
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/50 group-hover:to-blue-100/30 transition-all duration-300" />
+    
+    <div className="relative flex flex-col items-center justify-center flex-1 text-center">
+      <div className="relative inline-block mb-3">
+        <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-lg group-hover:bg-blue-400/40 transition-all duration-300" />
+        <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-blue-100 group-hover:to-blue-200 transition-all duration-300 shadow-sm">
+          <svg 
+            className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-300" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </div>
+      </div>
+      
+      <div className="text-center space-y-1">
+        <h3 className="text-sm font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-300">
+          Create New Job
+        </h3>
+        <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
+          Click to add a new campaign
+        </p>
+      </div>
+    </div>
+  </div>
+));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {jobs.map((job) => (
-        <JobCard key={job.id} data={job} />
+        <JobCard key={job.id} data={job} router={router} />
       ))}
+      {placeholders}
     </div>
   )
 }
 
 
-const JobCard: React.FC<JobCardProps> = ({ data }) => {
-  const router = useRouter()
+const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
+  const internalRouter = useRouter();
+  const router = externalRouter || internalRouter;
   if (!data) return null
 
   const {

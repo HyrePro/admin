@@ -127,6 +127,7 @@ ErrorAlert.displayName = 'ErrorAlert'
 
 export default function CreateJobApplicationPage() {
   const [jobInfo, setJobInfo] = useState<FormValues | null>(null)
+  const jobInfoRef = useRef<FormValues | null>(null)
   const [step, setStep] = useState(0)
   const [screening, setScreening] = useState({
     assessment: false,
@@ -207,17 +208,17 @@ export default function CreateJobApplicationPage() {
 
   // Memoize job payload creation
   const createJobPayload = useCallback(() => ({
-    jobTitle: jobInfo?.jobTitle ?? "",
-    experience: jobInfo?.experience ?? "any",
-    employmentType: jobInfo?.employmentType ?? "full-time",
-    subjects: jobInfo?.subjects ?? [],
-    gradeLevel: jobInfo?.gradeLevel ?? [],
-    salaryMin: jobInfo?.salaryMin ?? "",
-    salaryMax: jobInfo?.salaryMax ?? "",
-    numberOfOpenings: jobInfo?.numberOfOpenings,
+    jobTitle: jobInfoRef.current?.jobTitle ?? jobInfo?.jobTitle ?? "",
+    experience: jobInfoRef.current?.experience ?? jobInfo?.experience ?? "any",
+    employmentType: jobInfoRef.current?.employmentType ?? jobInfo?.employmentType ?? "full-time",
+    subjects: jobInfoRef.current?.subjects ?? jobInfo?.subjects ?? [],
+    gradeLevel: jobInfoRef.current?.gradeLevel ?? jobInfo?.gradeLevel ?? [],
+    salaryMin: jobInfoRef.current?.salaryMin ?? jobInfo?.salaryMin ?? "",
+    salaryMax: jobInfoRef.current?.salaryMax ?? jobInfo?.salaryMax ?? "",
+    numberOfOpenings: jobInfoRef.current?.numberOfOpenings ?? jobInfo?.numberOfOpenings,
     schoolName: "Dayanand Public School",
     location: "Mumbai",
-    jobDescription: jobInfo?.description ?? "Job description here...",
+    jobDescription: jobInfoRef.current?.description ?? jobInfo?.description ?? "Job description here...",
     requirements: ["Requirement 1", "Requirement 2"],
     includeSubjectTest: screening.assessment,
     subjectTestDuration: screening.assessment ? 30 : undefined,
@@ -241,6 +242,8 @@ export default function CreateJobApplicationPage() {
   }, [])
 
   const handleFormSubmit = useCallback((values: FormValues) => {
+    // Store the form values in ref to avoid re-initialization
+    jobInfoRef.current = values
     setJobInfo(values)
     setStep(1)
   }, [])
@@ -259,6 +262,8 @@ export default function CreateJobApplicationPage() {
             subjects: true,
             gradeLevel: true,
             employmentType: true,
+            salaryMin: true,
+            salaryMax: true,
           })
           return
         }
@@ -574,11 +579,12 @@ export default function CreateJobApplicationPage() {
                   {step === 0 && (
                     <Formik
                       innerRef={formikRef}
-                      initialValues={jobInfo || initialValues}
+                      initialValues={initialValues}
                       validationSchema={validationSchema}
                       onSubmit={handleFormSubmit}
-                      validateOnChange={false}
-                      validateOnBlur={false}
+                      validateOnChange={true}
+                      validateOnBlur={true}
+                      enableReinitialize={false}
                     >
                       {(formik) => (
                         <Form>
