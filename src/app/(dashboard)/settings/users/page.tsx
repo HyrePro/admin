@@ -27,29 +27,22 @@ import dynamic from 'next/dynamic';
 // Dynamically import dialog components with lazy loading
 const InviteDialog = dynamic(() => import('@/components/user-management/invite-dialog').then(mod => mod.InviteDialog), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-    </div>
-  )
+  loading: () => null
 });
 
 const InviteManagementSheet = dynamic(() => import('@/components/user-management/invite-management-sheet').then(mod => mod.InviteManagementSheet), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-    </div>
-  )
+  loading: () => null
 });
 
 const DeleteUserDialog = dynamic(() => import('@/components/user-management/delete-user-dialog').then(mod => mod.DeleteUserDialog), {
   ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-    </div>
-  )
+  loading: () => null
+});
+
+const InviteCodeResultDialog = dynamic(() => import('@/components/user-management/invite-code-result-dialog').then(mod => mod.InviteCodeResultDialog), {
+  ssr: false,
+  loading: () => null
 });
 
 // Constants for pagination
@@ -147,12 +140,25 @@ export default function UsersPage() {
   const [isInviteManagementOpen, setIsInviteManagementOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [componentsLoaded, setComponentsLoaded] = useState(false);
+  const [showInviteCodeResult, setShowInviteCodeResult] = useState(false);
+  const [generatedInviteCode, setGeneratedInviteCode] = useState('');
   const router = useRouter();
 
   // Reset to first page when schoolId changes
   useEffect(() => {
     setCurrentPage(0);
   }, [schoolId]);
+
+  // Simulate component loading completion
+  useEffect(() => {
+    // Set a small timeout to simulate loading completion
+    const timer = setTimeout(() => {
+      setComponentsLoaded(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch school_id if it's null
   useEffect(() => {
@@ -314,12 +320,28 @@ export default function UsersPage() {
               </ItemDescription>
             </div>
             <div className="flex space-x-2">
-              <Button onClick={() => setIsInviteDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Invite New User
+              <Button 
+                onClick={() => setIsInviteDialogOpen(true)}
+                disabled={!componentsLoaded}
+              >
+                {!componentsLoaded ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Invite New User
+                  </>
+                )}
               </Button>
-              <Button variant="outline" onClick={() => setIsInviteManagementOpen(true)}>
-                Manage Invites
+              <Button 
+                variant="outline" 
+                onClick={() => setIsInviteManagementOpen(true)}
+                disabled={!componentsLoaded}
+              >
+                {!componentsLoaded ? 'Loading...' : 'Manage Invites'}
               </Button>
             </div>
           </div>
@@ -336,9 +358,21 @@ export default function UsersPage() {
             <p className="text-muted-foreground mb-4">
               Get started by inviting a new user to your organization
             </p>
-            <Button onClick={() => setIsInviteDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Invite User
+            <Button 
+              onClick={() => setIsInviteDialogOpen(true)}
+              disabled={!componentsLoaded}
+            >
+              {!componentsLoaded ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Invite User
+                </>
+              )}
             </Button>
           </div>
         ) : (
@@ -391,7 +425,11 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled={!componentsLoaded}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button
@@ -401,6 +439,7 @@ export default function UsersPage() {
                                 setUserToDelete(user);
                                 setIsDeleteDialogOpen(true);
                               }}
+                              disabled={!componentsLoaded}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -432,39 +471,41 @@ export default function UsersPage() {
       </div>
 
       {/* Dynamically loaded Invite Dialog */}
-      {isInviteDialogOpen && (
-        <InviteDialog 
-          open={isInviteDialogOpen} 
-          onOpenChange={setIsInviteDialogOpen} 
-          schoolId={schoolId} 
-          user={user} 
-          onInviteSuccess={() => {
-            // Refresh user list
-            const fetchData = async () => {
-              if (!schoolId) return;
-              try {
-                const supabase = createClient();
-                const { data: userData, error: userError } = await supabase
-                  .from('admin_user_info')
-                  .select('id, first_name, last_name, email, role, avatar')
-                  .eq('school_id', schoolId);
+      <InviteDialog 
+        open={isInviteDialogOpen} 
+        onOpenChange={setIsInviteDialogOpen} 
+        schoolId={schoolId} 
+        user={user} 
+        onInviteSuccess={() => {
+          // Refresh user list
+          const fetchData = async () => {
+            if (!schoolId) return;
+            try {
+              const supabase = createClient();
+              const { data: userData, error: userError } = await supabase
+                .from('admin_user_info')
+                .select('id, first_name, last_name, email, role, avatar')
+                .eq('school_id', schoolId);
 
-                if (!userError) {
-                  const usersWithStatus = (userData || []).map(user => ({
-                    ...user,
-                    status: 'active' as const,
-                    role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
-                  }));
-                  setUsers(usersWithStatus);
-                }
-              } catch (error) {
-                console.error('Error refreshing user data:', error);
+              if (!userError) {
+                const usersWithStatus = (userData || []).map(user => ({
+                  ...user,
+                  status: 'active' as const,
+                  role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
+                }));
+                setUsers(usersWithStatus);
               }
-            };
-            fetchData();
-          }} 
-        />
-      )}
+            } catch (error) {
+              console.error('Error refreshing user data:', error);
+            }
+          };
+          fetchData();
+        }}
+        onCodeGenerated={(code) => {
+          setGeneratedInviteCode(code);
+          setShowInviteCodeResult(true);
+        }}
+      />
 
       {/* Dynamically loaded Invite Management Sheet */}
       {isInviteManagementOpen && (
@@ -517,6 +558,18 @@ export default function UsersPage() {
           }} 
         />
       )}
+      
+      {/* Invite Code Result Dialog */}
+      <InviteCodeResultDialog
+        open={showInviteCodeResult}
+        onOpenChange={(open) => {
+          setShowInviteCodeResult(open);
+          if (!open) {
+            setGeneratedInviteCode('');
+          }
+        }}
+        inviteCode={generatedInviteCode}
+      />
     </div>
   );
 }

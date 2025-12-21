@@ -9,7 +9,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_deleted BOOLEAN := FALSE;
+  v_deleted_count INTEGER := 0;
 BEGIN
   -- Verify school exists and user has access
   IF NOT EXISTS (SELECT 1 FROM school_info WHERE id = p_school_id) THEN
@@ -27,10 +27,10 @@ BEGIN
     WHERE id = p_item_id 
       AND school_id = p_school_id;
     
-    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
     
     -- Return true if a row was deleted
-    RETURN v_deleted > 0;
+    RETURN v_deleted_count > 0;
   END IF;
   
   -- Delete invited user (only if they were invited, not a direct admin)
@@ -45,10 +45,10 @@ BEGIN
         AND i.school_id = p_school_id
       ); -- Only allow deleting invited users, not direct admins
     
-    GET DIAGNOSTICS v_deleted = ROW_COUNT;
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
     
     -- Return true if a row was deleted
-    RETURN v_deleted > 0;
+    RETURN v_deleted_count > 0;
   END IF;
   
   RETURN FALSE;

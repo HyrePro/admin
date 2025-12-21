@@ -9,6 +9,7 @@ This directory contains SQL migration files for setting up the database schema a
 3. `003_create_cleanup_expired_invite_codes_function.sql` - Creates the PostgreSQL function for cleaning up expired invite codes
 4. `004_create_get_invite_data_function.sql` - Creates the PostgreSQL function for retrieving invite data
 5. `005_create_delete_invite_data_function.sql` - Creates the PostgreSQL function for deleting invite data
+6. `006_create_candidate_comments_table.sql` - Creates the candidate_comments table with proper indexes and RLS policies, plus functions for CRUD operations
 
 ## How to Apply Migrations
 
@@ -69,6 +70,61 @@ Parameters:
 - `p_school_id` (UUID) - School ID
 - `p_item_id` (UUID) - ID of the item to delete
 - `p_item_type` (TEXT) - Type of item ('code' or 'user')
+
+Returns:
+- `BOOLEAN` - True if deletion was successful
+
+### candidate_comments
+Stores comments made on candidate applications with user mentions.
+
+Columns:
+- `id` (UUID) - Primary key
+- `user_id` (UUID) - Foreign key to admin_user_info table
+- `school_id` (UUID) - Foreign key to schools table
+- `application_id` (UUID) - Foreign key to job_applications table
+- `comment` (TEXT) - The comment content
+- `mentioned_ids` (TEXT[]) - Array of user IDs mentioned in the comment
+- `created_at` (TIMESTAMP) - Creation timestamp
+- `updated_at` (TIMESTAMP) - Last update timestamp
+
+### insert_candidate_comment
+Inserts a new comment for a candidate application.
+
+Parameters:
+- `p_user_id` (UUID) - User ID of commenter
+- `p_school_id` (UUID) - School ID
+- `p_application_id` (UUID) - Application ID
+- `p_comment` (TEXT) - Comment content
+- `p_mentioned_ids` (TEXT[]) - Array of mentioned user IDs
+
+Returns:
+- `UUID` - The ID of the newly created comment
+
+### get_candidate_comments
+Retrieves all comments for a specific candidate application.
+
+Parameters:
+- `p_application_id` (UUID) - Application ID
+
+Returns:
+- Table with comment details including user information
+
+### update_candidate_comment
+Updates an existing comment.
+
+Parameters:
+- `p_comment_id` (UUID) - Comment ID
+- `p_comment` (TEXT) - Updated comment content
+- `p_mentioned_ids` (TEXT[]) - Updated array of mentioned user IDs
+
+Returns:
+- `BOOLEAN` - True if update was successful
+
+### delete_candidate_comment
+Deletes a comment.
+
+Parameters:
+- `p_comment_id` (UUID) - Comment ID
 
 Returns:
 - `BOOLEAN` - True if deletion was successful

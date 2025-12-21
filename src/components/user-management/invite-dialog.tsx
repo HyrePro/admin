@@ -37,9 +37,10 @@ interface InviteDialogProps {
   schoolId: string | null;
   user: User | null;
   onInviteSuccess: () => void;
+  onCodeGenerated?: (code: string) => void;
 }
 
-export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSuccess }: InviteDialogProps) {
+export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSuccess, onCodeGenerated }: InviteDialogProps) {
   const [inviteForm, setInviteForm] = useState({
     name: '',
     email: '',
@@ -53,7 +54,7 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
   const [inviteCode, setInviteCode] = useState('');
   const [expirationPeriod, setExpirationPeriod] = useState('7'); // Default to 7 days
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-  const [showResultDialog, setShowResultDialog] = useState(false);
+  // Removed showResultDialog state as it's now handled by the parent component
 
   // Handle invite form changes
   const handleInviteFormChange = (field: string, value: string) => {
@@ -166,9 +167,11 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
         
         if (code) {
           setInviteCode(code);
-          // Close the invite dialog and show the result dialog
+          // Close the invite dialog and notify parent to show the result dialog
           onOpenChange(false);
-          setShowResultDialog(true);
+          if (onCodeGenerated) {
+            onCodeGenerated(code);
+          }
         } else {
           setMessage('Failed to generate invite code - invalid response format');
         }
@@ -204,14 +207,7 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
     }
   };
 
-  // Handle result dialog close
-  const handleResultDialogClose = (isOpen: boolean) => {
-    setShowResultDialog(isOpen);
-    if (!isOpen) {
-      // Reset the invite code when closing the result dialog
-      setInviteCode('');
-    }
-  };
+  // Removed handleResultDialogClose as it's now handled by the parent component
 
   return (
     <>
@@ -328,39 +324,7 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
         </DialogContent>
       </Dialog>
       
-      {/* Invite Code Result Dialog */}
-      <Dialog open={showResultDialog} onOpenChange={handleResultDialogClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite Code Generated</DialogTitle>
-            <DialogDescription>
-              Share this code with the person you want to invite. They can use it to join your organization.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center space-y-6 py-4">
-            <div className="flex justify-center space-x-2">
-              {inviteCode.split('').map((char, index) => (
-                <div key={index} className="w-12 h-12 flex items-center justify-center text-2xl font-bold border-2 border-gray-300 rounded-lg bg-gray-50">
-                  {char}
-                </div>
-              ))}
-            </div>
-            <Button 
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(inviteCode);
-                  toast.success('Code copied to clipboard');
-                } catch (err) {
-                  console.error('Failed to copy: ', err);
-                  toast.error('Failed to copy code');
-                }
-              }}
-            >
-              Copy Code
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Invite Code Result Dialog is now handled by the parent component */}
     </>
   );
 }
