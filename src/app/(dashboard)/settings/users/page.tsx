@@ -14,15 +14,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Mail, Plus, Trash2, Edit, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
@@ -31,6 +22,35 @@ import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { ItemDescription, ItemTitle } from '@/components/ui/item';
+import dynamic from 'next/dynamic';
+
+// Dynamically import dialog components with lazy loading
+const InviteDialog = dynamic(() => import('@/components/user-management/invite-dialog').then(mod => mod.InviteDialog), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+  )
+});
+
+const InviteManagementSheet = dynamic(() => import('@/components/user-management/invite-management-sheet').then(mod => mod.InviteManagementSheet), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+  )
+});
+
+const DeleteUserDialog = dynamic(() => import('@/components/user-management/delete-user-dialog').then(mod => mod.DeleteUserDialog), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+  )
+});
 
 // Constants for pagination
 const PAGE_SIZE = 10;
@@ -124,21 +144,10 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isInviteManagementOpen, setIsInviteManagementOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const router = useRouter();
-
-  // Form state for inviting new users
-  const [inviteForm, setInviteForm] = useState({
-    name: '',
-    email: '',
-    role: 'viewer'
-  });
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [message, setMessage] = useState('');
-
-  // Destructure form fields for easier access
-  const { name, email, role } = inviteForm;
 
   // Reset to first page when schoolId changes
   useEffect(() => {
@@ -263,103 +272,6 @@ export default function UsersPage() {
     if (canGoNext) setCurrentPage(prev => prev + 1);
   }, [canGoNext]);
 
-  // Handle invite form changes
-  const handleInviteFormChange = (field: string, value: string) => {
-    setInviteForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Handle invite user
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInviteLoading(true);
-    setMessage('');
-
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await supabase.functions.invoke('create-invitation', {
-        body: {
-          name: inviteForm.name,
-          email: inviteForm.email,
-          role: inviteForm.role,
-          schoolId,
-        },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-
-      if (response.error) {
-        setMessage(response.error.message || 'Failed to send invitation');
-      } else {
-        setMessage('Invitation sent successfully!');
-        setInviteForm({ name: '', email: '', role: 'viewer' });
-        setIsInviteDialogOpen(false);
-        // Refresh the user list
-        if (schoolId) {
-          const { data: userData, error: userError } = await supabase
-            .from('admin_user_info')
-            .select('id, first_name, last_name, email, role, avatar')
-            .eq('school_id', schoolId);
-
-          if (!userError) {
-            const usersWithStatus = (userData || []).map(user => ({
-              ...user,
-              status: 'active' as const,
-              role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
-            }));
-            setUsers(usersWithStatus);
-          }
-        }
-      }
-    } catch (error) {
-      setMessage('An error occurred');
-    } finally {
-      setInviteLoading(false);
-    }
-  };
-
-  // Handle delete user
-  const handleDeleteUser = async () => {
-    if (!userToDelete || !schoolId) return;
-
-    try {
-      const supabase = createClient();
-
-      // Check if user is a panelist or admin user
-      if (userToDelete.role === 'interviewer') {
-        // Delete from interview_panelists
-        const { error } = await supabase
-          .from('interview_panelists')
-          .delete()
-          .eq('id', userToDelete.id);
-
-        if (error) throw error;
-
-        // Update local state
-        setPanelists(prev => prev.filter(p => p.id !== userToDelete.id));
-      } else {
-        // For admin users, you would typically deactivate rather than delete
-        toast.info('Admin users cannot be deleted. In a full implementation, they would be deactivated.');
-        setIsDeleteDialogOpen(false);
-        setUserToDelete(null);
-        return;
-      }
-
-      // Update users list
-      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
-
-      // Close dialog and reset state
-      setIsDeleteDialogOpen(false);
-      setUserToDelete(null);
-      toast.success('User removed successfully');
-    } catch (error) {
-      console.error('Error removing user:', error);
-      toast.error('Failed to remove user');
-    }
-  };
-
   // Get role badge variant
   const getRoleBadgeVariant = (role: string) => {
     switch (role.toLowerCase()) {
@@ -401,70 +313,15 @@ export default function UsersPage() {
                 Manage users in your organization
               </ItemDescription>
             </div>
-            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Invite New User
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invite New User</DialogTitle>
-                  <DialogDescription>
-                    Invite a new user to your organization
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={inviteForm.name}
-                      onChange={(e) => handleInviteFormChange('name', e.target.value)}
-                      placeholder="Enter user's full name"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={inviteForm.email}
-                      onChange={(e) => handleInviteFormChange('email', e.target.value)}
-                      placeholder="Enter user's email address"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <select
-                      id="role"
-                      value={inviteForm.role}
-                      onChange={(e) => handleInviteFormChange('role', e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="interviewer">Interviewer</option>
-                    </select>
-                  </div>
-                  {message && (
-                    <div className={`text-sm ${message.includes('successfully') ? 'text-green-600' : 'text-red-600'}`}>
-                      {message}
-                    </div>
-                  )}
-                </form>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={inviteLoading}>
-                    {inviteLoading ? 'Sending...' : 'Send Invitation'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <div className="flex space-x-2">
+              <Button onClick={() => setIsInviteDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Invite New User
+              </Button>
+              <Button variant="outline" onClick={() => setIsInviteManagementOpen(true)}>
+                Manage Invites
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -574,26 +431,92 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove User</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove {userToDelete?.first_name} {userToDelete?.last_name} from your organization?
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteUser}>
-              Remove User
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Dynamically loaded Invite Dialog */}
+      {isInviteDialogOpen && (
+        <InviteDialog 
+          open={isInviteDialogOpen} 
+          onOpenChange={setIsInviteDialogOpen} 
+          schoolId={schoolId} 
+          user={user} 
+          onInviteSuccess={() => {
+            // Refresh user list
+            const fetchData = async () => {
+              if (!schoolId) return;
+              try {
+                const supabase = createClient();
+                const { data: userData, error: userError } = await supabase
+                  .from('admin_user_info')
+                  .select('id, first_name, last_name, email, role, avatar')
+                  .eq('school_id', schoolId);
+
+                if (!userError) {
+                  const usersWithStatus = (userData || []).map(user => ({
+                    ...user,
+                    status: 'active' as const,
+                    role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
+                  }));
+                  setUsers(usersWithStatus);
+                }
+              } catch (error) {
+                console.error('Error refreshing user data:', error);
+              }
+            };
+            fetchData();
+          }} 
+        />
+      )}
+
+      {/* Dynamically loaded Invite Management Sheet */}
+      {isInviteManagementOpen && (
+        <InviteManagementSheet 
+          open={isInviteManagementOpen} 
+          onOpenChange={setIsInviteManagementOpen} 
+          schoolId={schoolId} 
+          onFetchInviteData={() => {
+            // Refresh user list
+            const fetchData = async () => {
+              if (!schoolId) return;
+              try {
+                const supabase = createClient();
+                const { data: userData, error: userError } = await supabase
+                  .from('admin_user_info')
+                  .select('id, first_name, last_name, email, role, avatar')
+                  .eq('school_id', schoolId);
+
+                if (!userError) {
+                  const usersWithStatus = (userData || []).map(user => ({
+                    ...user,
+                    status: 'active' as const,
+                    role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
+                  }));
+                  setUsers(usersWithStatus);
+                }
+              } catch (error) {
+                console.error('Error refreshing user data:', error);
+              }
+            };
+            fetchData();
+          }} 
+        />
+      )}
+
+      {/* Dynamically loaded Delete User Dialog */}
+      {isDeleteDialogOpen && (
+        <DeleteUserDialog 
+          open={isDeleteDialogOpen} 
+          onOpenChange={setIsDeleteDialogOpen} 
+          userToDelete={userToDelete} 
+          onDeleteSuccess={() => {
+            // Update users list
+            if (userToDelete) {
+              setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+            }
+            // Close dialog and reset state
+            setIsDeleteDialogOpen(false);
+            setUserToDelete(null);
+          }} 
+        />
+      )}
     </div>
   );
 }

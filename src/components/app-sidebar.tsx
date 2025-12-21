@@ -51,7 +51,7 @@ const mainLinks = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
   const pathname = usePathname();
-  const { setOpenMobile } = useSidebar(); // Add this hook to control mobile sidebar state
+  const { setOpenMobile, state } = useSidebar(); // Add state to detect sidebar state
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"; // only exact match for home
@@ -62,8 +62,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <Link href="/" className="flex items-center gap-2 px-2 py-1.5 mt-2">
-          <Image src="/icon.png" alt="Hyriki logo" width={24} height={24} className="rounded-md" />
-          <span className="font-semibold text-lg group-data-[collapsible=icon]:hidden">Hyriki</span>
+          {/* Show black icon when expanded, light icon when collapsed */}
+          <div className="header-logo-container flex items-center justify-start group-data-[collapsible=icon]:hidden">
+            <Image 
+              src="/icon-black-transparent.png" 
+              alt="Hyriki logo" 
+              width={150} 
+              height={60} 
+              className="header-logo-image h-auto max-h-12 w-auto" 
+            />
+          </div>
+          <Image 
+            src="/icon-light.png" 
+            alt="Hyriki logo" 
+            width={30} 
+            height={30} 
+            className="rounded-md hidden group-data-[collapsible=icon]:block" 
+          />
         </Link>
             {/* <SidebarTrigger className="-ml-1" /> */}
       </SidebarHeader>
