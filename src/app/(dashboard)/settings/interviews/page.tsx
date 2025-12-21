@@ -9,8 +9,36 @@ import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { ItemDescription, ItemTitle } from '@/components/ui/item';
-import { InterviewRubricsSettings } from '@/components/interview-rubrics-settings';
-import { InterviewMeetingSettings } from '@/components/interview-meeting-settings';
+import dynamic from "next/dynamic";
+
+// Dynamically import heavy components to reduce initial bundle size
+const InterviewRubricsSettings = dynamic(() => import("@/components/interview-rubrics-settings").then(mod => mod.InterviewRubricsSettings), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4 space-y-4">
+      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const InterviewMeetingSettings = dynamic(() => import("@/components/interview-meeting-settings").then(mod => mod.InterviewMeetingSettings), {
+  ssr: false,
+  loading: () => (
+    <div className="p-4 space-y-4">
+      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+});
 
 export default function InterviewSettingsPage() {
   const { user } = useAuth();

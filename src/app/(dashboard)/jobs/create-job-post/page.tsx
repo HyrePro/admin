@@ -11,18 +11,56 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { X, AlertCircle } from "lucide-react"
-import { BasicJobInformation } from "@/components/basic-job-information"
-import { ScreeningSettings, type ExtendedInterviewSettings, type InterviewSettingsData, type WorkingDay, type BreakPeriod, type IndividualSlot, DAYS_OF_WEEK } from "@/components/screening-settings"
-import { ReviewAndPublish } from "@/components/review-and-publish"
+import dynamic from "next/dynamic"
 import { JobPostDialog } from "@/components/job-post-dialog"
 import { AuthGuard } from "@/components/auth-guard"
 import { createClient } from '@/lib/supabase/api/client'
 import { toast } from "sonner"
 import * as Yup from "yup"
+import type { ExtendedInterviewSettings } from "@/components/screening-settings"
 
+// Dynamically import heavy components to reduce initial bundle size
+const BasicJobInformation = dynamic(() => import("@/components/basic-job-information").then(mod => mod.BasicJobInformation), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 p-4">
+      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+})
 
+const ScreeningSettings = dynamic(() => import("@/components/screening-settings").then(mod => mod.ScreeningSettings), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 p-4">
+      <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-32 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+})
 
-
+const ReviewAndPublish = dynamic(() => import("@/components/review-and-publish").then(mod => mod.ReviewAndPublish), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-6 p-4">
+      <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
+      <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
+        ))}
+      </div>
+    </div>
+  )
+})
 
 // Memoize validation schema
 const validationSchema = Yup.object({
