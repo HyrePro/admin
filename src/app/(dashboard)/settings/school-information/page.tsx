@@ -16,25 +16,18 @@ import { Upload, X } from 'lucide-react'
 
 // Fetcher function for school data
 const fetchSchoolInfo = async (userId: string) => {
-  console.log('Starting fetchSchoolInfo for userId:', userId);
-  
   if (!userId) {
-    console.log('No userId provided, returning null');
     return null;
   }
 
   const supabase = createClient();
-  console.log('Supabase client created');
   
   // First get the school_id from admin_user_info
-  console.log('Fetching user info from admin_user_info table for userId:', userId);
   const { data: userInfo, error: userError } = await supabase
     .from('admin_user_info')
     .select('school_id')
     .eq('id', userId)
     .single();
-
-  console.log('User info fetch result:', { userInfo, userError });
 
   if (userError) {
     console.error('Error fetching user info:', userError);
@@ -42,28 +35,21 @@ const fetchSchoolInfo = async (userId: string) => {
   }
   
   if (!userInfo?.school_id) {
-    console.log('No school_id found in user info:', userInfo);
     return null;
   }
   
-  console.log('Retrieved school_id:', userInfo.school_id);
-
   // Then get the school information
-  console.log('Fetching school info from school_info table for school_id:', userInfo.school_id);
   const { data: schoolData, error: schoolError } = await supabase
     .from('school_info')
     .select('*')
     .eq('id', userInfo.school_id)
     .single();
 
-  console.log('School info fetch result:', { schoolData, schoolError });
-
   if (schoolError) {
     console.error('Error fetching school info:', schoolError);
     throw schoolError;
   }
   
-  console.log('Successfully fetched school data:', schoolData);
   return schoolData;
 }
 
@@ -80,36 +66,22 @@ interface SchoolFormData {
 }
 
 export default function SchoolInformationPage() {
-  console.log('=== SchoolInformationPage Component Render Start ===');
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  console.log('SchoolInformationPage rendered with user:', user);
-  
   // Log user authentication state changes
   useEffect(() => {
-    console.log('User auth state changed:', user);
     if (user) {
-      console.log('User ID:', user.id);
-      console.log('User email:', user.email);
-      console.log('User metadata:', user.user_metadata);
+      // Store user info if needed
     }
-    
-    // Cleanup function to log when component unmounts
-    return () => {
-      console.log('=== SchoolInformationPage Component Unmounted ===');
-    };
   }, [user]);
   
   const { data: schoolInfo, error, isLoading, mutate } = useSWR(
     user?.id ? ['school-info', user.id] : null,
     ([_, userId]) => {
-      console.log('SWR fetcher called with userId:', userId);
       return fetchSchoolInfo(userId);
     }
   );
-
-  console.log('SWR state:', { schoolInfo, error, isLoading, userId: user?.id });
 
   const [formData, setFormData] = useState<SchoolFormData>({
     name: '',
@@ -130,9 +102,7 @@ export default function SchoolInformationPage() {
 
   // Set form values when school info is loaded
   useEffect(() => {
-    console.log('useEffect triggered with schoolInfo:', schoolInfo);
     if (schoolInfo) {
-      console.log('Populating form data with schoolInfo:', schoolInfo);
       setFormData({
         name: schoolInfo.name || '',
         location: schoolInfo.location || '',
@@ -145,19 +115,6 @@ export default function SchoolInformationPage() {
         logo_url: schoolInfo.logo_url || ''
       });
       setLogoPreview(schoolInfo.logo_url || '');
-      console.log('Form data populated:', {
-        name: schoolInfo.name || '',
-        location: schoolInfo.location || '',
-        board: schoolInfo.board || '',
-        address: schoolInfo.address || '',
-        school_type: schoolInfo.school_type || '',
-        num_students: schoolInfo.num_students ? schoolInfo.num_students.toString() : '',
-        num_teachers: schoolInfo.num_teachers ? schoolInfo.num_teachers.toString() : '',
-        website: schoolInfo.website || '',
-        logo_url: schoolInfo.logo_url || ''
-      });
-    } else {
-      console.log('schoolInfo is null or undefined, not populating form data');
     }
   }, [schoolInfo])
 
@@ -199,7 +156,6 @@ export default function SchoolInformationPage() {
   }
 
   const validateForm = (): boolean => {
-    console.log('Validating form with data:', formData);
     const newErrors: Partial<SchoolFormData> = {}
 
     if (!formData.name.trim()) {
@@ -229,14 +185,11 @@ export default function SchoolInformationPage() {
 
     setErrors(newErrors)
     const isValid = Object.keys(newErrors).length === 0;
-    console.log('Form validation result:', { isValid, errors: newErrors });
     return isValid;
   }
 
   const handleSaveChanges = async () => {
-    console.log('handleSaveChanges called with formData:', formData);
     if (!user || !validateForm()) {
-      console.log('Validation failed or no user, returning early');
       return;
     }
 
@@ -247,17 +200,14 @@ export default function SchoolInformationPage() {
       const supabase = createClient();
 
       let logoUrl = formData.logo_url;
-      console.log('Current logoUrl:', logoUrl);
 
       // Upload logo if a new file was selected
       if (logoFile) {
-        console.log('Uploading new logo file:', logoFile);
         toast.loading('Uploading logo...', { id: toastId });
 
         // Create file name with timestamp
         const fileExt = logoFile.name.split('.').pop();
         const fileName = `${user.id}/school_logo_${Date.now()}.${fileExt}`;
-        console.log('Generated file name:', fileName);
 
         // Upload file to Supabase Storage in 'school' bucket
         const { error: uploadError } = await supabase.storage
@@ -277,11 +227,9 @@ export default function SchoolInformationPage() {
           .getPublicUrl(fileName);
 
         logoUrl = publicUrl;
-        console.log('Logo uploaded, new logoUrl:', logoUrl);
       }
 
       // Update school info in database
-      console.log('Updating school info with data:', { ...formData, logo_url: logoUrl });
       const response = await fetch('/api/school', {
         method: 'PUT',
         headers: {
@@ -306,7 +254,6 @@ export default function SchoolInformationPage() {
       await mutate();
 
       toast.success('School information updated successfully!', { id: toastId });
-      console.log('School information saved successfully');
     } catch (error: unknown) {
       console.error('Error saving school information:', error);
       toast.error(`Error saving school information: ${(error as Error).message || 'Please try again.'}`, { id: toastId });
@@ -316,16 +263,89 @@ export default function SchoolInformationPage() {
   }
 
   if (isLoading) {
-    console.log('Rendering loading skeleton because isLoading is true');
     return (
       <div className="space-y-4 p-4">
-        {/* Loading skeleton JSX */}
+        <div className="bg-white rounded-lg border p-4">
+          <div className="space-y-4">
+            <div>
+              <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-6 animate-pulse"></div>
+              
+              {/* Logo and School Name Skeleton */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mt-6">
+                <div className="flex flex-col items-center justify-center space-y-2 mx-auto sm:mx-0">
+                  <div className="space-y-2">
+                    <div className="block w-16 h-16 rounded-full border-2 border-gray-200 overflow-hidden bg-gray-100">
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-200 rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
+                  </div>
+                </div>
+                
+                <div className="flex-1 w-full space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+
+              {/* Board and School Type Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+
+              {/* Address Skeleton */}
+              <div className="space-y-2 mt-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              {/* Location Skeleton */}
+              <div className="space-y-2 mt-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              {/* Statistics Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+
+              {/* Website Skeleton */}
+              <div className="space-y-2 mt-4">
+                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              {/* Submit Button Skeleton */}
+              <div className="pt-6 border-t mt-6">
+                <div className="flex justify-end">
+                  <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
-    console.log('Rendering error message because error occurred:', error);
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-700">Error loading school information: {error.message}</p>
@@ -334,7 +354,6 @@ export default function SchoolInformationPage() {
   }
 
   if (!schoolInfo && !isLoading) {
-    console.log('Rendering no school info message because schoolInfo is null and not loading');
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <p className="text-yellow-700">No school information found. Please contact support.</p>
@@ -342,7 +361,6 @@ export default function SchoolInformationPage() {
     );
   }
 
-  console.log('Rendering main form with schoolInfo:', schoolInfo);
   return (
     <div className="space-y-4 p-4">
       <div className="bg-white rounded-lg border p-4">

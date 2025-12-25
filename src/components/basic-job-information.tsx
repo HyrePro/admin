@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Sparkles, Loader2 } from "@/components/icons"
-import { createClient } from "@/lib/supabase/api/client"
 import { toast } from "sonner"
+import { useAIJobDescription } from "@/hooks/useAIJobDescription"
 
 const subjects = [
   "Mathematics", "Science", "English", "Social Studies", "Hindi",
@@ -42,21 +42,21 @@ const experienceOptions = [
 const extractSubjectsFromTitle = (title: string): string[] => {
   const detectedSubjects: string[] = []
   const normalizedTitle = title.toLowerCase()
-  
+
   subjects.forEach(subject => {
     // Skip "Other" as it's a special case
     if (subject === "Other") return
-    
+
     // Check for exact matches and common variations
     const subjectVariations = getSubjectVariations(subject)
-    
-    if (subjectVariations.some(variation => 
+
+    if (subjectVariations.some(variation =>
       normalizedTitle.includes(variation.toLowerCase())
     )) {
       detectedSubjects.push(subject)
     }
   })
-  
+
   return detectedSubjects
 }
 
@@ -73,7 +73,7 @@ const getSubjectVariations = (subject: string): string[] => {
     "Art": ["art", "drawing", "painting", "fine arts"],
     "Music": ["music", "vocal", "instrumental"]
   }
-  
+
   return variations[subject] || [subject]
 }
 
@@ -95,7 +95,10 @@ type BasicJobInformationProps = FormikProps<FormValues>
 export function BasicJobInformation(props: BasicJobInformationProps) {
   const { values, errors, touched, setFieldValue } = props
   const [isGenerating, setIsGenerating] = useState(false)
-  
+
+  // Use the new AI job description hook
+  const { generateJobDescription: generateAIJobDescription, loading: aiLoading, error: aiError } = useAIJobDescription()
+
   // Effect to automatically detect subjects when job title changes
   useEffect(() => {
     if (values.jobTitle && values.subjects.length === 0) {
@@ -105,41 +108,41 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       }
     }
   }, [values.jobTitle, values.subjects.length, setFieldValue])
-  
-  // Function to generate job description using SQL function proxy
+
+  // Function to generate job description using the new hook
   const generateJobDescription = async () => {
     if (!values.jobTitle) {
       toast.error("Please enter a job title first")
       return
     }
-    
+
     setIsGenerating(true)
+
     try {
-      const supabase = createClient()
-      
       // Get school information from user metadata
+      const supabase = await import("@/lib/supabase/api/client").then(mod => mod.createClient())
       const { data: { user } } = await supabase.auth.getUser()
       const schoolId = user?.user_metadata?.school_id
-      
+
       // If we don't have school info, we'll still try to generate but with limited data
       let schoolName = ""
       let board = ""
       let schoolType = ""
-      
+
       if (schoolId) {
-        const { data: schoolData, error: schoolError } = await supabase
+        const { data: schoolData } = await supabase
           .from('schools')
           .select('name, board, type')
           .eq('id', schoolId)
           .single()
-        
-        if (!schoolError && schoolData) {
+
+        if (schoolData) {
           schoolName = schoolData.name || ""
           board = schoolData.board || ""
           schoolType = schoolData.type || ""
         }
       }
-      
+
       // Prepare salary range string
       let salaryRange = ""
       if (values.salaryMin && values.salaryMax) {
@@ -149,33 +152,58 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       } else if (values.salaryMax) {
         salaryRange = `Up to ₹${values.salaryMax}`
       }
-      
-      // Call the SQL function proxy
-      const { data, error } = await supabase.rpc('generate_job_description_via_edge', {
-        p_job_title: values.jobTitle,
-        p_subjects_to_teach: values.subjects.filter(s => s !== "Other"),
-        p_grade: values.gradeLevel.join(", "),
-        p_employment_type: values.employmentType,
-        p_experience: values.experience,
-        p_board: board,
-        p_school_type: schoolType,
-        p_school_name: schoolName,
-        p_salary_range: salaryRange,
-        p_existing_job_description: values.description || ""
-      })
-      
-      if (error) {
-        console.error("Error generating job description:", error)
-        toast.error("Failed to generate job description. Please try again.")
-        return
+
+      // Prepare the payload for the AI job description
+      const payload = {
+        job_title: values.jobTitle,
+        subjects_to_teach: values.subjects.filter(s => s !== "Other"),
+        grade: values.gradeLevel.join(", "),
+        employment_type: values.employmentType,
+        experience: values.experience,
+        board,
+        school_type: schoolType,
+        school_name: schoolName,
+        salary_range: salaryRange,
+        existing_job_description: values.description || ""
       }
-      
-      // Extract job description from the response
-      // The SQL function returns a JSONB response from the Edge Function
-      const jobDescription = data?.job_description || data?.body?.job_description || data?.data?.job_description;
-      
-      if (jobDescription) {
-        setFieldValue("description", jobDescription)
+
+      // Call the AI job description function
+      const result = await generateAIJobDescription(payload)
+
+      if (result) {
+        // Format the job description from the structured response
+        const formattedDescription = `
+# ${result.title}
+
+## School Overview
+${result.school_overview}
+
+## Role Summary
+${result.role_summary}
+
+## Key Responsibilities
+${result.key_responsibilities.map(item => `- ${item}`).join('\n')}
+
+## Required Qualifications
+${result.required_qualifications.map(item => `- ${item}`).join('\n')}
+
+${result.preferred_qualifications.length > 0 ? `## Preferred Qualifications
+${result.preferred_qualifications.map(item => `- ${item}`).join('\n')}` : ''}
+
+## Experience Requirements
+${result.experience_requirements}
+
+## Employment Details
+${result.employment_details}
+
+${result.salary_information ? `## Salary Information
+${result.salary_information}` : ''}
+
+${result.application_notes ? `## Application Notes
+${result.application_notes}` : ''}
+        `.trim()
+
+        setFieldValue("description", formattedDescription)
         toast.success("Job description generated successfully!")
       } else {
         toast.error("Failed to generate job description. Please try again.")
@@ -187,7 +215,14 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       setIsGenerating(false)
     }
   }
-  
+
+  // Show AI error as toast if there's an error from the hook
+  useEffect(() => {
+    if (aiError) {
+      toast.error(aiError)
+    }
+  }, [aiError])
+
   return (
     <div className="space-y-6">
       {/* Job Title */}
@@ -231,9 +266,9 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
                   size="icon"
                   className="absolute bottom-2 right-2 h-8 w-8 rounded-full hover:bg-gray-100"
                   onClick={generateJobDescription}
-                  disabled={isGenerating}
+                  disabled={isGenerating || aiLoading}
                 >
-                  {isGenerating ? (
+                  {isGenerating || aiLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
                   ) : (
                     <Sparkles className="h-4 w-4 text-blue-500" />
@@ -257,11 +292,10 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
           {subjects.map((subj) => (
             <label
               key={subj}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
-                (values.subjects as string[]).includes(subj)
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${(values.subjects as string[]).includes(subj)
                   ? "bg-blue-50 border-blue-300 text-blue-800"
                   : "hover:bg-gray-50 border-gray-200"
-              }`}
+                }`}
             >
               <Checkbox
                 checked={(values.subjects as string[]).includes(subj)}
@@ -284,7 +318,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         {touched.subjects && Array.isArray(values.subjects) && values.subjects.length === 0 && errors.subjects && (
           <div className="text-xs text-red-500 mt-1">{errors.subjects as string}</div>
         )}
-        
+
         {/* Other Subject Input Field */}
         {(values.subjects as string[]).includes("Other") && (
           <div className="mt-3">
@@ -318,11 +352,10 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
           {gradeLevels.map((grade) => (
             <label
               key={grade}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${
-                (values.gradeLevel as string[]).includes(grade)
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md border cursor-pointer ${(values.gradeLevel as string[]).includes(grade)
                   ? "bg-blue-50 border-blue-300 text-blue-800"
                   : "hover:bg-gray-50 border-gray-200"
-              }`}
+                }`}
             >
               <Checkbox
                 checked={(values.gradeLevel as string[]).includes(grade)}
@@ -443,7 +476,7 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
               type="number"
               className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
             />
-            { errors.salaryMax && (
+            {errors.salaryMax && (
               <div className="text-xs text-red-500 mt-1">{errors.salaryMax}</div>
             )}
           </div>
