@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   LabelList,
+  TooltipProps,
 } from "recharts";
 
 import {
@@ -18,6 +19,7 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { getMcqAssessmentAnalytics, type MCQAssessmentAnalytics } from "@/lib/supabase/api/get-mcq-assessment-analytics";
+import { AssessmentRadarChart } from "./assessment-radar-data";
 
 interface AssessmentAnalyticsProps {
   jobId: string;
@@ -30,14 +32,52 @@ interface AssessmentAnalyticsProps {
 // Prepare category metrics data for assessment visualization
 export const prepareCategoryMetricsData = (mcqAssessmentData: MCQAssessmentAnalytics | null) => {
   if (!mcqAssessmentData) return [];
-  
+
   return Object.entries(mcqAssessmentData.category_metrics).map(([category, metrics]) => ({
     name: category,
     avg_percentage: metrics.avg_percentage,
     avg_score: metrics.avg_score,
     avg_total_questions: metrics.avg_total_questions,
+    remaining_questions: metrics.avg_total_questions - metrics.avg_score,
   }));
 };
+
+function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="border-border/50 bg-background min-w-[150px] rounded-lg border px-3 py-2 text-xs shadow-xl">
+        <p className="font-medium mb-2">Metrics</p>
+        {payload.map((entry, index) => {
+          const labels: Record<string, string> = {
+            eligible: 'Eligible',
+            attempted: 'Attempted',
+            passed: 'Passed',
+            failed: 'Failed',
+          };
+          
+          const colors: Record<string, string> = {
+            eligible: '#8b5cf6',
+            attempted: '#3b82f6',
+            passed: '#10b981',
+            failed: '#ef4444',
+          };
+          
+          return (
+            <div key={`item-${index}`} className="flex items-center gap-2 mb-1 last:mb-0">
+              <div 
+                className="w-3 h-3 rounded-sm" 
+                style={{ backgroundColor: colors[entry.dataKey as string] }}
+              />
+              <span className="text-muted-foreground">{labels[entry.dataKey as string]}</span>
+              <span className="font-medium ml-auto">{Number(entry.value).toFixed(2)}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  return null;
+}
 
 export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loadingAssessment, setLoadingAssessment }: AssessmentAnalyticsProps) {
 
@@ -60,113 +100,167 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
     );
   }
 
+  // Get sorted categories by performance
+  const sortedCategories = Object.entries(mcqAssessmentData.category_metrics)
+    .sort(([, a], [, b]) => b.avg_percentage - a.avg_percentage);
+
+  const bestCategory = sortedCategories[0];
+  const worstCategory = sortedCategories[sortedCategories.length - 1];
+  
+  // Create a set of category names for quick lookup of best/worst
+  const bestCategoryName = bestCategory[0];
+  const worstCategoryName = worstCategory[0];
+
   return (
     <div className="border-b border-l border-r rounded-b-lg rounded-t-none p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Assessment Summary Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium text-gray-600">Passed</h3>
-            <p className="text-2xl font-bold text-green-600">
-              {mcqAssessmentData.summary.passed}
-            </p>
-            <p className="text-sm text-gray-500">candidates</p>
-          </div>
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium text-gray-600">Failed</h3>
-            <p className="text-2xl font-bold text-red-600">
-              {mcqAssessmentData.summary.failed}
-            </p>
-            <p className="text-sm text-gray-500">candidates</p>
-          </div>
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium text-gray-600">Attempted</h3>
-            <p className="text-2xl font-bold text-blue-600">
-              {mcqAssessmentData.summary.attempted}
-            </p>
-            <p className="text-sm text-gray-500">candidates</p>
-          </div>
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium text-gray-600">Eligible</h3>
-            <p className="text-2xl font-bold text-purple-600">
-              {mcqAssessmentData.summary.eligible}
-            </p>
-            <p className="text-sm text-gray-500">candidates</p>
-          </div>
-        </div>
-        
-        {/* Assessment Performance Chart */}
-        <div>
-          <h4 className="text-md font-medium mb-3">Assessment Performance by Category</h4>
-          <ChartContainer config={chartConfig} className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={categoryMetricsData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis domain={[0, 100]} />
-                <ChartTooltip 
-                  content={<ChartTooltipContent />}
-                  formatter={(value, name) => {
-                    if (name === 'avg_percentage') {
-                      return [`${value}%`, 'Average Percentage', `Score: ${value}%`];
-                    }
-                    return [value, name, `${name}: ${value}`];
-                  }}
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="avg_percentage" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
-                  <LabelList dataKey="avg_percentage" position="top" formatter={(value: number) => `${value}%`} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </div>
-      
-      {/* Additional Assessment Metrics */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="border rounded-lg p-4">
-          <h3 className="font-medium">Average Score</h3>
-          <p className="text-2xl font-bold text-blue-600">
-            {mcqAssessmentData.metrics.avg_score.toFixed(2)}
-          </p>
-          <p className="text-sm text-gray-500">out of {mcqAssessmentData.metrics.avg_total_questions}</p>
-        </div>
-        <div className="border rounded-lg p-4">
-          <h3 className="font-medium">Average Percentage</h3>
-          <p className="text-2xl font-bold text-purple-600">
-            {mcqAssessmentData.metrics.avg_percentage.toFixed(2)}%
-          </p>
-          <p className="text-sm text-gray-500">overall performance</p>
-        </div>
-        <div className="border rounded-lg p-4">
-          <h3 className="font-medium">Questions Attempted</h3>
-          <p className="text-2xl font-bold text-amber-600">
-            {mcqAssessmentData.metrics.avg_attempted.toFixed(2)}
-          </p>
-          <p className="text-sm text-gray-500">on average</p>
-        </div>
-      </div>
-      
-      {/* Category Breakdown */}
-      <div className="mt-6">
-        <h4 className="text-md font-medium mb-3">Category Breakdown</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(mcqAssessmentData.category_metrics).map(([category, metrics], index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <h3 className="font-medium">{category}</h3>
-              <p className="text-lg font-bold mt-2">
-                {metrics.avg_percentage.toFixed(2)}%
-              </p>
-              <p className="text-sm text-gray-500">average</p>
-              <div className="mt-2 text-xs text-gray-600">
-                <p>Score: {metrics.avg_score.toFixed(2)}/{metrics.avg_total_questions}</p>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Averages Summary Cards */}
+          <div className="lg:w-1/3">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-4">
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium">Average Score</h3>
+                <p className="text-2xl font-bold text-indigo-600">
+                  {mcqAssessmentData!.metrics.avg_score.toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-500">out of {mcqAssessmentData!.metrics.avg_total_questions}</p>
+              </div>
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium">Average Percentage</h3>
+                <p className="text-2xl font-bold text-amber-600">
+                  {mcqAssessmentData!.metrics.avg_percentage.toFixed(2)}%
+                </p>
+                <p className="text-sm text-gray-500">overall performance</p>
+              </div>
+              <div className="border rounded-lg p-4">
+                <h3 className="font-medium">Questions Attempted</h3>
+                <p className="text-2xl font-bold text-amber-600">
+                  {mcqAssessmentData!.metrics.avg_attempted.toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-500">on average</p>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* New Assessment Metrics Chart */}
+          <div className="lg:w-2/3">
+            <ChartContainer config={{
+              eligible: {
+                label: 'Eligible',
+                color: '#8b5cf6',
+              },
+              attempted: {
+                label: 'Attempted',
+                color: '#3b82f6',
+              },
+              passed: {
+                label: 'Passed',
+                color: '#10b981',
+              },
+              failed: {
+                label: 'Failed',
+                color: '#ef4444',
+              },
+            }} className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[{
+                    name: 'Metrics',
+                    eligible: mcqAssessmentData!.summary.eligible,
+                    attempted: mcqAssessmentData!.summary.attempted,
+                    passed: mcqAssessmentData!.summary.passed,
+                    failed: mcqAssessmentData!.summary.failed,
+                  }]}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }}
+                  />
+                  <ChartTooltip
+                    content={<CustomTooltip />}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar 
+                    dataKey="eligible" 
+                    name="Eligible" 
+                    fill="#8b5cf6" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="attempted" 
+                    name="Attempted" 
+                    fill="#3b82f6" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="passed" 
+                    name="Passed" 
+                    fill="#10b981" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="failed" 
+                    name="Failed" 
+                    fill="#ef4444" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </div>
+        </div>
+      </div>
+
+    
+
+      {/* Category Performance - Radar Chart with Details */}
+      <div className="mt-6">
+        <h4 className="text-md font-medium mb-3">Category Performance Analysis</h4>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Radar Chart */}
+          <div>
+            <AssessmentRadarChart
+              mcqAssessmentData={mcqAssessmentData}
+              loadingAssessment={loadingAssessment}
+            />
+          </div>
+
+          {/* Category Details Cards - Responsive 2x2 grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Category Count */}
+            <div className="border rounded-lg p-4 min-h-[120px]">
+              <h3 className="font-medium text-gray-600">Categories</h3>
+              <p className="text-2xl font-bold text-sky-600">
+                {Object.keys(mcqAssessmentData!.category_metrics).length}
+              </p>
+              <p className="text-sm text-gray-500">Total assessment areas</p>
+            </div>
+
+            {/* Performance Range */}
+            <div className="border rounded-lg p-4 min-h-[120px]">
+              <h3 className="font-medium text-gray-600">Performance Range</h3>
+              <p className="text-2xl font-bold text-blue-600">
+                {worstCategory[1].avg_percentage.toFixed(1)}% - {bestCategory[1].avg_percentage.toFixed(1)}%
+              </p>
+              <p className="text-sm text-gray-500">Spread: {(bestCategory[1].avg_percentage - worstCategory[1].avg_percentage).toFixed(1)}%</p>
+            </div>
+            
+            {/* Map through all categories */}
+            {Object.entries(mcqAssessmentData!.category_metrics).map(([categoryName, metrics]) => (
+              <div key={categoryName} className="border rounded-lg p-4 min-h-[120px]">
+                <h3 className="font-medium text-gray-600 text-sm">{categoryName}</h3>
+                <p className="text-2xl font-bold text-blue-600 mt-1">
+                  {metrics.avg_percentage.toFixed(1)}%
+                </p>
+                <p className="text-sm text-gray-500 truncate mt-1">Performance</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'MCQ assessment analytics not found' }, { status: 404 });
     }
 
-    const analytics = analyticsData[0];
+    const analytics = analyticsData;
     
     // Construct a new object with known serializable types to avoid issues with database-specific types
     const response = {
