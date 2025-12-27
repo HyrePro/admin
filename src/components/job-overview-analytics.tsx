@@ -34,10 +34,13 @@ import {
 import { createClient } from "@/lib/supabase/api/client";
 import { getMcqAssessmentAnalytics, type MCQAssessmentAnalytics } from "@/lib/supabase/api/get-mcq-assessment-analytics";
 import type { JobOverviewAnalytics, JobFunnelAnalytics } from "@/lib/supabase/api/get-job-analytics";
-import { TotalAnalytics } from "@/components/total-analytics";
-import { AssessmentAnalytics } from "@/components/assessment-analytics";
-import { InterviewAnalytics } from "@/components/interview-analytics";
-import { JobFunnelVisualizations } from "@/components/job-funnel-visualizations";
+import { TotalAnalytics } from '@/components/total-analytics';
+import { AssessmentAnalytics } from '@/components/assessment-analytics';
+import { InterviewAnalytics } from '@/components/interview-analytics';
+import { JobFunnelVisualizations } from '@/components/job-funnel-visualizations';
+import { DemoAnalytics } from '@/components/demo-analytics';
+import { getDemoAnalytics, type DemoAnalytics as DemoAnalyticsType } from '@/lib/supabase/api/get-demo-analytics';
+import { getInterviewAnalytics, type InterviewAnalytics as InterviewAnalyticsType } from '@/lib/supabase/api/get-interview-analytics';
 
 interface JobOverviewAnalyticsProps {
   jobId: string;
@@ -107,8 +110,12 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
   const [funnelData, setFunnelData] = React.useState<JobFunnelAnalytics | null>(null);
   const [demographicsData, setDemographicsData] = React.useState<JobFunnelAnalyticsWithDemographics['demographics'] | null>(null); // Will contain gender and city distribution
   const [mcqAssessmentData, setMcqAssessmentData] = React.useState<MCQAssessmentAnalytics | null>(null);
+  const [demoAnalyticsData, setDemoAnalyticsData] = React.useState<DemoAnalyticsType | null>(null);
+  const [interviewAnalyticsData, setInterviewAnalyticsData] = React.useState<InterviewAnalyticsType | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [loadingAssessment, setLoadingAssessment] = React.useState(false);
+  const [loadingDemo, setLoadingDemo] = React.useState(false);
+  const [loadingInterview, setLoadingInterview] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = React.useState<string>('total'); // Default to 'total'
 
@@ -197,6 +204,52 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
     }
   }, [selectedMetric, jobId, mcqAssessmentData]);
 
+  // Fetch demo analytics data when Demo metric is selected
+  React.useEffect(() => {
+    if (selectedMetric === 'demo' && jobId && !demoAnalyticsData) {
+      const fetchDemoData = async () => {
+        setLoadingDemo(true);
+        try {
+          const result = await getDemoAnalytics(jobId);
+          if (result.error) {
+            console.error("Error fetching demo analytics data:", result.error);
+          } else {
+            setDemoAnalyticsData(result.data);
+          }
+        } catch (err) {
+          console.error("Error in fetching demo analytics data:", err);
+        } finally {
+          setLoadingDemo(false);
+        }
+      };
+
+      fetchDemoData();
+    }
+  }, [selectedMetric, jobId, demoAnalyticsData]);
+
+  // Fetch interview analytics data when Interview metric is selected
+  React.useEffect(() => {
+    if (selectedMetric === 'interview' && jobId && !interviewAnalyticsData) {
+      const fetchInterviewData = async () => {
+        setLoadingInterview(true);
+        try {
+          const result = await getInterviewAnalytics(jobId);
+          if (result.error) {
+            console.error("Error fetching interview analytics data:", result.error);
+          } else {
+            setInterviewAnalyticsData(result.data);
+          }
+        } catch (err) {
+          console.error("Error in fetching interview analytics data:", err);
+        } finally {
+          setLoadingInterview(false);
+        }
+      };
+
+      fetchInterviewData();
+    }
+  }, [selectedMetric, jobId, interviewAnalyticsData]);
+
 
 
   if (loading) {
@@ -267,7 +320,7 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
     : 0;
 
   return (
-    <div >
+    <div className="pb-8">
       {/* KPI metrics with common border and individual left borders, selected metric without bottom border */}
       <div className="border rounded-lg rounded-b-none">
         <div className="flex justify-between">
@@ -280,7 +333,6 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
               {overviewData.total_applicants}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              All applicants
             </p>
           </div>
           
@@ -293,7 +345,6 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
               {overviewData.assessment_completed}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {assessmentPassRate}% pass rate
             </p>
           </div>
           
@@ -306,7 +357,6 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
               {overviewData.demos_completed}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {demoPassRate}% pass rate
             </p>
           </div>
           
@@ -319,7 +369,6 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
               {overviewData.interviews_completed}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {interviewCompletionRate}% completion
             </p>
           </div>
         </div>
@@ -341,50 +390,25 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
         />
       )}
       {selectedMetric === 'demo' && (
-        <div>Demographic Analytics</div>
-        // <DemoAnalytics funnelData={funnelData} overviewData={overviewData} chartConfig={chartConfig} />
+        <DemoAnalytics 
+          jobId={jobId} 
+          chartConfig={chartConfig} 
+          demoAnalyticsData={demoAnalyticsData}
+          loadingDemo={loadingDemo}
+          setLoadingDemo={setLoadingDemo}
+        />
       )}
       {selectedMetric === 'interview' && (
-        <InterviewAnalytics funnelData={funnelData} overviewData={overviewData} chartConfig={chartConfig} />
+        <InterviewAnalytics 
+          jobId={jobId} 
+          chartConfig={chartConfig} 
+          interviewAnalyticsData={interviewAnalyticsData}
+          loadingInterview={loadingInterview}
+          setLoadingInterview={setLoadingInterview}
+        />
       )}
       
-      {/* Raw data display for debugging */}
-      <div className="p-4 bg-gray-50 rounded-lg border mt-8">
-        <h3 className="text-lg font-semibold mb-2">Debug Information</h3>
-        <details className="mb-4">
-          <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-            Show Raw Overview Data
-          </summary>
-          <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
-            {JSON.stringify(overviewData, null, 2)}
-          </pre>
-        </details>
-        <details className="mb-4">
-          <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-            Show Raw Funnel Data
-          </summary>
-          <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
-            {JSON.stringify(funnelData, null, 2)}
-          </pre>
-        </details>
-        <details>
-          <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-            Show Raw Assessment Data
-          </summary>
-          <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
-            {JSON.stringify(mcqAssessmentData, null, 2)}
-          </pre>
-        </details>
-        <details>
-          <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-            Show Demographics Data
-          </summary>
-          <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40">
-            {JSON.stringify(demographicsData, null, 2)}
-          </pre>
-        </details>
-        
-      </div>
+    
     </div>
   );
 }
