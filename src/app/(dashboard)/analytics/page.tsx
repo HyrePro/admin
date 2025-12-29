@@ -328,9 +328,8 @@ export default function AnalyticsPage() {
             />
           </div>
           {/* Hiring Funnel */}
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            <HiringFunnelChart funnelData={schoolAnalytics?.hiring_funnel?.funnel_data} />
-            <ApplicationsPerDayChart funnelData={schoolAnalytics?.hiring_funnel?.funnel_data} />
+          <div className="mt-8">
+            <HiringFunnelChart funnelData={schoolAnalytics?.hiring_funnel?.funnel_data} conversionRates={schoolAnalytics?.hiring_funnel?.conversion_rates} />
           </div>
 
           <div className="mt-8 grid grid-cols-3 gap-4">
@@ -338,6 +337,9 @@ export default function AnalyticsPage() {
             <AgeDistributionChart demographics={schoolAnalytics?.demographics} />
             <CityDistributionChart demographics={schoolAnalytics?.demographics} />
           </div>
+          <div className='mt-8 mb-8'>
+            <ApplicationsPerDayChart timelineData={schoolAnalytics?.timeline?.timeline_data} periodType={schoolAnalytics?.timeline?.period_type} />
+</div>
         </div>
       </div>
     </AuthGuard>

@@ -10,6 +10,7 @@ export interface SchoolAnalyticsData {
   offered_kpi: OfferedKPI;
   hiring_funnel: HiringFunnel;
   demographics: Demographics;
+  timeline: TimelineData;
 }
 
 export interface JobKPI {
@@ -102,6 +103,31 @@ export interface GenderData {
 
 export interface AgeBucket {
   bucket: string;
+  count: number;
+}
+
+export interface TimelineData {
+  timeline_data: TimelineItem[];
+  period_type: string;
+  date_range: string;
+  summary: TimelineSummary;
+  period: PeriodInfo;
+}
+
+export interface TimelineItem {
+  period: string;
+  label: string;
+  applications: number;
+}
+
+export interface TimelineSummary {
+  total_applications: number;
+  peak_period: PeakPeriod;
+  average_per_period: number;
+}
+
+export interface PeakPeriod {
+  period: string;
   count: number;
 }
 
