@@ -132,7 +132,7 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
           </SheetDescription>
         </SheetHeader>
         
-        <div className="mt-6 flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col">
           {/* Tab navigation */}
           <div className="flex border-b mb-6">
             <button

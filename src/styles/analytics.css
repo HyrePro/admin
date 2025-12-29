@@ -1,0 +1,543 @@
+/* analytics Page Styles */
+
+/* Container */
+.analytics-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+/* Header */
+.analytics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.analytics-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.btn-invite:hover {
+  background-color: rgb(243 244 246);
+}
+
+.btn-icon {
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+/* Search */
+.search-container {
+  flex-shrink: 0;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgb(156 163 175);
+  height: 1rem;
+  width: 1rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 1rem 0.5rem 2.5rem;
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.5rem;
+  outline: none;
+  transition: box-shadow 0.15s;
+}
+
+.search-input:focus {
+  ring: 2px;
+  ring-color: rgb(59 130 246);
+  border-color: transparent;
+}
+
+/* Table Container */
+.table-container {
+  flex: 1;
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(229 231 235);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.loading-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+}
+
+.loading-pulse {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background-color: rgb(59 130 246);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.table-scroll {
+  overflow: auto;
+  flex: 1;
+}
+
+/* Table Header */
+.table-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgb(229 231 235);
+}
+
+.table-head {
+  font-weight: 400;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.table-head-border {
+  border-right: 1px solid rgb(212, 217, 227);
+}
+
+.table-head-actions {
+  padding: 0.5rem;
+  border-left: 1px solid rgb(229 231 235);
+  border-right: 1px solid rgb(229 231 235);
+}
+
+.table-head-content {
+  padding: 0 0.5rem;
+}
+
+.table-head-assessment {
+  padding: 0;
+}
+
+.assessment-header {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.assessment-subheader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-top: 1px solid rgb(229 231 235);
+}
+
+.assessment-col {
+  flex: 1;
+  font-weight: 400;
+  font-size: 0.875rem;
+  border-right: 1px solid rgb(229 231 235);
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.assessment-col-last {
+  flex: 1;
+  font-weight: 400;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 0.25rem;
+}
+
+/* Table Body */
+/* .table-body [&_tr:last-child]:border-b {
+  border-bottom: 1px solid rgb(229 231 235);
+} */
+
+.table-row-hover {
+  transition: background-color 0.15s;
+  border-bottom: 1px solid rgb(229 231 235);
+}
+
+.table-row-hover:hover {
+  background-color: rgb(249 250 251);
+}
+
+/* Table Cells */
+.table-cell-border {
+  border-right: 1px solid rgb(229 231 235);
+  padding: 0.5rem;
+}
+
+.table-cell-actions {
+  padding: 0.5rem;
+}
+
+.cell-content {
+  padding: 0 0.5rem;
+}
+
+.candidate-name {
+  font-weight: 500;
+}
+
+.candidate-email {
+  font-size: 0.875rem;
+  color: rgb(107 114 128);
+}
+
+.candidate-job {
+  font-weight: 500;
+}
+
+.candidate-date {
+  font-weight: 500;
+}
+
+/* Status Badges */
+.status-new {
+  background-color: rgb(243 244 246);
+  color: rgb(31 41 55);
+}
+
+.status-reviewed,
+.status-interview,
+.status-assessment {
+  background-color: rgb(219 234 254);
+  color: rgb(30 64 175);
+}
+
+.status-offer,
+.status-demo-ready {
+  background-color: rgb(220 252 231);
+  color: rgb(22 101 52);
+}
+
+.status-rejected,
+.status-appealed,
+.status-suspended {
+  background-color: rgb(254 226 226);
+  color: rgb(153 27 27);
+}
+
+.status-demo-evaluated {
+  background-color: rgb(254 249 195);
+  color: rgb(133 77 14);
+}
+
+.status-demo-in-evaluation {
+  background-color: rgb(255 237 213);
+  color: rgb(154 52 18);
+}
+
+/* New status classes based on statusColor.ts */
+.status-in-progress {
+  background-color: rgb(59 130 246); /* bg-blue-500 */
+  color: white;
+}
+
+.status-application-submitted {
+  background-color: rgb(14 165 233); /* bg-sky-500 */
+  color: white;
+}
+
+.status-assessment-in-progress {
+  background-color: rgb(234 179 8); /* bg-yellow-500 */
+  color: white;
+}
+
+.status-assessment-in-evaluation {
+  background-color: rgb(245 158 11); /* bg-amber-500 */
+  color: white;
+}
+
+.status-assessment-evaluated {
+  background-color: rgb(34 197 94); /* bg-green-500 */
+  color: white;
+}
+
+.status-assessment-questionnaire-creation {
+  background-color: rgb(6 182 212); /* bg-cyan-500 */
+  color: white;
+}
+
+.status-assessment-ready {
+  background-color: rgb(20 184 166); /* bg-teal-500 */
+  color: white;
+}
+
+.status-assessment-failed {
+  background-color: rgb(239 68 68)!important; /* bg-red-500 */
+  color: white;
+}
+
+.status-demo-creation {
+  background-color: rgb(34 211 238); /* bg-cyan-400 */
+  color: white;
+}
+
+.status-demo-ready {
+  background-color: rgb(20 184 166); /* bg-teal-400 */
+  color: white;
+}
+
+.status-demo-in-progress {
+  background-color: rgb(234 179 8); /* bg-yellow-400 */
+  color: white;
+}
+
+.status-demo-in-evaluation {
+  background-color: rgb(245 158 11); /* bg-amber-400 */
+  color: white;
+}
+
+.status-demo-evaluated {
+  background-color: rgb(34 197 94); /* bg-green-400 */
+  color: white;
+}
+
+.status-demo-failed {
+  background-color: rgb(239 68 68); /* bg-red-400 */
+  color: white;
+}
+
+.status-interview-in-progress {
+  background-color: rgb(99 102 241); /* bg-indigo-500 */
+  color: white;
+}
+
+.status-interview-ready {
+  background-color: rgb(37 99 235)!important; /* bg-blue-600 */
+  color: white;
+}
+
+.status-paused {
+  background-color: rgb(156 163 175); /* bg-gray-400 */
+  color: white;
+}
+
+.status-completed {
+  background-color: rgb(22 163 74); /* bg-green-600 */
+  color: white;
+}
+
+.status-suspended {
+  background-color: rgb(113 113 122); /* bg-zinc-500 */
+  color: white;
+}
+
+.status-appealed {
+  background-color: rgb(147 51 234); /* bg-purple-500 */
+  color: white;
+}
+
+.status-withdrawn {
+  background-color: rgb(156 163 175); /* bg-gray-500 */
+  color: white;
+}
+
+.status-offered {
+  background-color: rgb(139 92 246); /* bg-violet-500 */
+  color: white;
+}
+
+.status-default {
+  background-color: rgb(243 244 246);
+  color: rgb(31 41 55);
+}
+
+.badge-text {
+  font-weight: 500;
+  padding: 0.25rem;
+}
+
+/* Assessment Scores */
+.table-cell-assessment {
+  border-right: 1px solid rgb(229 231 235);
+  padding: 0;
+  position: relative;
+}
+
+.assessment-scores {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.assessment-value {
+  flex: 1;
+  border-right: 1px solid rgb(229 231 235);
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.assessment-value-disabled {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(156 163 175);
+}
+
+.assessment-spacer {
+  padding: 0.5rem 0;
+}
+
+/* Action Button */
+.action-btn {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+
+.action-btn:hover {
+  background-color: rgb(243 244 246);
+}
+
+/* Skeleton Loaders */
+.skeleton-primary {
+  height: 1rem;
+  width: 6rem;
+  background-color: rgb(229 231 235);
+}
+
+.skeleton-secondary {
+  height: 0.75rem;
+  width: 8rem;
+  background-color: rgb(229 231 235);
+}
+
+.skeleton-badge {
+  height: 1.5rem;
+  width: 4rem;
+  border-radius: 9999px;
+  background-color: rgb(229 231 235);
+}
+
+.skeleton-score {
+  height: 1rem;
+  width: 2rem;
+  background-color: rgb(229 231 235);
+  margin: 0 auto;
+}
+
+.skeleton-date {
+  height: 1rem;
+  width: 6rem;
+  background-color: rgb(229 231 235);
+}
+
+.skeleton-action {
+  height: 2rem;
+  width: 2rem;
+  border-radius: 0.25rem;
+  background-color: rgb(229 231 235);
+}
+
+.assessment-score-col {
+  flex: 1;
+  border-right: 1px solid rgb(229 231 235);
+  padding: 0.5rem;
+}
+
+.assessment-score-col-last {
+  flex: 1;
+  padding: 0.5rem;
+}
+
+/* Error and Empty States */
+.error-cell {
+  text-align: center;
+  padding: 2rem 0;
+  color: rgb(239 68 68);
+}
+
+.empty-cell {
+  text-align: center;
+  padding: 2rem 0;
+  color: rgb(107 114 128);
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  color: rgb(75 85 99);
+}
+
+.pagination-value {
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-page {
+  font-size: 0.875rem;
+  color: rgb(75 85 99);
+  margin-right: 0.5rem;
+}
+
+.pagination-btn {
+  gap: 0.25rem;
+}
+
+/* Legend */
+.legend-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: rgb(75 85 99);
+  flex-shrink: 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legend-key {
+  font-weight: 600;
+}

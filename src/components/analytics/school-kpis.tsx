@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { getSchoolKPIs } from "@/lib/supabase/api/kpiService";
 import type { SchoolKPIs as SchoolKPIsType } from "@/lib/supabase/api/kpiService";
+import { MetricCard, MetricItem } from "@/components/analytic-dashboard-card";
 
 interface SchoolKPIsProps {
   schoolId: string;
 }
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 export function SchoolKPIs({ schoolId }: SchoolKPIsProps) {
   const [kpis, setKpis] = useState<SchoolKPIsType | null>(null);
@@ -51,30 +48,77 @@ export function SchoolKPIs({ schoolId }: SchoolKPIsProps) {
     return <div className="flex justify-center items-center h-64">No data available</div>;
   }
 
-  // Prepare data for charts
-  const campaignData = [
-    { name: "Active", value: kpis.total_active_campaigns ?? 0 },
-    { name: "Successful", value: kpis.total_successful_campaigns ?? 0 },
-    { name: "Failed", value: kpis.total_failed_campaigns ?? 0 },
+  // Prepare metric items for each card
+  const totalJobsItems: MetricItem[] = [
+    {
+      key: 'active-campaigns',
+      label: 'Active Campaigns',
+      value: kpis.total_active_campaigns ?? 0,
+      delta: kpis.total_successful_campaigns ?? 0,
+      description: 'Total number of active job campaigns'
+    },
+    {
+      key: 'successful-campaigns',
+      label: 'Successful Campaigns',
+      value: kpis.total_successful_campaigns ?? 0,
+      delta: kpis.total_failed_campaigns ? -(kpis.total_failed_campaigns) : 0,
+      description: 'Successfully completed job campaigns'
+    },
+    {
+      key: 'failed-campaigns',
+      label: 'Failed Campaigns',
+      value: kpis.total_failed_campaigns ?? 0,
+      delta: kpis.total_failed_campaigns ?? 0,
+      description: 'Job campaigns that did not complete successfully'
+    }
   ];
 
-  const pipelineData = [
-    { name: "Assessment", value: kpis.candidates_assessment_stage ?? 0 },
-    { name: "Interview", value: kpis.candidates_interview_stage ?? 0 },
-    { name: "Offered", value: kpis.candidates_offered ?? 0 },
+  const totalApplicationsItems: MetricItem[] = [
+    {
+      key: 'assessment-eligible',
+      label: 'Assessment Eligible',
+      value: kpis.candidates_assessment_stage ?? 0,
+      delta: kpis.total_failed_campaigns ?? 0,
+      description: 'Candidates eligible for assessment stage'
+    },
+    {
+      key: 'interview-eligible',
+      label: 'Interview Eligible',
+      value: kpis.candidates_interview_stage ?? 0,
+      delta: kpis.total_failed_campaigns ? -(kpis.total_failed_campaigns) : 0,
+      description: 'Candidates eligible for interview stage'
+    },
+    {
+      key: 'offered-candidates',
+      label: 'Offered',
+      value: kpis.candidates_offered ?? 0,
+      delta: kpis.total_failed_campaigns ?? 0,
+      description: 'Candidates who received job offers'
+    }
   ];
 
-  const sectionPerformanceData = [
-    { name: "Pedagogy", value: kpis.section_wise_performance?.pedagogy ?? 0 },
-    { name: "Communication", value: kpis.section_wise_performance?.communication ?? 0 },
-    { name: "Digital Literacy", value: kpis.section_wise_performance?.digital_literacy ?? 0 },
-    { name: "Subject Knowledge", value: kpis.section_wise_performance?.subject_knowledge ?? 0 },
-  ];
-
-  const genderData = [
-    { name: "Male", value: kpis.male_candidates ?? 0 },
-    { name: "Female", value: kpis.female_candidates ?? 0 },
-    { name: "Other", value: kpis.other_gender_candidates ?? 0 },
+  const offeredItems: MetricItem[] = [
+    {
+      key: 'time-to-hire',
+      label: 'Avg. Time to Hire',
+      value: kpis.avg_time_to_hire ?? 0,
+      delta: kpis.total_failed_campaigns ?? 0,
+      description: 'Average number of days to hire'
+    },
+    {
+      key: 'offer-accepted',
+      label: 'Offer Accepted',
+      value: kpis.offer_extended_vs_accepted ? parseFloat(kpis.offer_extended_vs_accepted.toFixed(2)) : 0,
+      delta: kpis.total_failed_campaigns ? -(kpis.total_failed_campaigns) : 0,
+      description: 'Percentage of offers accepted'
+    },
+    {
+      key: 'offer-declined',
+      label: 'Offer Declined',
+      value: kpis.offer_extended_vs_declined ? parseFloat(kpis.offer_extended_vs_declined.toFixed(2)) : 0,
+      delta: kpis.total_failed_campaigns ?? 0,
+      description: 'Percentage of offers declined'
+    }
   ];
 
   return (
@@ -97,167 +141,30 @@ export function SchoolKPIs({ schoolId }: SchoolKPIsProps) {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{kpis.total_active_campaigns ?? 0}</CardTitle>
-            <CardDescription>Active Campaigns</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{kpis.total_successful_campaigns ?? 0}</CardTitle>
-            <CardDescription>Successful Campaigns</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{kpis.total_failed_campaigns ?? 0}</CardTitle>
-            <CardDescription>Failed Campaigns</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{kpis.avg_time_to_hire ?? 0} days</CardTitle>
-            <CardDescription>Avg. Time to Hire</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campaign Status Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Campaign Status</CardTitle>
-            <CardDescription>Distribution of job campaigns by status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={campaignData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {campaignData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [value, "Campaigns"]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Candidate Pipeline Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Candidate Pipeline</CardTitle>
-            <CardDescription>Number of candidates at each stage</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={pipelineData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#8884d8" name="Candidates" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Section Performance Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Section-wise Performance</CardTitle>
-            <CardDescription>Average performance across different sections</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={sectionPerformanceData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis domain={[0, 1]} />
-                <Tooltip formatter={(value) => [(parseFloat(value as string) * 100).toFixed(2) + "%", "Score"]} />
-                <Legend />
-                <Bar dataKey="value" fill="#82ca9d" name="Performance Score" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Gender Distribution Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Gender Distribution</CardTitle>
-            <CardDescription>Distribution of candidates by gender</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={genderData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {genderData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Offer Ratios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{(kpis.offer_extended_vs_accepted ?? 0).toFixed(2)}%</CardTitle>
-            <CardDescription>Offer Acceptance Rate</CardDescription>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{(kpis.offer_extended_vs_declined ?? 0).toFixed(2)}%</CardTitle>
-            <CardDescription>Offer Decline Rate</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="grid gap-6 mt-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+        <MetricCard 
+          title="Total Jobs" 
+          value={kpis.total_active_campaigns ?? 0} 
+          delta={kpis.total_successful_campaigns ?? 0}
+          description='Total number of job campaigns created.'
+          items={totalJobsItems}
+        />
+        
+        <MetricCard 
+          title="Total Applications" 
+          value={kpis.candidates_assessment_stage + kpis.candidates_interview_stage + kpis.candidates_offered} 
+          delta={kpis.total_successful_campaigns ?? 0}
+          description='Total number of candidates who have applied for jobs.'
+          items={totalApplicationsItems}
+        />
+        
+        <MetricCard 
+          title="Offered" 
+          value={kpis.candidates_offered ?? 0} 
+          delta={kpis.total_successful_campaigns ?? 0}
+          description='Number of candidates who have been offered a job.'
+          items={offeredItems}
+        />
       </div>
     </div>
   );

@@ -1,0 +1,105 @@
+.metric-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.05);
+  width: 100%;
+}
+
+.header-section {
+  margin-bottom: 40px;
+}
+
+.metric-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #020617;
+}
+
+.main-value-container {
+  margin-top: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.main-value {
+  font-size: 52px;
+  font-weight: 800;
+  color: #020617;
+}
+
+.metric-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  container-type: inline-size;
+}
+
+.metric-item {
+  flex: 1 1 260px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sub-metric-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #020617;
+}
+
+.sub-metric-value-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-value {
+  font-size: 34px;
+  font-weight: 700;
+  color: #020617;
+}
+
+.trend-badge {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.trend-badge.up { color: #16a34a; }
+.trend-badge.down { color: #dc2626; }
+
+.info-icon {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ───────────────────────────────────────────── */
+/* HORIZONTAL MODE — DESKTOP / WIDE CARD */
+/* ───────────────────────────────────────────── */
+
+@container (min-width: 900px) {
+  .metric-item:not(:last-child) {
+    border-right: 1px solid #e5e7eb;
+    padding-right: 32px;
+  }
+}
+
+/* ───────────────────────────────────────────── */
+/* VERTICAL MODE — OVERFLOW / NARROW CARD */
+/* ───────────────────────────────────────────── */
+
+@container (max-width: 899px) {
+  .metric-item:not(:last-child) {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 24px;
+  }
+}

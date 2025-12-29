@@ -13,6 +13,7 @@ export {
   Edit,
   Plus,
   TrendingUp,
+  TrendingDown,
   TvMinimalIcon,
   BookText,
   ChevronRight,

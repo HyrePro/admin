@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
   // Optimize images
   images: {
     minimumCacheTTL: 60,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'fnrkxvvygersqubojfon.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
   // Enable webpack optimizations
   webpack: (config, { dev, isServer }) => {
