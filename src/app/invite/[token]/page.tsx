@@ -59,16 +59,22 @@ export default function InvitationPage() {
 
   const fetchInvitation = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-invitation', {
-        body: { token },
+      const response = await fetch('/api/get-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
       });
 
-      if (error) {
-        setError(error.message || 'Failed to load invitation');
-      } else if (data.error) {
-        setError(data.message || data.error);
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || result.message || 'Failed to load invitation');
+      } else if (result.error) {
+        setError(result.message || result.error);
       } else {
-        setInvitation(data.invitation);
+        setInvitation(result.invitation);
       }
     } catch (err) {
       setError('Failed to load invitation');
@@ -90,14 +96,18 @@ export default function InvitationPage() {
     if (!user && action === 'reject') {
       setResponding(true);
       try {
-        const { data, error } = await supabase.functions.invoke('respond-invitation', {
-          body: { token, action },
+        const response = await fetch('/api/respond-invitation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token, action }),
         });
 
-        if (error) {
-          setError(error.message || 'Failed to reject invitation');
-        } else if (data.error) {
-          setError(data.message || data.error);
+        const result = await response.json();
+
+        if (!response.ok) {
+          setError(result.error || result.message || 'Failed to reject invitation');
         } else {
           router.push('/');
         }
@@ -116,24 +126,37 @@ export default function InvitationPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
-      const { data, error } = await supabase.functions.invoke('respond-invitation', {
-        body: {
-          token,
-          action,
-          confirmSchoolChange,
-        },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
+      // Prepare request body
+      const requestBody = {
+        token,
+        action,
+        confirmSchoolChange,
+      };
+
+      // Add authorization header if user is logged in
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session?.access_token}`;
+      }
+
+      const response = await fetch('/api/respond-invitation', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
       });
 
-      // Log the full response for debugging
-      console.log('Response from server:', { data, error });
+      const data = await response.json();
 
-      // Handle Supabase invocation errors
-      if (error) {
-        console.error('Supabase function error:', error);
-        setError(error.message || 'Failed to process invitation');
+      // Log the full response for debugging
+      console.log('Response from server:', { data, status: response.status });
+
+      // Handle HTTP errors
+      if (!response.ok) {
+        console.error('API response error:', data);
+        setError(data.error || data.message || 'Failed to process invitation');
         setResponding(false);
         return;
       }

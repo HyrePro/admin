@@ -68,6 +68,12 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
     // Only handle email invitations in this function
     if (inviteMethod !== 'email') return;
     
+    // Validate required fields
+    if (!schoolId) {
+      setMessage('School ID is required to send invitations');
+      return;
+    }
+    
     setInviteLoading(true);
     setMessage('');
 
@@ -75,23 +81,44 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Check if session exists
+      if (!session) {
+        setMessage('User session not found. Please log in again.');
+        return;
+      }
+      
+      // Validate form fields
+      if (!inviteForm.name.trim() || !inviteForm.email.trim() || !inviteForm.role.trim()) {
+        setMessage('Please fill in all required fields: name, email, and role');
+        return;
+      }
+      
       // Prepare request body for email invitation with proper typing
       const requestBody: CreateInvitationRequestBody = {
         role: inviteForm.role,
         schoolId,
-        name: inviteForm.name,
-        email: inviteForm.email,
+        name: inviteForm.name.trim(),
+        email: inviteForm.email.trim(),
       };
       
-      const response = await supabase.functions.invoke('create-invitation', {
-        body: requestBody,
+      const response = await fetch('/api/create-invitation', {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
         },
+        body: JSON.stringify(requestBody),
       });
 
-      if (response.error) {
-        setMessage(response.error.message || 'Failed to send invitation');
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Handle detailed error messages from the API
+        if (result.message) {
+          setMessage(result.message);
+        } else {
+          setMessage(result.error || 'Failed to send invitation');
+        }
       } else {
         setMessage('Invitation sent successfully!');
         onInviteSuccess();
@@ -238,7 +265,7 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="invite-form" onSubmit={handleSubmit} className="space-y-4">
               {/* Role selection - always visible */}
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
@@ -305,22 +332,29 @@ export function InviteDialog({ open, onOpenChange, schoolId, user, onInviteSucce
                   {message}
                 </div>
               )}
-            </form>
+              
+              
+            
+            {/* Dialog footer for invite code method - outside form */}
+            
+            
+            {/* Dialog footer with conditional buttons */}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Cancel
+              </Button>
+              {inviteMethod === 'email' ? (
+                <Button type="submit" disabled={inviteLoading} form="invite-form">
+                  {inviteLoading ? 'Sending...' : 'Send Invitation'}
+                </Button>
+              ) : (
+                <Button type="button" onClick={handleGenerateCode} disabled={isGeneratingCode || !user?.email}>
+                  {isGeneratingCode ? 'Generating...' : 'Generate Invite Code'}
+                </Button>
+              )}
+            </DialogFooter>
+          </form>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              Cancel
-            </Button>
-            {inviteMethod === 'email' ? (
-              <Button type="submit" disabled={inviteLoading}>
-                {inviteLoading ? 'Sending...' : 'Send Invitation'}
-              </Button>
-            ) : (
-              <Button type="button" onClick={handleGenerateCode} disabled={isGeneratingCode || !user?.email}>
-                {isGeneratingCode ? 'Generating...' : 'Generate Invite Code'}
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
       

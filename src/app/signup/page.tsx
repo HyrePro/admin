@@ -6,6 +6,7 @@ import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import adminSignupAnimation from "@/assets/animations/admin-signup.json"
 import { SignupFormWrapper } from "@/components/signup-form-wrapper"
+import HeaderIcon from "@/components/header-icon"
 
 // Dynamic import for Lottie player to avoid SSR issues
 const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'), {
@@ -18,10 +19,7 @@ export default function SignupPage() {
     <div className="grid min-h-svh lg:grid-cols-5">
       <div className="flex flex-col gap-4 p-6 md:p-10 lg:col-span-2">
         <div className="flex justify-between items-center">
-          <div className="flex justify-center gap-2 md:justify-start">
-            <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
-            <span className="text-lg font-bold text-foreground cursor-pointer">Hyriki</span>
-          </div>
+         <HeaderIcon/>
           <div className="text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href="/login" className="text-primary hover:underline font-medium" scroll={false}>

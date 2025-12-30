@@ -6,6 +6,7 @@ import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import adminAnimation from "@/assets/animations/admin.json"
 import { LoginFormWrapper } from "@/components/login-form-wrapper"
+import HeaderIcon from "@/components/header-icon"
 
 // Dynamic import for Lottie player to avoid SSR issues
 const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'), {
@@ -18,10 +19,7 @@ export default function LoginPage() {
     <div className="grid min-h-svh lg:grid-cols-5">
       <div className="flex flex-col gap-4 p-6 md:p-10 lg:col-span-2">
         <div className="flex justify-between items-center">
-          <div className="flex justify-center gap-2 md:justify-start">
-            <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
-            <span className="text-lg font-bold text-foreground cursor-pointer">Hyriki</span>
-          </div>
+          <HeaderIcon />
           <div className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline font-medium" scroll={false}>
@@ -47,7 +45,7 @@ export default function LoginPage() {
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
-        
+
         {/* Bottom Gradient Overlay for text only */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent py-8 px-8">
           <div className="text-center space-y-4 max-w-lg mx-auto pb-4 pt-8">

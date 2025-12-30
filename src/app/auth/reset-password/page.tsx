@@ -114,7 +114,7 @@ function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="absolute top-6 left-6 flex items-center gap-2">
-          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <Image src="/icon-black-transparent.png" alt="Hyriki logo" width={32} height={32} className="rounded-md" />
           <span className="text-lg font-bold text-foreground">Hyriki</span>
         </div>
         <Card className="w-full max-w-md">
@@ -134,7 +134,7 @@ function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="absolute top-6 left-6 flex items-center gap-2">
-          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <Image src="/icon-black-transparent.png" alt="Hyriki logo" width={32} height={32} className="rounded-md" />
           <span className="text-lg font-bold text-foreground">Hyriki</span>
         </div>
         <Card className="w-full max-w-md">
@@ -163,7 +163,7 @@ function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="absolute top-6 left-6 flex items-center gap-2">
-          <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+          <Image src="/icon-black-transparent.png" alt="Hyriki logo" width={32} height={32} className="rounded-md" />
           <span className="text-lg font-bold text-foreground">Hyriki</span>
         </div>
         <Card className="w-full max-w-md">
@@ -190,7 +190,7 @@ function ResetPasswordContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-6 left-6 flex items-center gap-2">
-        <Image src="/icon.png" alt="Hyriki logo" width={30} height={30} className="rounded-md" />
+        <Image src="/icon-black-transparent.png" alt="Hyriki logo" width={32} height={32} className="rounded-md" />
         <span className="text-lg font-bold text-foreground">Hyriki</span>
       </div>
       <Card className="w-full max-w-md">

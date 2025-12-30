@@ -1,130 +1,16 @@
 # Database Migrations
 
-This directory contains SQL migration files for setting up the database schema and functions.
+This directory contains all database migration files for the application.
 
 ## Migration Files
 
-1. `001_create_invite_codes_table.sql` - Creates the invite_codes table with proper indexes and RLS policies
-2. `002_create_generate_invite_code_function.sql` - Creates the PostgreSQL function for generating unique invite codes
-3. `003_create_cleanup_expired_invite_codes_function.sql` - Creates the PostgreSQL function for cleaning up expired invite codes
-4. `004_create_get_invite_data_function.sql` - Creates the PostgreSQL function for retrieving invite data
-5. `005_create_delete_invite_data_function.sql` - Creates the PostgreSQL function for deleting invite data
-6. `006_create_candidate_comments_table.sql` - Creates the candidate_comments table with proper indexes and RLS policies, plus functions for CRUD operations
-
-## How to Apply Migrations
-
-To apply these migrations to your Supabase database:
-
-1. Open the Supabase dashboard
-2. Go to the SQL Editor
-3. Run each migration file in numerical order
-4. Verify the tables and functions are created successfully
-
-## Table Structure
-
-### invite_codes
-- `id` (UUID) - Primary key
-- `code` (TEXT) - Unique 6-character alphanumeric code
-- `school_id` (UUID) - Foreign key to schools table
-- `created_by` (UUID) - Foreign key to admin_user_info table
-- `role` (TEXT) - Role assigned to users who use this code
-- `expires_at` (TIMESTAMP) - Expiration timestamp
-- `created_at` (TIMESTAMP) - Creation timestamp
-
-## Functions
-
-### generate_invite_code
-Generates a unique 6-character alphanumeric invite code and inserts it into the invite_codes table.
-
-Parameters:
-- `p_school_id` (UUID) - School ID
-- `p_user_id` (UUID) - User ID of creator
-- `p_role` (TEXT) - Role to assign
-- `p_expires_at` (TIMESTAMP) - Expiration timestamp
-
-Returns:
-- `code` (TEXT) - The generated invite code
-
-### cleanup_expired_invite_codes
-Automatically removes all expired invite codes from the database.
-
-Parameters:
-- None
-
-Returns:
-- `deleted_count` (INTEGER) - The number of expired records that were deleted
-
-### get_invite_data
-Retrieves all invite codes and invited users for a specific school.
-
-Parameters:
-- `p_school_id` (UUID) - School ID
-
-Returns:
-- Structured data containing both invite codes and invited users
-
-### delete_invite_data
-Safely deletes individual invite codes or invited users.
-
-Parameters:
-- `p_school_id` (UUID) - School ID
-- `p_item_id` (UUID) - ID of the item to delete
-- `p_item_type` (TEXT) - Type of item ('code' or 'user')
-
-Returns:
-- `BOOLEAN` - True if deletion was successful
-
-### candidate_comments
-Stores comments made on candidate applications with user mentions.
-
-Columns:
-- `id` (UUID) - Primary key
-- `user_id` (UUID) - Foreign key to admin_user_info table
-- `school_id` (UUID) - Foreign key to schools table
-- `application_id` (UUID) - Foreign key to job_applications table
-- `comment` (TEXT) - The comment content
-- `mentioned_ids` (TEXT[]) - Array of user IDs mentioned in the comment
-- `created_at` (TIMESTAMP) - Creation timestamp
-- `updated_at` (TIMESTAMP) - Last update timestamp
-
-### insert_candidate_comment
-Inserts a new comment for a candidate application.
-
-Parameters:
-- `p_user_id` (UUID) - User ID of commenter
-- `p_school_id` (UUID) - School ID
-- `p_application_id` (UUID) - Application ID
-- `p_comment` (TEXT) - Comment content
-- `p_mentioned_ids` (TEXT[]) - Array of mentioned user IDs
-
-Returns:
-- `UUID` - The ID of the newly created comment
-
-### get_candidate_comments
-Retrieves all comments for a specific candidate application.
-
-Parameters:
-- `p_application_id` (UUID) - Application ID
-
-Returns:
-- Table with comment details including user information
-
-### update_candidate_comment
-Updates an existing comment.
-
-Parameters:
-- `p_comment_id` (UUID) - Comment ID
-- `p_comment` (TEXT) - Updated comment content
-- `p_mentioned_ids` (TEXT[]) - Updated array of mentioned user IDs
-
-Returns:
-- `BOOLEAN` - True if update was successful
-
-### delete_candidate_comment
-Deletes a comment.
-
-Parameters:
-- `p_comment_id` (UUID) - Comment ID
-
-Returns:
-- `BOOLEAN` - True if deletion was successful
+- `001_create_invite_codes_table.sql` - Creates the invite_codes table for invite code functionality
+- `002_create_generate_invite_code_function.sql` - Creates the function to generate invite codes
+- `003_create_cleanup_expired_invite_codes_function.sql` - Creates the function to cleanup expired invite codes
+- `004_create_get_invite_data_function.sql` - Creates the function to retrieve invite data
+- `005_create_delete_invite_data_function.sql` - Creates the function to delete invite data
+- `006_create_candidate_comments_table.sql` - Creates the candidate comments table
+- `007_verify_invite_code_function.sql` - Creates the function to verify invite codes
+- `008_confirm_join_school_function.sql` - Creates the function to confirm joining a school
+- `009_create_invitations_table.sql` - Creates the invitations table for email invitations
+- `010_create_create_invitation_function.sql` - Creates the function to handle the entire invitation process
