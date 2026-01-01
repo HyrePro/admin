@@ -82,8 +82,8 @@ export function useAIJobDescription() {
 
       const result = data as GenerateResponse;
       return result.job_description;
-    } catch (err: any) {
-      setError(err.message || 'Network error. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
       return null;
     } finally {
       setLoading(false);

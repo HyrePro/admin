@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Edge function call error:', error);
       
       // Log error
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
         p_ip_address: ip !== 'unknown' ? ip : null,
         p_user_agent: req.headers.get('user-agent') || null,
         p_success: false,
-        p_error_message: error.message,
+        p_error_message: error instanceof Error ? error.message : 'Unknown error',
       });
 
       return NextResponse.json(
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API route error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
