@@ -164,8 +164,8 @@ const ErrorAlert = memo(({ error }: { error: string }) => (
 ErrorAlert.displayName = 'ErrorAlert'
 
 export default function CreateJobApplicationPage() {
-  const [jobInfo, setJobInfo] = useState<FormValues | null>(null)
-  const jobInfoRef = useRef<FormValues | null>(null)
+  const [jobInfo, setJobInfo] = useState<FormValues>(initialValues)
+  const jobInfoRef = useRef<FormValues>(initialValues)
   const [step, setStep] = useState(0)
   const [screening, setScreening] = useState({
     assessment: false,
@@ -246,17 +246,17 @@ export default function CreateJobApplicationPage() {
 
   // Memoize job payload creation
   const createJobPayload = useCallback(() => ({
-    jobTitle: jobInfoRef.current?.jobTitle ?? jobInfo?.jobTitle ?? "",
-    experience: jobInfoRef.current?.experience ?? jobInfo?.experience ?? "any",
-    employmentType: jobInfoRef.current?.employmentType ?? jobInfo?.employmentType ?? "full-time",
-    subjects: jobInfoRef.current?.subjects ?? jobInfo?.subjects ?? [],
-    gradeLevel: jobInfoRef.current?.gradeLevel ?? jobInfo?.gradeLevel ?? [],
-    salaryMin: jobInfoRef.current?.salaryMin ?? jobInfo?.salaryMin ?? "",
-    salaryMax: jobInfoRef.current?.salaryMax ?? jobInfo?.salaryMax ?? "",
-    numberOfOpenings: jobInfoRef.current?.numberOfOpenings ?? jobInfo?.numberOfOpenings,
+    jobTitle: jobInfo.jobTitle,
+    experience: jobInfo.experience,
+    employmentType: jobInfo.employmentType,
+    subjects: jobInfo.subjects,
+    gradeLevel: jobInfo.gradeLevel,
+    salaryMin: jobInfo.salaryMin?.toString() ?? "",
+    salaryMax: jobInfo.salaryMax?.toString() ?? "",
+    numberOfOpenings: jobInfo.numberOfOpenings,
     schoolName: "Dayanand Public School",
     location: "Mumbai",
-    jobDescription: jobInfoRef.current?.description ?? jobInfo?.description ?? "Job description here...",
+    jobDescription: jobInfo.description ?? "Job description here...",
     requirements: ["Requirement 1", "Requirement 2"],
     includeSubjectTest: screening.assessment,
     subjectTestDuration: screening.assessment ? 30 : undefined,
@@ -283,8 +283,11 @@ export default function CreateJobApplicationPage() {
     // Store the form values in ref to avoid re-initialization
     jobInfoRef.current = values
     setJobInfo(values)
-    setStep(1)
-  }, [])
+    // Only navigate if we're not already navigating via handleNext
+    if (step === 0) {
+      setStep(1)
+    }
+  }, [step])
 
   const handleBack = useCallback(() => {
     setStep(prev => prev - 1)
@@ -305,7 +308,11 @@ export default function CreateJobApplicationPage() {
           })
           return
         }
-        formikRef.current.handleSubmit()
+        // Instead of calling handleSubmit, manually update the state
+        const currentValues = formikRef.current.values;
+        jobInfoRef.current = currentValues;
+        setJobInfo(currentValues);
+        setStep(prev => prev + 1);
       }
     } else if (step === 1) {
       if (!screening.assessment && !screening.demoVideo) {
@@ -318,7 +325,7 @@ export default function CreateJobApplicationPage() {
     } else {
       setStep(prev => prev + 1)
     }
-  }, [step, screening.assessment, screening.demoVideo])
+  }, [step, screening.assessment, screening.demoVideo, formikRef])
 
   const handlePublish = useCallback(async () => {
     setError(null)
@@ -544,17 +551,17 @@ export default function CreateJobApplicationPage() {
 
   // Memoize review job data
   const reviewJobData = useMemo(() => ({
-    jobTitle: jobInfo?.jobTitle ?? "",
-    experience: jobInfo?.experience ?? "any",
-    employmentType: jobInfo?.employmentType ?? "full-time",
-    subjects: jobInfo?.subjects ?? [],
-    gradeLevel: jobInfo?.gradeLevel ?? [],
-    salaryMin: jobInfo?.salaryMin?.toString() ?? "",
-    salaryMax: jobInfo?.salaryMax?.toString() ?? "",
-    numberOfOpenings: jobInfo?.numberOfOpenings,
+    jobTitle: jobInfo.jobTitle,
+    experience: jobInfo.experience,
+    employmentType: jobInfo.employmentType,
+    subjects: jobInfo.subjects,
+    gradeLevel: jobInfo.gradeLevel,
+    salaryMin: jobInfo.salaryMin?.toString() ?? "",
+    salaryMax: jobInfo.salaryMax?.toString() ?? "",
+    numberOfOpenings: jobInfo.numberOfOpenings,
     schoolName: "Dayanand Public School",
     location: "Mumbai",
-    jobDescription: jobInfo?.description ?? "Job description here...",
+    jobDescription: jobInfo.description ?? "Job description here...",
     requirements: ["Requirement 1", "Requirement 2"],
     includeSubjectTest: screening.assessment,
     subjectTestDuration: screening.assessment ? 30 : undefined,
@@ -617,12 +624,12 @@ export default function CreateJobApplicationPage() {
                   {step === 0 && (
                     <Formik
                       innerRef={formikRef}
-                      initialValues={initialValues}
+                      initialValues={jobInfo}
                       validationSchema={validationSchema}
                       onSubmit={handleFormSubmit}
                       validateOnChange={true}
                       validateOnBlur={true}
-                      enableReinitialize={false}
+                      enableReinitialize={true}
                     >
                       {(formik) => (
                         <Form>

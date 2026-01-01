@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Sparkles, Loader2 } from "@/components/icons"
 import { toast } from "sonner"
 import { useAIJobDescription } from "@/hooks/useAIJobDescription"
+import { createClient } from "@/lib/supabase/api/client"
 
 const subjects = [
   "Mathematics", "Science", "English", "Social Studies", "Hindi",
@@ -77,6 +78,30 @@ const getSubjectVariations = (subject: string): string[] => {
   return variations[subject] || [subject]
 }
 
+// Helper function to extract numeric grade from grade level format
+const extractNumericGrade = (gradeLevels: string[]): string => {
+  if (gradeLevels.length === 0) return ""
+  
+  // For each grade level, try to extract the number(s) from parentheses
+  const grade = gradeLevels[0]
+  
+  // Handle special case for Pre-Primary
+  if (grade === "Pre-Primary") {
+    return "Pre-Primary"
+  }
+  
+  // If it's a range like "Secondary (9-10)", extract the last number
+  const match = grade.match(/\((\d+)(?:-(\d+))?\)/)
+  if (match) {
+    // If it's a range, return the higher number (e.g., "10" from "Secondary (9-10)")
+    return match[2] || match[1]
+  }
+  
+  // If no parentheses, try to extract any numbers
+  const numberMatch = grade.match(/\d+/)
+  return numberMatch ? numberMatch[0] : grade
+}
+
 type FormValues = {
   jobTitle: string
   description?: string
@@ -95,9 +120,73 @@ type BasicJobInformationProps = FormikProps<FormValues>
 export function BasicJobInformation(props: BasicJobInformationProps) {
   const { values, errors, touched, setFieldValue } = props
   const [isGenerating, setIsGenerating] = useState(false)
+  const [schoolInfo, setSchoolInfo] = useState({
+    schoolName: "",
+    board: "",
+    schoolType: ""
+  })
+  const [isSchoolInfoFetched, setIsSchoolInfoFetched] = useState(false)
 
   // Use the new AI job description hook
   const { generateJobDescription: generateAIJobDescription, loading: aiLoading, error: aiError } = useAIJobDescription()
+
+  // Function to fetch school information only once
+  const fetchSchoolInformation = async () => {
+    if (isSchoolInfoFetched) {
+      // Return early if school info has already been fetched
+      return schoolInfo
+    }
+    
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id
+    
+    let schoolName = ""
+    let board = ""
+    let schoolType = ""
+    
+    if (userId) {
+      const { data: userInfo, error: userError } = await supabase
+        .from('admin_user_info')
+        .select('school_id')
+        .eq('id', userId)
+        .single()
+      
+      if (userError) {
+        console.error('Error fetching user info:', userError)
+      }
+      
+      if (userInfo?.school_id) {
+        // Then get the school information
+        const { data: schoolData, error: schoolError } = await supabase
+          .from('school_info')
+          .select('*')
+          .eq('id', userInfo.school_id)
+          .single()
+        
+        if (schoolError) {
+          console.error('Error fetching school info:', schoolError)
+        }
+        
+        if (schoolData) {
+          schoolName = schoolData.name || ""
+          board = schoolData.board || ""
+          schoolType = schoolData.school_type || ""
+        } else {
+          console.log('Missing school data')
+        }
+      }
+    } else {
+      console.log('user is missing', userId)
+    }
+    
+    // Update state with fetched school information
+    const newSchoolInfo = { schoolName, board, schoolType }
+    setSchoolInfo(newSchoolInfo)
+    setIsSchoolInfoFetched(true)
+    
+    return newSchoolInfo
+  }
 
   // Effect to automatically detect subjects when job title changes
   useEffect(() => {
@@ -119,30 +208,9 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
     setIsGenerating(true)
 
     try {
-      // Get school information from user metadata
-      const supabase = await import("@/lib/supabase/api/client").then(mod => mod.createClient())
-      const { data: { user } } = await supabase.auth.getUser()
-      const schoolId = user?.user_metadata?.school_id
-
-      // If we don't have school info, we'll still try to generate but with limited data
-      let schoolName = ""
-      let board = ""
-      let schoolType = ""
-
-      if (schoolId) {
-        const { data: schoolData } = await supabase
-          .from('schools')
-          .select('name, board, type')
-          .eq('id', schoolId)
-          .single()
-
-        if (schoolData) {
-          schoolName = schoolData.name || ""
-          board = schoolData.board || ""
-          schoolType = schoolData.type || ""
-        }
-      }
-
+      // Fetch school information (will only fetch once)
+      const schoolInfoData = await fetchSchoolInformation()
+      const { schoolName, board, schoolType } = schoolInfoData
       // Prepare salary range string
       let salaryRange = ""
       if (values.salaryMin && values.salaryMax) {
@@ -153,13 +221,53 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
         salaryRange = `Up to ₹${values.salaryMax}`
       }
 
+      // Validate required fields before proceeding
+      if (!values.jobTitle) {
+        toast.error("Job title is required to generate AI job description.")
+        setIsGenerating(false)
+        return
+      }
+      
+      const filteredSubjects = values.subjects.filter(s => s !== "Other")
+      if (filteredSubjects.length === 0 && !values.otherSubject) {
+        toast.error("At least one subject is required to generate AI job description.")
+        setIsGenerating(false)
+        return
+      }
+      
+      const extractedGrade = extractNumericGrade(values.gradeLevel)
+      if (!extractedGrade) {
+        toast.error("Grade level is required to generate AI job description.")
+        setIsGenerating(false)
+        return
+      }
+      
+      if (!values.employmentType) {
+        toast.error("Employment type is required to generate AI job description.")
+        setIsGenerating(false)
+        return
+      }
+      
+      if (!values.experience) {
+        toast.error("Experience requirement is required to generate AI job description.")
+        setIsGenerating(false)
+        return
+      }
+      
+      if (!schoolInfoData.board || !schoolInfoData.schoolType || !schoolInfoData.schoolName) {
+        console.log(schoolInfoData.board, schoolInfoData.schoolName, schoolInfoData.schoolType)
+        toast.error("School information is required to generate AI job description. Please ensure your school profile is complete.")
+        setIsGenerating(false)
+        return
+      }
+      
       // Prepare the payload for the AI job description
       const payload = {
         job_title: values.jobTitle,
-        subjects_to_teach: values.subjects.filter(s => s !== "Other"),
-        grade: values.gradeLevel.join(", "),
-        employment_type: values.employmentType,
-        experience: values.experience,
+        subjects_to_teach: filteredSubjects,
+        grade: extractedGrade,
+        employment_type: values.employmentType.charAt(0).toUpperCase() + values.employmentType.slice(1), // Capitalize first letter
+        experience: values.experience === 'any' ? 'Any' : values.experience + ' years', // Format like '1-3 years'
         board,
         school_type: schoolType,
         school_name: schoolName,
@@ -173,34 +281,25 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       if (result) {
         // Format the job description from the structured response
         const formattedDescription = `
-# ${result.title}
-
-## School Overview
-${result.school_overview}
-
-## Role Summary
 ${result.role_summary}
 
-## Key Responsibilities
+Key Responsibilities:
 ${result.key_responsibilities.map(item => `- ${item}`).join('\n')}
 
-## Required Qualifications
+Required Qualifications:
 ${result.required_qualifications.map(item => `- ${item}`).join('\n')}
 
-${result.preferred_qualifications.length > 0 ? `## Preferred Qualifications
-${result.preferred_qualifications.map(item => `- ${item}`).join('\n')}` : ''}
+${result.preferred_qualifications.length > 0 ? `Preferred Qualifications:\n${result.preferred_qualifications.map(item => `- ${item}`).join('\n')}` : ''}
 
-## Experience Requirements
+Experience Requirements:
 ${result.experience_requirements}
 
-## Employment Details
+Employment Details:
 ${result.employment_details}
 
-${result.salary_information ? `## Salary Information
-${result.salary_information}` : ''}
+${result.salary_information ? `Salary Information:\n${result.salary_information}` : ''}
 
-${result.application_notes ? `## Application Notes
-${result.application_notes}` : ''}
+${result.application_notes ? `Application Notes:\n${result.application_notes}` : ''}
         `.trim()
 
         setFieldValue("description", formattedDescription)

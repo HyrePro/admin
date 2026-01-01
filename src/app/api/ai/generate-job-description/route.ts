@@ -1,6 +1,5 @@
 // app/api/ai/generate-job-description/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/api/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface GenerateJDPayload {
@@ -18,13 +17,16 @@ interface GenerateJDPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    // Initialize Supabase client with cookies - correct way for Next.js App Router
-    const supabase = createRouteHandlerClient({ cookies });
+    // Initialize Supabase client (Next.js 15 compatible)
+    const supabase = await createClient();
 
-    // Verify authentication - use getUser instead of getSession for security
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Verify authentication
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (userError || !user) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
@@ -121,19 +123,19 @@ export async function POST(req: NextRequest) {
     const operationType = payload.existing_job_description ? 'optimize' : 'generate';
     
     try {
-      // Call the edge function
-      const edgeFunctionUrl = process.env.NEXT_PUBLIC_SUPABASE_URL + 
-        '/functions/v1/generate-job-description';
-      
-      // Get session to access the access token
+      // Get fresh session for edge function call
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         return NextResponse.json(
-          { error: 'Session not found. Please log in again.' },
+          { error: 'Session expired. Please refresh and try again.' },
           { status: 401 }
         );
       }
+
+      // Call the edge function
+      const edgeFunctionUrl = process.env.NEXT_PUBLIC_SUPABASE_URL + 
+        '/functions/v1/generate-job-description';
       
       const edgeResponse = await fetch(edgeFunctionUrl, {
         method: 'POST',
@@ -184,7 +186,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Edge function call error:', error);
       
       // Log error
@@ -195,7 +197,7 @@ export async function POST(req: NextRequest) {
         p_ip_address: ip !== 'unknown' ? ip : null,
         p_user_agent: req.headers.get('user-agent') || null,
         p_success: false,
-        p_error_message: error instanceof Error ? error.message : 'Unknown error',
+        p_error_message: error.message,
       });
 
       return NextResponse.json(
@@ -204,8 +206,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-  } catch (error: unknown) {
-    console.error('API route error:', error as unknown as Error);
+  } catch (error: any) {
+    console.error('API route error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
