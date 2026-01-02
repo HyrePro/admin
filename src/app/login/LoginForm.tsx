@@ -21,12 +21,14 @@ const ForgotPasswordDialog = dynamic(() => import("@/components/forgot-password-
 interface LoginFormProps extends React.ComponentProps<"form"> {
   email?: string | null
   redirect?: string | null
+  invitation?: string | null
 }
 
 export function LoginForm({
   className,
   email: initialEmail,
   redirect: initialRedirect,
+  invitation: initialInvitation,
   ...props
 }: LoginFormProps) {
   const [email, setEmail] = useState(initialEmail || "")
@@ -36,6 +38,7 @@ export function LoginForm({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState("")
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false)
+  const [invitation, setInvitation] = useState<string | null>(initialInvitation || null)
   const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
   const { user, loading } = useAuth()
@@ -158,8 +161,12 @@ export function LoginForm({
         // After successful login, check if we have a redirect parameter
         let redirectPath = '/'
         
-        // Use the initial redirect parameter passed to the component
-        if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        // If there's an invitation token, redirect to the invitation page
+        if (invitation) {
+          redirectPath = `/invite/${invitation}`
+        }
+        // Otherwise, use the initial redirect parameter passed to the component
+        else if (initialRedirect && isValidRedirectPath(initialRedirect)) {
           redirectPath = initialRedirect
         }
         
@@ -189,6 +196,12 @@ export function LoginForm({
       if (initialRedirect && isValidRedirectPath(initialRedirect)) {
         const url = new URL(redirectTo)
         url.searchParams.set('next', initialRedirect)
+        redirectTo = url.toString()
+      }
+      // If there's an invitation token, add it to the callback URL
+      else if (invitation) {
+        const url = new URL(redirectTo)
+        url.searchParams.set('next', `/invite/${invitation}`)
         redirectTo = url.toString()
       }
       

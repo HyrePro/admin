@@ -18,6 +18,7 @@ interface InvitationClientWrapperProps {
   token: string;
   user: User | null;
   currentSchool: { id: string; name: string } | null;
+  showEmailMismatchNotification: boolean;
 }
 
 export default function InvitationClientWrapper({
@@ -25,6 +26,7 @@ export default function InvitationClientWrapper({
   token,
   user,
   currentSchool,
+  showEmailMismatchNotification,
 }: InvitationClientWrapperProps) {
   return (
     <InvitationClient 
@@ -32,6 +34,7 @@ export default function InvitationClientWrapper({
       token={token}
       user={user}
       currentSchool={currentSchool}
+      showEmailMismatchNotification={showEmailMismatchNotification}
     />
   );
 }

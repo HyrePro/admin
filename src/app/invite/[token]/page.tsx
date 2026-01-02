@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/api/server';
 import { redirect } from 'next/navigation';
 import InvitationClientWrapper from './InvitationClientWrapper';
-
+import { InvitationDetails, UserSchoolInfo } from '../../../../types/invitations';
+import HeaderIcon from '@/components/header-icon';
 export default async function InvitePage({
   params,
 }: {
@@ -9,32 +10,20 @@ export default async function InvitePage({
 }) {
   // Await params first, then destructure
   const { token } = await params;
+  console.log('Token extracted:', token);
   
   const supabase = await createClient();
+  console.log('Supabase client created');
 
-  // Get invitation details (server-side)
+  // Get invitation details using SQL function (single call)
   const { data: invitationData, error } = await supabase
-    .from('invitations')
-    .select(`
-      id,
-      school_id,
-      invited_by,
-      email,
-      name,
-      role,
-      token,
-      status,
-      expires_at,
-      created_at,
-      updated_at,
-      school_info: schools (name),
-      inviter_info: admin_user_info (first_name, last_name)
-    `)
-    .eq('token', token)
-    .single();
+    .rpc('get_invitation_details', { invitation_token: token })
+    .single<InvitationDetails>();
+  console.log('Invitation data fetched:', { invitationData, error });
 
   // Handle invitation not found
   if (error || !invitationData) {
+    console.log('Invitation not found or error:', { error, invitationData });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -51,19 +40,23 @@ export default async function InvitePage({
   }
 
   const invitation = invitationData;
+  console.log('Invitation processed:', invitation);
 
   // Handle expired or already processed invitations
   const now = new Date();
   const expiresAt = new Date(invitation.expires_at);
   const isExpired = now > expiresAt;
+  console.log('Expiration check:', { now, expiresAt, isExpired, status: invitation.status });
 
   if (isExpired || invitation.status !== 'pending') {
+    console.log('Invitation is expired or already processed');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="absolute top-0 left-0 p-4" >
+          <HeaderIcon />
+        </div>
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="text-yellow-600 text-5xl mb-4">
-            {isExpired ? '⏰' : 'ℹ️'}
-          </div>
+         
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {isExpired 
               ? 'Invitation Expired' 
@@ -81,21 +74,63 @@ export default async function InvitePage({
 
   // Get current user (server-side)
   const { data: { user } } = await supabase.auth.getUser();
+  console.log('Current user fetched:', user);
 
-  // Get user's current school info if authenticated
+  // Get user's current school info
   let currentSchool = null;
   if (user) {
-    const { data: userInfo } = await supabase
+    console.log('User exists, fetching school info');
+    const { data: userSchoolData, error: schoolError } = await supabase
       .from('admin_user_info')
-      .select('school_id, school_info(name)')
+      .select('school_id')
       .eq('id', user.id)
-      .single();
+      .single<{ school_id: string }>();
+    console.log('User school data fetched:', { userSchoolData, schoolError });
 
-    if (userInfo?.school_id) {
-      currentSchool = {
-        id: userInfo.school_id,
-        name: userInfo.school_info?.[0]?.name
-      };
+    if (userSchoolData?.school_id) {
+      // Get school name using the school_id
+      const { data: schoolInfo, error: schoolInfoError } = await supabase
+        .from('school_info')
+        .select('name')
+        .eq('id', userSchoolData.school_id)
+        .single<{ name: string }>();
+      console.log('School info fetched:', { schoolInfo, schoolInfoError });
+
+      if (schoolInfo?.name) {
+        currentSchool = {
+          id: userSchoolData.school_id,
+          name: schoolInfo.name
+        };
+        console.log('Current school set:', currentSchool);
+      }
+    }
+  } else {
+    console.log('No user found, skipping school info fetch');
+  }
+
+  // Check if the authenticated user's email matches the invitation email
+  let showEmailMismatchNotification = false;
+  if (user && user.email && invitation.email && user.email !== invitation.email) {
+    console.log('Email mismatch detected', {
+      authenticatedUserEmail: user.email,
+      invitationEmail: invitation.email
+    });
+    showEmailMismatchNotification = true;
+  }
+
+  // Check if user is already in the same school as the invitation
+  if (currentSchool && currentSchool.id === invitation.school_id) {
+    console.log('User is already in the same school as the invitation', {
+      currentSchoolId: currentSchool.id,
+      invitationSchoolId: invitation.school_id
+    });
+    
+    if (user) {
+      console.log('User is authenticated, redirecting to dashboard');
+      redirect('/');
+    } else {
+      console.log('User is not authenticated, redirecting to login');
+      redirect('/login');
     }
   }
 
@@ -108,6 +143,7 @@ export default async function InvitePage({
     created_at: user.created_at,
     aud: user.aud,
   } : null;
+  console.log('User data prepared for client:', userData);
 
   // Prepare invitation data for client component (ensure it's serializable)
   const serializedInvitation = {
@@ -122,9 +158,13 @@ export default async function InvitePage({
     expires_at: invitation.expires_at,
     created_at: invitation.created_at,
     updated_at: invitation.updated_at,
-    school_info: invitation.school_info,
-    inviter_info: invitation.inviter_info,
+    school_info: [{ name: invitation.school_name }],
+    inviter_info: [{ 
+      first_name: invitation.inviter_first_name, 
+      last_name: invitation.inviter_last_name 
+    }],
   };
+  console.log('Serialized invitation prepared for client:', serializedInvitation);
 
   // Pass data to client component
   return (
@@ -133,6 +173,7 @@ export default async function InvitePage({
       token={token}
       user={userData}
       currentSchool={currentSchool}
+      showEmailMismatchNotification={showEmailMismatchNotification}
     />
   );
 }

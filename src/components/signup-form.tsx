@@ -15,12 +15,14 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react"
 interface SignupFormProps extends React.ComponentProps<"div"> {
   email?: string | null
   redirect?: string | null
+  invitation?: string | null
 }
 
 export function SignupForm({
   className,
   email: initialEmail,
   redirect: initialRedirect,
+  invitation: initialInvitation,
   ...props
 }: SignupFormProps) {
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +34,7 @@ export function SignupForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [email, setEmail] = useState(initialEmail || "")
+  const [invitation, setInvitation] = useState<string | null>(initialInvitation || null)
   const [showSignUpMessage, setShowSignUpMessage] = useState(!!initialEmail)
   const router = useRouter()
   const supabase = createClient()
@@ -90,7 +93,16 @@ export function SignupForm({
 
     try {
       const baseUrl = window.location.origin
-      const redirectUrl = `${baseUrl}`
+      let redirectUrl = `${baseUrl}`
+      
+      // If there's an invitation token, redirect to the invitation page after email confirmation
+      if (invitation) {
+        redirectUrl = `${baseUrl}/invite/${invitation}`
+      }
+      // Otherwise, if there's a redirect parameter, use that
+      else if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        redirectUrl = `${baseUrl}${initialRedirect}`
+      }
 
       console.log('=== SIGNUP ATTEMPT START ===')
       console.log('Email:', email)
@@ -360,6 +372,12 @@ export function SignupForm({
         url.searchParams.set('next', initialRedirect)
         redirectTo = url.toString()
       }
+      // If there's an invitation token, add it to the callback URL
+      else if (invitation) {
+        const url = new URL(redirectTo)
+        url.searchParams.set('next', `/invite/${invitation}`)
+        redirectTo = url.toString()
+      }
       
       console.log('Google OAuth Redirect URL:', redirectTo)
       
@@ -473,8 +491,12 @@ export function SignupForm({
       // After email confirmation, check if we have a redirect parameter
       let redirectPath = '/select-organization'
       
-      // Use the initial redirect parameter passed to the component
-      if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+      // If there's an invitation token, redirect to the invitation page
+      if (invitation) {
+        redirectPath = `/invite/${invitation}`
+      } 
+      // Otherwise, use the initial redirect parameter passed to the component
+      else if (initialRedirect && isValidRedirectPath(initialRedirect)) {
         redirectPath = initialRedirect
       }
       
@@ -498,8 +520,12 @@ export function SignupForm({
         // After email confirmation, check if we have a redirect parameter
         let redirectPath = '/select-organization'
         
-        // Use the initial redirect parameter passed to the component
-        if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        // If there's an invitation token, redirect to the invitation page
+        if (invitation) {
+          redirectPath = `/invite/${invitation}`
+        }
+        // Otherwise, use the initial redirect parameter passed to the component
+        else if (initialRedirect && isValidRedirectPath(initialRedirect)) {
           redirectPath = initialRedirect
         }
         
