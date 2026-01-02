@@ -64,7 +64,7 @@ export function LoginForm({
       // Check if user has school info and redirect accordingly
       checkUserSchoolInfo()
     }
-  }, [user, loading, router])
+  }, [user, loading])
 
   const checkUserSchoolInfo = async () => {
     if (!user) return

@@ -139,7 +139,7 @@ export default function DashboardShellLayout({
 
   useEffect(() => {
     checkSchoolId();
-  }, [checkSchoolId]);
+  }, [user, loading, initialAuthCheckDone]);
 
   useEffect(() => {
     if (loading) return;

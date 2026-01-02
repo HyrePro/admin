@@ -35,9 +35,10 @@ export default function JobsPage() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalJobsCount, setTotalJobsCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchJobs = async (signal?: AbortSignal) => {
+  const fetchJobs = async (signal?: AbortSignal, refreshTotalCount: boolean = false) => {
     if (!user || !session) {
       setError("Please log in to view jobs");
       return;
@@ -85,6 +86,11 @@ export default function JobsPage() {
       if (!signal?.aborted) {
         setJobs(data.jobs || []);
       }
+      
+      // Optionally refresh the total job count
+      if (refreshTotalCount) {
+        await fetchTotalJobCount();
+      }
     } catch (err) {
       // Don't update state if request was aborted
       if (err instanceof Error && err.name === 'AbortError') {
@@ -104,11 +110,46 @@ export default function JobsPage() {
     }
   };
 
+  const fetchTotalJobCount = async () => {
+    if (!user || !session) {
+      return;
+    }
+
+    try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Authorization header if we have an access token
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch(`/api/get-total-job-count`, {
+        method: 'GET',
+        headers,
+        credentials: 'include', // Include cookies for server-side auth
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to fetch total job count:', errorData.error || 'Unknown error');
+        return;
+      }
+
+      const data = await response.json();
+      setTotalJobsCount(data.totalJobs || 0);
+    } catch (err) {
+      console.error("Error fetching total job count:", err);
+    }
+  };
+
   useEffect(() => {
     const abortController = new AbortController();
 
     if (!authLoading && user && session) {
       fetchJobs(abortController.signal);
+      fetchTotalJobCount();
     }
 
     return () => {
@@ -133,8 +174,9 @@ export default function JobsPage() {
       <div className="flex-1 overflow-hidden">
         <JobsTable 
           jobs={jobs} 
+          totalJobsCount={totalJobsCount}
           loading={loading} 
-          onRefresh={fetchJobs} 
+          onRefresh={() => fetchJobs(undefined, true)} 
         />
       </div>
     </div>

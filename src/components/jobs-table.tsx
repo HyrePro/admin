@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronLeft, ChevronRight, Eye, Copy, RefreshCw } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Copy, RefreshCw, ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getJobCount } from "@/lib/supabase/api/get-job-count";
 import '@/styles/jobs.css';
 
 interface Job {
@@ -45,6 +46,7 @@ interface Job {
 
 interface JobsTableProps {
   jobs: Job[];
+  totalJobsCount?: number; // Total count of jobs for correct pagination display
   loading?: boolean;
   onRefresh?: () => void;
 }
@@ -56,11 +58,21 @@ const STATUS_OPTIONS = [
   { value: "COMPLETED", label: "Completed" },
 ];
 
-export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) {
+export function JobsTable({ jobs, totalJobsCount, loading = false, onRefresh }: JobsTableProps) {
   const router = useRouter();
+  
+  // Existing state
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(0);
+  const [filteredJobCount, setFilteredJobCount] = useState<number>(0);
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{
+    column: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+  
   const pageSize = 10;
 
   const statusColors: Record<string, string> = {
@@ -87,15 +99,64 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
     });
   }, [jobs, searchQuery, statusFilter]);
 
-  // Paginate filtered jobs
+  // Sort jobs
+  const sortedJobs = useMemo(() => {
+    if (!sortConfig) return filteredJobs;
+    
+    return [...filteredJobs].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.column) {
+        case 'title':
+          aValue = a.title;
+          bValue = b.title;
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'total_applications':
+          aValue = a.application_analytics.total_applications || 0;
+          bValue = b.application_analytics.total_applications || 0;
+          break;
+        case 'grade_levels':
+          aValue = a.grade_levels?.join(' ') || '';
+          bValue = b.grade_levels?.join(' ') || '';
+          break;
+        case 'hiring_name':
+          aValue = (a.hiring?.first_name || '') + (a.hiring?.last_name || '');
+          bValue = (b.hiring?.first_name || '') + (b.hiring?.last_name || '');
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [filteredJobs, sortConfig]);
+
+  // Paginate sorted jobs
   const paginatedJobs = useMemo(() => {
     const startIndex = currentPage * pageSize;
-    return filteredJobs.slice(startIndex, startIndex + pageSize);
-  }, [filteredJobs, currentPage]);
+    return sortedJobs.slice(startIndex, startIndex + pageSize);
+  }, [sortedJobs, currentPage]);
 
   const totalPages = Math.ceil(filteredJobs.length / pageSize);
   const startIndex = currentPage * pageSize;
   const endIndex = Math.min(startIndex + pageSize, filteredJobs.length);
+  
+  // Use the filtered job count which is fetched from the API when filters are applied
+  const totalDisplayCount = filteredJobCount;
 
   const handleViewJob = (jobId: string) => {
     router.push(`/jobs/${jobId}`);
@@ -120,10 +181,60 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
     setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
   };
 
+  // Sorting function
+  const requestSort = (column: string) => {
+    if (sortConfig && sortConfig.column === column) {
+      // If clicking the same column, toggle direction
+      if (sortConfig.direction === 'asc') {
+        setSortConfig({ column, direction: 'desc' });
+      } else {
+        setSortConfig(null); // Clear sort if going from desc to asc again
+      }
+    } else {
+      // If clicking a different column, sort ascending by default
+      setSortConfig({ column, direction: 'asc' });
+    }
+  };
+
+  // Get sort indicator
+  const getSortIndicator = (columnName: string) => {
+    if (sortConfig?.column === columnName) {
+      return sortConfig.direction === 'asc' ? '↑' : '↓';
+    }
+    return null;
+  };
+
+  // Fetch filtered job count when filters change
+  React.useEffect(() => {
+    const fetchFilteredCount = async () => {
+      // If no filters are applied, use the totalJobsCount prop
+      if (!searchQuery && statusFilter === "ALL") {
+        setFilteredJobCount(totalJobsCount || 0);
+        return;
+      }
+      
+      // Otherwise, fetch the count from the API
+      const { data, error } = await getJobCount(
+        statusFilter !== "ALL" ? statusFilter : undefined,
+        searchQuery
+      );
+      
+      if (error) {
+        console.error('Error fetching filtered job count:', error);
+        // Fallback to filtered jobs length if API fails
+        setFilteredJobCount(filteredJobs.length);
+      } else {
+        setFilteredJobCount(data?.count || filteredJobs.length);
+      }
+    };
+    
+    fetchFilteredCount();
+  }, [searchQuery, statusFilter, totalJobsCount, filteredJobs.length]);
+
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(0);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, sortConfig]);
 
   if (loading) {
     return (
@@ -263,12 +374,66 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
           <Table>
             <TableHeader className="table-header">
               <TableRow>
-                <TableHead className="table-head table-head-border">Job Title</TableHead>
-                <TableHead className="table-head table-head-border">Applications</TableHead>
-                <TableHead className="table-head table-head-border">Status</TableHead>
-                <TableHead className="table-head table-head-border">Created</TableHead>
-                <TableHead className="table-head table-head-border">Grade Levels</TableHead>
-                <TableHead className="table-head table-head-border">Hiring Manager</TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('title')}
+                  >
+                    Job Title
+                    {getSortIndicator('title')}
+                  </Button>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('total_applications')}
+                  >
+                    Applications
+                    {getSortIndicator('total_applications')}
+                  </Button>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('status')}
+                  >
+                    Status
+                    {getSortIndicator('status')}
+                  </Button>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('created_at')}
+                  >
+                    Created
+                    {getSortIndicator('created_at')}
+                  </Button>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('grade_levels')}
+                  >
+                    Grade Levels
+                    {getSortIndicator('grade_levels')}
+                  </Button>
+                </TableHead>
+                <TableHead className="table-head table-head-border">
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('hiring_name')}
+                  >
+                    Hiring Manager
+                    {getSortIndicator('hiring_name')}
+                  </Button>
+                </TableHead>
                 <TableHead className="table-head table-head-actions">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -397,7 +562,7 @@ export function JobsTable({ jobs, loading = false, onRefresh }: JobsTableProps) 
         <div className="pagination-info">
           Showing <span className="pagination-value">{startIndex + 1}</span> to{' '}
           <span className="pagination-value">{endIndex || 0}</span> of{' '}
-          <span className="pagination-value">{filteredJobs.length}</span> jobs
+          <span className="pagination-value">{totalDisplayCount}</span> jobs
         </div>
         <div className="pagination-controls">
           <span className="pagination-page">
