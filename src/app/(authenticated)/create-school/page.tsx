@@ -31,6 +31,8 @@ interface SchoolFormData {
   logo_url: string
 }
 
+
+
 export default function CreateSchoolPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)

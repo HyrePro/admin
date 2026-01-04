@@ -25,6 +25,8 @@ interface NotificationSettings {
   allowBrowserNotifications: boolean;
 }
 
+
+
 export default function NotificationsPage() {
   const { user } = useAuth();
   const { schoolId, setSchoolId } = useAuthStore();

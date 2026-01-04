@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import InvitationClientWrapper from './InvitationClientWrapper';
 import { InvitationDetails, UserSchoolInfo } from '../../../../types/invitations';
 import HeaderIcon from '@/components/header-icon';
+
+
+
 export default async function InvitePage({
   params,
 }: {
@@ -97,10 +100,10 @@ export default async function InvitePage({
       console.log('School info fetched:', { schoolInfo, schoolInfoError });
 
       if (schoolInfo?.name) {
-        currentSchool = {
+        currentSchool = JSON.parse(JSON.stringify({
           id: userSchoolData.school_id,
           name: schoolInfo.name
-        };
+        }));
         console.log('Current school set:', currentSchool);
       }
     }
@@ -135,14 +138,14 @@ export default async function InvitePage({
   }
 
   // Prepare user data for client component
-  const userData = user ? {
+  const userData = user ? JSON.parse(JSON.stringify({
     id: user.id,
     email: user.email,
     user_metadata: user.user_metadata,
     app_metadata: user.app_metadata,
     created_at: user.created_at,
     aud: user.aud,
-  } : null;
+  })) : null;
   console.log('User data prepared for client:', userData);
 
   // Prepare invitation data for client component (ensure it's serializable)

@@ -6,155 +6,175 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { JobsTable } from "@/components/jobs-table";
+import ErrorBoundary from "@/components/error-boundary";
+import { retryWithBackoff, isNetworkError } from "@/lib/utils";
+import GlobalErrorHandler from "@/lib/error-handler";
+import { useQuery } from '@tanstack/react-query';
+import { sanitizeJobList } from '@/lib/sanitize';
+import { isValidAuthState, validateSessionIntegrity, refreshAuthTokenIfNeeded } from '@/lib/auth-validation';
+import { Job } from '@/types/jobs-table';
+import { requestDeduplicator, generateRequestKey } from "@/lib/request-deduplicator";
+import { useJobs } from "@/hooks/useJobs";
+import { useOptimisticJobs } from "@/hooks/useOptimisticJobs";
 import '@/styles/jobs.css'
 
-type Job = {
-  id: string;
-  title: string;
-  status: string;
-  subjects: string[];
-  grade_levels: string[];
-  created_at: string;
-  application_analytics: {
-    total_applications: number;
-    assessment: number;
-    demo: number;
-    interviews: number;
-    offered: number;
-  };
-  hiring:{
-    first_name: string;
-    last_name: string;
-    avatar: string;
-  }
-};
+
+
+
 
 export default function JobsPage() {
   const router = useRouter();
   const { user, session, loading: authLoading } = useAuth();
 
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(false);
   const [totalJobsCount, setTotalJobsCount] = useState<number>(0);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchJobs = async (signal?: AbortSignal, refreshTotalCount: boolean = false) => {
-    if (!user || !session) {
-      setError("Please log in to view jobs");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const queryParams = new URLSearchParams({
-        status: "ALL",
-        startIndex: '0',
-        endIndex: '20'
-      });
-
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add Authorization header if we have an access token
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const response = await fetch(`/api/jobs?${queryParams}`, {
-        method: 'GET',
-        headers,
-        credentials: 'include', // Include cookies for server-side auth
-        signal, // Add abort signal for cancellation
-      });
-
-      // Check if request was aborted
-      if (signal?.aborted) {
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch jobs');
-      }
-
-      const data = await response.json();
-
-      // Only update state if component is still mounted (signal not aborted)
-      if (!signal?.aborted) {
-        setJobs(data.jobs || []);
+  
+  const { data: jobs, isLoading: loading, error, refetch } = useQuery<Job[]>({
+    queryKey: ['jobs', 'ALL', 0, 20],
+    queryFn: async (): Promise<Job[]> => {
+      // Validate authentication state
+      if (!isValidAuthState(user, session) || !validateSessionIntegrity(session)) {
+        throw new Error("Authentication required: Please log in to view job listings");
       }
       
-      // Optionally refresh the total job count
-      if (refreshTotalCount) {
-        await fetchTotalJobCount();
+      // Refresh token if needed
+      const updatedSession = await refreshAuthTokenIfNeeded(session);
+      if (updatedSession) {
+        // Update session if refresh was successful
+        // In a real implementation, you'd update the session in context
+      } else if (!session) {
+        // If refresh failed and we don't have a session, throw error
+        throw new Error("Authentication required: Please log in to view job listings");
       }
-    } catch (err) {
-      // Don't update state if request was aborted
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.log('Fetch aborted');
-        return;
-      }
+      
+      try {
+        const queryParams = new URLSearchParams({
+          status: "ALL",
+          startIndex: '0',
+          endIndex: '20'
+        });
 
-      console.error("Error fetching jobs:", err);
-      if (!signal?.aborted) {
-        setError(err instanceof Error ? err.message : "An unexpected error occurred");
+        // Generate a unique request key based on URL and parameters
+        const requestKey = generateRequestKey('/api/jobs', {
+          status: "ALL",
+          startIndex: '0',
+          endIndex: '20'
+        }, 'GET');
+        
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add Authorization header if we have an access token
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        // Execute the request with deduplication and throttling
+        const response = await requestDeduplicator.execute(requestKey, async () => {
+          return await fetch(`/api/jobs?${queryParams}`, {
+            method: 'GET',
+            headers,
+            credentials: 'include', // Include cookies for server-side auth
+          });
+        }, user?.id || 'anonymous', '/api/jobs', 'GET');
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMessage = errorData.error || `Failed to fetch jobs: Server responded with status ${response.status}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        const jobs = data.jobs || [];
+        const sanitizedJobs = sanitizeJobList(jobs);
+        // Ensure the returned data is serializable
+        return JSON.parse(JSON.stringify(sanitizedJobs));
+      } catch (err) {
+        // Use global error handler
+        const context = {
+          operation: 'fetchJobs',
+          component: 'JobsPage',
+          url: '/api/jobs',
+          method: 'GET',
+        };
+        
+        GlobalErrorHandler.logError(err, context);
+        throw err; // Re-throw to be handled by React Query
       }
-    } finally {
-      // Only update loading state if component is still mounted
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
+    },
+    retry: 3,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
+    enabled: !!user && !!session, // Only run query when user is authenticated
+  });
+
+
 
   const fetchTotalJobCount = async () => {
-    if (!user || !session) {
+    // Validate authentication state
+    if (!isValidAuthState(user, session) || !validateSessionIntegrity(session)) {
       return;
+    }
+    
+    // Refresh token if needed
+    const updatedSession = await refreshAuthTokenIfNeeded(session);
+    if (!updatedSession && !session) {
+      return; // Not authenticated
     }
 
     try {
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+      // Wrap the fetch operation with retry logic
+      const fetchTotalCountWithRetry = async () => {
+        // Generate a unique request key for the total job count API
+        const requestKey = generateRequestKey('/api/get-total-job-count', {}, 'GET');
+        
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add Authorization header if we have an access token
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+
+        // Execute the request with deduplication and throttling
+        const response = await requestDeduplicator.execute(requestKey, async () => {
+          return await fetch(`/api/get-total-job-count`, {
+            method: 'GET',
+            headers,
+            credentials: 'include', // Include cookies for server-side auth
+          });
+        }, user?.id || 'anonymous', '/api/get-total-job-count', 'GET');
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMessage = errorData.error || `Failed to fetch total job count: Server responded with status ${response.status}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        setTotalJobsCount(data.totalJobs || 0);
       };
 
-      // Add Authorization header if we have an access token
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const response = await fetch(`/api/get-total-job-count`, {
-        method: 'GET',
-        headers,
-        credentials: 'include', // Include cookies for server-side auth
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to fetch total job count:', errorData.error || 'Unknown error');
-        return;
-      }
-
-      const data = await response.json();
-      setTotalJobsCount(data.totalJobs || 0);
+      // Execute the fetch with retry logic
+      await retryWithBackoff(fetchTotalCountWithRetry, 3, 1000, 2);
     } catch (err) {
-      console.error("Error fetching total job count:", err);
+      // Use global error handler
+      const context = {
+        operation: 'fetchTotalJobCount',
+        component: 'JobsPage',
+        url: '/api/get-total-job-count',
+        method: 'GET',
+      };
+      
+      GlobalErrorHandler.handleApiError(err, context);
     }
   };
 
   useEffect(() => {
-    const abortController = new AbortController();
-
     if (!authLoading && user && session) {
-      fetchJobs(abortController.signal);
       fetchTotalJobCount();
     }
-
-    return () => {
-      abortController.abort();
-    };
   }, [user, session, authLoading]);
 
   return (
@@ -172,12 +192,15 @@ export default function JobsPage() {
       </div>
       
       <div className="flex-1 overflow-hidden">
-        <JobsTable 
-          jobs={jobs} 
-          totalJobsCount={totalJobsCount}
-          loading={loading} 
-          onRefresh={() => fetchJobs(undefined, true)} 
-        />
+        <ErrorBoundary>
+          <JobsTable 
+            jobs={jobs ? JSON.parse(JSON.stringify(jobs || [])) : []} 
+            originalJobs={jobs ? JSON.parse(JSON.stringify(jobs || [])) : []}
+            totalJobsCount={totalJobsCount}
+            loading={loading} 
+            onRefresh={() => refetch()} 
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );

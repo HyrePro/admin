@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Explicitly enable Turbopack for Next.js 16+
+  turbopack: {},
   // Enable advanced optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
@@ -24,7 +26,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Enable webpack optimizations
+  // Only use webpack config for non-Turbopack builds
   webpack: (config, { dev, isServer }) => {
     // Replace moment.js with dayjs if moment is used
     if (!dev && !isServer) {

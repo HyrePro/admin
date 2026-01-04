@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,6 @@ import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download, ChevronL
 import { getJobApplications, type JobApplication } from "@/lib/supabase/api/get-job-applications";
 import { createClient } from '@/lib/supabase/api/client';
 import { forceDownload } from "@/lib/utils";
-import { ToastContainer } from "react-toastify";
 import { statusColors } from "../../utils/statusColor";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -50,7 +49,7 @@ const STATUS_CONFIG = {
   offered: { text: 'Offered', color: statusColors.offered },
 } as const
 
-export function JobCandidates({ job_id }: JobCandidatesProps) {
+export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
   const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +61,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   const [downloadingResumes, setDownloadingResumes] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
-  const fetchTotalApplications = async (search: string = "") => {
+  const fetchTotalApplications = useCallback(async (search: string = "") => {
     try {
       const supabase = createClient();
       
@@ -85,9 +84,9 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       console.error("Error fetching total applications count:", err);
       return 0;
     }
-  };
+  }, [job_id]);
 
-  const fetchApplications = async (search: string = "", page: number = 0) => {
+  const fetchApplications = useCallback(async (search: string = "", page: number = 0) => {
     setLoading(true);
     setError(null);
 
@@ -128,7 +127,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [job_id, pageSize, fetchTotalApplications]);
 
   // Debounce search text
   useEffect(() => {
@@ -142,7 +141,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
   // Fetch applications when debounced search text or page changes
   useEffect(() => {
     fetchApplications(debouncedSearchText, currentPage);
-  }, [job_id, debouncedSearchText, currentPage]);
+  }, [debouncedSearchText, currentPage, fetchApplications]);
 
   // Reset to first page when search text changes
   useEffect(() => {
@@ -151,11 +150,11 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     }
   }, [debouncedSearchText]);
 
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(e.target.value);
-  };
+  }, []);
 
-  const formatScore = (score: number | null | undefined, totalQuestions: number | null | undefined) => {
+  const formatScore = useCallback((score: number | null | undefined, totalQuestions: number | null | undefined) => {
     // Handle null, undefined, or zero total questions
     if (!totalQuestions || totalQuestions === 0) return "N/A";
     
@@ -163,9 +162,9 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
     const validScore = score ?? 0;
     
     return `${validScore}/${totalQuestions}`;
-  };
+  }, []);
 
-  const handleResumeDownload = async (resumeUrl: string, applicationId: string, fileName?: string) => {
+  const handleResumeDownload = useCallback(async (resumeUrl: string, applicationId: string, fileName?: string) => {
     if (downloadingResumes.has(applicationId)) return;
     
     setDownloadingResumes(prev => new Set(prev).add(applicationId));
@@ -182,23 +181,26 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         });
       }, 1000);
     }
-  };
+  }, [downloadingResumes]);
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     const maxPage = Math.ceil(totalApplications / pageSize) - 1;
     if (currentPage < maxPage) {
       setCurrentPage(prev => prev + 1);
     }
-  };
+  }, [totalApplications, pageSize, currentPage]);
 
-  const handlePreviousPage = () => {
+  const handlePreviousPage = useCallback(() => {
     if (currentPage > 0) {
       setCurrentPage(prev => prev - 1);
     }
-  };
+  }, [currentPage]);
+
+  // Memoize the applications data to avoid unnecessary re-renders
+  const memoizedApplications = useMemo(() => applications, [applications]);
 
   // Error Component
-  const ErrorState = () => (
+  const ErrorState = useCallback(() => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       <div className="bg-red-50 rounded-full p-4 mb-4">
         <AlertCircle className="h-8 w-8 text-red-500" />
@@ -212,10 +214,10 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         Try Again
       </Button>
     </div>
-  );
+  ), [error, fetchApplications, debouncedSearchText, currentPage]);
 
   // Loading Skeleton
-  const LoadingSkeleton = () => (
+  const LoadingSkeleton = useCallback(() => (
     <div className="space-y-4">
       <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
       <div className="space-y-3">
@@ -224,10 +226,10 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         ))}
       </div>
     </div>
-  );
+  ), []);
 
   // Empty State
-  const EmptyState = () => (
+  const EmptyState = useCallback(() => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       <div className="bg-gray-50 rounded-full p-4 mb-4">
         <Users className="h-8 w-8 text-gray-400" />
@@ -249,10 +251,10 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         </Button>
       )}
     </div>
-  );
+  ), [debouncedSearchText]);
 
   // Safe rendering function for application rows
-  const renderApplicationRow = (application: JobApplication) => {
+  const renderApplicationRow = useCallback((application: JobApplication) => {
     try {
       return (
         <TableRow key={application.application_id} className="hover:bg-gray-50">
@@ -371,11 +373,10 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
         </TableRow>
       );
     }
-  };
+  }, [formatScore, handleResumeDownload, downloadingResumes, job_id, router]);
 
   return (
     <div className="p-4 flex flex-col h-full">
-      <ToastContainer position="top-right" autoClose={3000} />
       {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
@@ -400,7 +401,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       {!loading && !error && (
         <>
           {/* Candidates Table */}
-          {applications.length === 0 ? (
+          {memoizedApplications.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="flex flex-col flex-grow overflow-hidden">
@@ -420,7 +421,7 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="overflow-y-auto">
-                      {applications.map(renderApplicationRow)}
+                      {memoizedApplications.map(renderApplicationRow)}
                     </TableBody>
                   </Table>
                 </div>
@@ -458,4 +459,4 @@ export function JobCandidates({ job_id }: JobCandidatesProps) {
       )}
     </div>
   );
-}
+});

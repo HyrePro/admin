@@ -16,12 +16,8 @@ import { createClient } from "@/lib/supabase/api/client";
 import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 import { NavUser } from "@/components/nav-user";
 import { Badge } from "@/components/ui/badge";
-
-// Minimal interface for job data from RPC response
-interface JobData {
-  id: string;
-  title: string;
-}
+import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
+import { I18nProvider } from "@/contexts/i18n-context";
 
 // Interface for school information
 interface SchoolInfo {
@@ -29,11 +25,19 @@ interface SchoolInfo {
   location: string;
 }
 
-export default function DashboardShellLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardShellLayout({ children }: { children: React.ReactNode; }) {
+  return (
+    <AuthProviderWrapper>
+      <I18nProvider>
+        <DashboardShellLayoutContent>
+          {children}
+        </DashboardShellLayoutContent>
+      </I18nProvider>
+    </AuthProviderWrapper>
+  );
+}
+
+function DashboardShellLayoutContent({ children }: { children: React.ReactNode; }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();

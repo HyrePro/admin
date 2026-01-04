@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/chart";
 import { createClient } from "@/lib/supabase/api/client";
 import { getMcqAssessmentAnalytics, type MCQAssessmentAnalytics } from "@/lib/supabase/api/get-mcq-assessment-analytics";
-import type { JobOverviewAnalytics, JobFunnelAnalytics } from "@/lib/supabase/api/get-job-analytics";
+import type { JobOverviewAnalytics as JobOverviewAnalyticsType, JobFunnelAnalytics } from "@/lib/supabase/api/get-job-analytics";
 import { TotalAnalytics } from '@/components/total-analytics';
 import { AssessmentAnalytics } from '@/components/assessment-analytics';
 import { InterviewAnalytics } from '@/components/interview-analytics';
@@ -105,8 +105,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
-  const [overviewData, setOverviewData] = React.useState<JobOverviewAnalytics | null>(null);
+const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => {
+  const [overviewData, setOverviewData] = React.useState<JobOverviewAnalyticsType | null>(null);
   const [funnelData, setFunnelData] = React.useState<JobFunnelAnalytics | null>(null);
   const [demographicsData, setDemographicsData] = React.useState<JobFunnelAnalyticsWithDemographics['demographics'] | null>(null); // Will contain gender and city distribution
   const [mcqAssessmentData, setMcqAssessmentData] = React.useState<MCQAssessmentAnalytics | null>(null);
@@ -148,8 +148,9 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
           throw new Error(funnelError.message || 'Failed to fetch funnel analytics');
         }
         
-        setOverviewData(overviewData as JobOverviewAnalytics);
-        setFunnelData(funnelData as JobFunnelAnalyticsWithDemographics);
+        // Ensure data is properly serialized to avoid non-serializable object errors
+        setOverviewData(overviewData && overviewData.length > 0 ? JSON.parse(JSON.stringify(overviewData[0])) : null);
+        setFunnelData(funnelData && funnelData.length > 0 ? JSON.parse(JSON.stringify(funnelData[0])) : null);
         
         // Mock demographics data - in a real implementation, this would be fetched from an API
         const mockDemographics = {
@@ -191,7 +192,8 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
           if (result.error) {
             console.error("Error fetching MCQ assessment data:", result.error);
           } else {
-            setMcqAssessmentData(result.data);
+            // Ensure data is properly serialized to avoid non-serializable object errors
+            setMcqAssessmentData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching MCQ assessment data:", err);
@@ -214,7 +216,8 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
           if (result.error) {
             console.error("Error fetching demo analytics data:", result.error);
           } else {
-            setDemoAnalyticsData(result.data);
+            // Ensure data is properly serialized to avoid non-serializable object errors
+            setDemoAnalyticsData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching demo analytics data:", err);
@@ -237,7 +240,8 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
           if (result.error) {
             console.error("Error fetching interview analytics data:", result.error);
           } else {
-            setInterviewAnalyticsData(result.data);
+            // Ensure data is properly serialized to avoid non-serializable object errors
+            setInterviewAnalyticsData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching interview analytics data:", err);
@@ -249,7 +253,6 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
       fetchInterviewData();
     }
   }, [selectedMetric, jobId, interviewAnalyticsData]);
-
 
 
   if (loading) {
@@ -408,7 +411,9 @@ export function JobOverviewAnalytics({ jobId }: JobOverviewAnalyticsProps) {
         />
       )}
       
-    
+      
     </div>
   );
-}
+};
+
+export const JobOverviewAnalytics = React.memo(JobOverviewAnalyticsComponent);

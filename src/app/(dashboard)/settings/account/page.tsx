@@ -33,8 +33,11 @@ const fetchUserInfo = async (userId: string) => {
         .single();
 
     if (error) throw error;
-    return data;
+    // Ensure the returned data is serializable
+    return data ? JSON.parse(JSON.stringify(data)) : null;
 };
+
+
 
 export default function AccountPage() {
     const { user } = useAuth();

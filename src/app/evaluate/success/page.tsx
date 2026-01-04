@@ -1,3 +1,5 @@
+
+
 export default function EvaluationSuccessPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center px-4">

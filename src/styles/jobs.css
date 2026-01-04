@@ -44,7 +44,7 @@
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgb(156 163 175);
+  color: rgb(75 85 99);
   height: 1rem;
   width: 1rem;
 }
@@ -204,7 +204,7 @@
 
 .candidate-email {
   font-size: 0.875rem;
-  color: rgb(107 114 128);
+  color: rgb(75 85 99);
 }
 
 .candidate-job {
@@ -224,36 +224,36 @@
 .status-reviewed,
 .status-interview,
 .status-assessment {
-  background-color: rgb(219 234 254);
+  background-color: rgb(239 246 255);
   color: rgb(30 64 175);
 }
 
 .status-offer,
 .status-demo-ready {
-  background-color: rgb(220 252 231);
+  background-color: rgb(240 253 244);
   color: rgb(22 101 52);
 }
 
 .status-rejected,
 .status-appealed,
 .status-suspended {
-  background-color: rgb(254 226 226);
-  color: rgb(153 27 27);
+  background-color: rgb(254 241 242);
+  color: rgb(185 28 28);
 }
 
 .status-demo-evaluated {
-  background-color: rgb(254 249 195);
-  color: rgb(133 77 14);
+  background-color: rgb(254 252 232);
+  color: rgb(180 83 9);
 }
 
 .status-demo-in-evaluation {
-  background-color: rgb(255 237 213);
-  color: rgb(154 52 18);
+  background-color: rgb(255 247 237);
+  color: rgb(180 83 9);
 }
 
 .status-default {
-  background-color: rgb(243 244 246);
-  color: rgb(31 41 55);
+  background-color: rgb(249 250 251);
+  color: rgb(17 24 39);
 }
 
 .badge-text {
@@ -295,7 +295,7 @@
   justify-content: center;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgb(156 163 175);
+  color: rgb(107 114 128);
 }
 
 .assessment-spacer {
@@ -390,7 +390,7 @@
 
 .pagination-info {
   font-size: 0.875rem;
-  color: rgb(75 85 99);
+  color: rgb(55 65 81);
 }
 
 .pagination-value {
@@ -405,12 +405,127 @@
 
 .pagination-page {
   font-size: 0.875rem;
-  color: rgb(75 85 99);
+  color: rgb(55 65 81);
   margin-right: 0.5rem;
 }
 
 .pagination-btn {
   gap: 0.25rem;
+}
+
+/* Better focus states for accessibility */
+.table-row-hover:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.table-cell-border:focus,
+.table-cell-actions:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
+}
+
+/* Improved contrast for table borders */
+.table-container {
+  border: 1px solid #d1d5db;
+}
+
+.table-header {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.table-row-hover {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.table-cell-border {
+  border-right: 1px solid #d1d5db;
+}
+
+.assessment-col {
+  border-right: 1px solid #d1d5db;
+}
+
+.assessment-value {
+  border-right: 1px solid #d1d5db;
+}
+
+.table-head-border {
+  border-right: 1px solid #d1d5db;
+}
+
+.table-head-actions {
+  border-left: 1px solid #d1d5db;
+  border-right: 1px solid #d1d5db;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .table-container {
+    border: 2px solid #000;
+  }
+  
+  .table-header {
+    border-bottom: 2px solid #000;
+  }
+  
+  .table-row-hover {
+    border-bottom: 1px solid #000;
+  }
+  
+  .table-cell-border {
+    border-right: 1px solid #000;
+  }
+  
+  .table-head-border {
+    border-right: 1px solid #000;
+  }
+  
+  .table-head-actions {
+    border-left: 1px solid #000;
+    border-right: 1px solid #000;
+  }
+  
+  .status-new,
+  .status-default {
+    background-color: #ffffff;
+    border: 1px solid #000;
+    color: #000;
+  }
+  
+  .status-reviewed,
+  .status-interview,
+  .status-assessment {
+    background-color: #ffffff;
+    border: 1px solid #000;
+    color: #000;
+  }
+  
+  .status-offer,
+  .status-demo-ready {
+    background-color: #ffffff;
+    border: 1px solid #000;
+    color: #000;
+  }
+  
+  .status-rejected,
+  .status-appealed,
+  .status-suspended {
+    background-color: #ffffff;
+    border: 1px solid #000;
+    color: #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .table-row-hover {
+    transition: none;
+  }
+  
+  .loading-pulse {
+    animation: none;
+  }
 }
 
 /* Legend */
@@ -428,6 +543,52 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+/* Improved focus states for accessibility */
+.table-row-hover:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.table-cell-border:focus,
+.table-cell-actions:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
+}
+
+/* Better contrast for table borders */
+.table-container {
+  border: 1px solid #d1d5db;
+}
+
+.table-header {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.table-row-hover {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.table-cell-border {
+  border-right: 1px solid #d1d5db;
+}
+
+.assessment-col {
+  border-right: 1px solid #d1d5db;
+}
+
+.assessment-value {
+  border-right: 1px solid #d1d5db;
+}
+
+.table-head-border {
+  border-right: 1px solid #d1d5db;
+}
+
+.table-head-actions {
+  border-left: 1px solid #d1d5db;
+  border-right: 1px solid #d1d5db;
 }
 
 .legend-key {

@@ -50,7 +50,8 @@ const fetchSchoolInfo = async (userId: string) => {
     throw schoolError;
   }
   
-  return schoolData;
+  // Ensure the returned data is serializable
+  return schoolData ? JSON.parse(JSON.stringify(schoolData)) : null;
 }
 
 interface SchoolFormData {
@@ -64,6 +65,8 @@ interface SchoolFormData {
   website: string
   logo_url: string
 }
+
+
 
 export default function SchoolInformationPage() {
   const { user } = useAuth();

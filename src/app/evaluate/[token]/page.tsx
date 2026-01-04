@@ -63,6 +63,9 @@ interface Scores {
   [key: string]: Score;
 }
 
+// Force dynamic rendering to prevent serialization issues during build
+export const dynamic = 'force-dynamic';
+
 export default function EvaluatePage() {
   const params = useParams();
   const router = useRouter();

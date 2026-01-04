@@ -1,7 +1,6 @@
 'use client'
 
 import Link from "next/link"
-import Image from "next/image"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import adminAnimation from "@/assets/animations/admin.json"
@@ -13,6 +12,8 @@ const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'
   ssr: false,
   loading: () => <div className="animate-pulse bg-gray-200 rounded-lg w-full h-64"></div>
 })
+
+
 
 export default function LoginPage() {
   return (

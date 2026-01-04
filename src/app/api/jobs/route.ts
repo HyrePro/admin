@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters with validation
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status') || 'ALL'
+    const search = searchParams.get('search') || ''
     
     // Validate and sanitize pagination parameters
     const rawStartIndex = parseInt(searchParams.get('startIndex') || '0') || 0
@@ -148,6 +149,7 @@ export async function GET(request: NextRequest) {
       p_start_index: startIndex,
       p_end_index: endIndex,
       p_status: status.toUpperCase(),
+      p_search: search,
     })
 
     if (error) {

@@ -191,8 +191,10 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
         throw new Error(error.message || "Failed to fetch job details");
       } else if (data && data.length > 0) {
         const jobData = data[0];
-        setJob(jobData);
-        setSelectedStatus(jobData.status);
+        // Ensure job data is properly serialized to avoid non-serializable object errors
+        const serializedJob = JSON.parse(JSON.stringify(jobData));
+        setJob(serializedJob);
+        setSelectedStatus(serializedJob.status);
       } else {
         throw new Error("Job not found");
       }

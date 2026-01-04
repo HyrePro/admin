@@ -29,6 +29,8 @@ interface SchoolInfo {
   invite_role: string;
 }
 
+
+
 export default function JoinSchoolPage() {
   const [inviteCode, setInviteCode] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
@@ -128,7 +130,7 @@ export default function JoinSchoolPage() {
       }
       
       // Set the school info and show confirmation dialog
-      const schoolData = data[0]
+      const schoolData = JSON.parse(JSON.stringify(data[0]))
       setSchoolInfo({
         school_id: schoolData.school_id,
         school_name: schoolData.school_name,

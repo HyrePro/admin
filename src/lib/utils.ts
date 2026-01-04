@@ -90,3 +90,78 @@ export function forceDownload(url: string, filename?: string) {
     window.open(url, '_blank');
   }
 }
+
+/**
+ * Retry function with exponential backoff
+ * @param fn - The function to retry
+ * @param retries - Number of retry attempts (default: 3)
+ * @param delay - Initial delay in milliseconds (default: 1000)
+ * @param backoff - Backoff multiplier (default: 2)
+ * @returns Promise that resolves with the result of the function or rejects after all retries
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delay: number = 1000,
+  backoff: number = 2
+): Promise<T> {
+  let lastError: any;
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (i === retries) {
+        // If this was the last attempt, throw the error
+        break;
+      }
+
+      // Calculate delay with exponential backoff
+      const calculatedDelay = delay * Math.pow(backoff, i);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, calculatedDelay));
+    }
+  }
+
+  // If all retries failed, throw the last error
+  throw lastError;
+}
+
+/**
+ * Check if an error is a network error
+ * @param error - The error to check
+ * @returns boolean indicating if it's a network error
+ */
+export function isNetworkError(error: any): boolean {
+  if (error instanceof TypeError && error.message.includes('fetch')) {
+    return true; // Network error from fetch
+  }
+  if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    return true; // Network error
+  }
+  if (error && typeof error === 'object' && error.name === 'TypeError') {
+    return true; // General network/transport error
+  }
+  return false;
+}
+
+/**
+ * Check if an error is a timeout error
+ * @param error - The error to check
+ * @returns boolean indicating if it's a timeout error
+ */
+export function isTimeoutError(error: any): boolean {
+  if (error instanceof TypeError && (error.message.includes('timeout') || error.message.includes('Timeout'))) {
+    return true; // Timeout error
+  }
+  if (error && typeof error === 'object' && error.name === 'AbortError') {
+    return true; // Request was aborted (often due to timeout)
+  }
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    return true; // Explicit timeout error
+  }
+  return false;
+}

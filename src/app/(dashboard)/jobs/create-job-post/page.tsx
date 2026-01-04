@@ -11,16 +11,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { X, AlertCircle } from "lucide-react"
-import dynamic from "next/dynamic"
+import dynamicImport from "next/dynamic"
 import { JobPostDialog } from "@/components/job-post-dialog"
-import { AuthGuard } from "@/components/auth-guard"
 import { createClient } from '@/lib/supabase/api/client'
 import { toast } from "sonner"
 import * as Yup from "yup"
 import type { ExtendedInterviewSettings } from "@/components/screening-settings"
 
+
+
 // Dynamically import heavy components to reduce initial bundle size
-const BasicJobInformation = dynamic(() => import("@/components/basic-job-information").then(mod => mod.BasicJobInformation), {
+const BasicJobInformation = dynamicImport(() => import("@/components/basic-job-information").then(mod => mod.BasicJobInformation), {
   ssr: false,
   loading: () => (
     <div className="space-y-6 p-4">
@@ -34,7 +35,7 @@ const BasicJobInformation = dynamic(() => import("@/components/basic-job-informa
   )
 })
 
-const ScreeningSettings = dynamic(() => import("@/components/screening-settings").then(mod => mod.ScreeningSettings), {
+const ScreeningSettings = dynamicImport(() => import("@/components/screening-settings").then(mod => mod.ScreeningSettings), {
   ssr: false,
   loading: () => (
     <div className="space-y-6 p-4">
@@ -48,7 +49,7 @@ const ScreeningSettings = dynamic(() => import("@/components/screening-settings"
   )
 })
 
-const ReviewAndPublish = dynamic(() => import("@/components/review-and-publish").then(mod => mod.ReviewAndPublish), {
+const ReviewAndPublish = dynamicImport(() => import("@/components/review-and-publish").then(mod => mod.ReviewAndPublish), {
   ssr: false,
   loading: () => (
     <div className="space-y-6 p-4">
@@ -580,8 +581,7 @@ export default function CreateJobApplicationPage() {
   }), [jobInfo, screening])
 
   return (
-    <AuthGuard>
-      <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full">
         {/* Fixed Header with Progress */}
         <div className="shrink-0 bg-background">
           <div className="px-6 py-4 flex items-center gap-4">
@@ -709,6 +709,5 @@ export default function CreateJobApplicationPage() {
           )}
         </Suspense>
       </div>
-    </AuthGuard>
   )
 }

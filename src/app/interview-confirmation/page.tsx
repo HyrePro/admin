@@ -12,6 +12,9 @@ const LoadingScreen: React.FC = () => (
   </div>
 );
 
+// Force dynamic rendering to prevent serialization issues during build
+export const dynamic = 'force-dynamic';
+
 export default function PanelistConfirmationPage() {
   return (
     <Suspense fallback={<LoadingScreen />}>

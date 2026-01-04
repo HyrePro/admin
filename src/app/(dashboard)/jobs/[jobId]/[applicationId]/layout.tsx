@@ -298,14 +298,14 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
         throw new Error(result.error);
       }
 
-      setCandidateInfo(result.candidateInfo);
-      setApplicationStage(result.applicationStage);
+      setCandidateInfo(result.candidateInfo ? JSON.parse(JSON.stringify(result.candidateInfo)) : null);
+      setApplicationStage(result.applicationStage ? JSON.parse(JSON.stringify(result.applicationStage)) : null);
       
       // Fetch AI evaluation if status is ai_recommendation_completed
       if (result.applicationStage?.status === "ai_recommendation_completed") {
         const aiResult = await getAIEvaluation(applicationId);
         if (!aiResult.error) {
-          setAIEvaluation(aiResult.aiEvaluation);
+          setAIEvaluation(aiResult.aiEvaluation ? JSON.parse(JSON.stringify(aiResult.aiEvaluation)) : null);
         }
       }
     } catch (err) {
@@ -433,9 +433,9 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
 
   return (
     <ApplicationContext.Provider value={{ 
-      candidateInfo, 
-      applicationStage, 
-      aiEvaluation,
+      candidateInfo: candidateInfo ? JSON.parse(JSON.stringify(candidateInfo)) : null, 
+      applicationStage: applicationStage ? JSON.parse(JSON.stringify(applicationStage)) : null, 
+      aiEvaluation: aiEvaluation ? JSON.parse(JSON.stringify(aiEvaluation)) : null,
       jobId,
       applicationId,
       loading,

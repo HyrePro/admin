@@ -118,9 +118,13 @@ const fetchApplicationsWithCount = async (
   if (applicationsResult.error) throw applicationsResult.error
   if (countResult.error) throw countResult.error
 
+  // Ensure the returned data is serializable
+  const applications = applicationsResult.data || []
+  const total_count = countResult.data || 0
+  
   return {
-    applications: applicationsResult.data || [],
-    total_count: countResult.data || 0
+    applications: JSON.parse(JSON.stringify(applications)),
+    total_count
   }
 }
 
@@ -135,6 +139,8 @@ function useDebounce<T>(value: T, delay: number): T {
 
   return debouncedValue
 }
+
+
 
 export default function CandidatesPage() {
   const { user } = useAuth()

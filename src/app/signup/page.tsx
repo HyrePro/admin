@@ -14,6 +14,8 @@ const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'
   loading: () => <div className="animate-pulse bg-gray-200 rounded-lg w-full h-64"></div>
 })
 
+
+
 export default function SignupPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-5">

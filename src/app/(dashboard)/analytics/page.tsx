@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { AuthGuard } from "@/components/auth-guard"
+
 import { useAuth } from "@/context/auth-context"
 import useSWR from 'swr'
 import { createClient } from '@/lib/supabase/api/client'
@@ -63,12 +63,16 @@ const fetchSchoolAnalytics = async (schoolId: string, period: string = 'week') =
   if (!schoolId) return null;
 
   try {
-    return await getSchoolAnalytics(schoolId, period as 'day' | 'week' | 'month' | 'all');
+    const data = await getSchoolAnalytics(schoolId, period as 'day' | 'week' | 'month' | 'all');
+    // Ensure the returned data is serializable
+    return JSON.parse(JSON.stringify(data));
   } catch (error) {
     console.error('Error fetching school analytics:', error);
     throw error;
   }
 }
+
+
 
 export default function AnalyticsPage() {
   const { user } = useAuth()
@@ -97,7 +101,6 @@ export default function AnalyticsPage() {
   // Loading state - Enhanced with KPI loading
   if (schoolLoading || kpiLoading) {
     return (
-      <AuthGuard>
         <div className="flex flex-1 flex-col">
           <div className="flex-1 flex-col">
             <div className="flex justify-between items-center mb-6">
@@ -137,14 +140,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </AuthGuard>
     )
   }
 
   // Error state
   if (schoolError || kpiError) {
     return (
-      <AuthGuard>
         <div className="flex flex-1 flex-col">
           <div className="flex-1 flex-col p-6">
             <div className="flex justify-between items-center mb-6">
@@ -178,14 +179,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </AuthGuard>
     )
   }
 
   // Empty state - no schoolId
   if (!schoolId) {
     return (
-      <AuthGuard>
         <div className="flex flex-1 flex-col">
           <div className="flex-1 flex-col p-6">
             <div className="flex justify-between items-center mb-6">
@@ -213,14 +212,12 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </AuthGuard>
     )
   }
 
   // Render the actual data
   return (
-    <AuthGuard>
-      <div className='analytics-container flex flex-1 flex-col pb-16'>
+    <div className='analytics-container flex flex-1 flex-col pb-16'>
         <div className="flex-1 flex-col">
           <div className="analytics-header">
             <h1 className="analytics-title">Analytics</h1>
@@ -342,6 +339,6 @@ export default function AnalyticsPage() {
 </div>
         </div>
       </div>
-    </AuthGuard>
+    
   )
 }

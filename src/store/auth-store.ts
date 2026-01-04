@@ -12,7 +12,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   schoolId: null,
-  setUser: (user) => set({ user }),
+  setUser: (user) => set({ user: user ? JSON.parse(JSON.stringify(user)) : null }),
   setSchoolId: (schoolId) => set({ schoolId }),
   clearAuth: () => set({ user: null, schoolId: null }),
 }))

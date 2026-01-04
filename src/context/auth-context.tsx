@@ -26,9 +26,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create a Supabase client instance
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession()
-        setUser(session?.user ?? null)
+        
+        // Serialize the user object to ensure it's a plain object
+        const serializedUser = session?.user ? JSON.parse(JSON.stringify(session.user)) : null;
+        setUser(serializedUser)
         setSession(session)
-        setZustandUser(session?.user ?? null)
+        setZustandUser(serializedUser)
       } catch (error) {
         console.error('Error getting initial session:', error)
       } finally {
@@ -43,9 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email)
-        setUser(session?.user ?? null)
+        
+        // Serialize the user object to ensure it's a plain object
+        const serializedUser = session?.user ? JSON.parse(JSON.stringify(session.user)) : null;
+        setUser(serializedUser)
         setSession(session)
-        setZustandUser(session?.user ?? null)
+        setZustandUser(serializedUser)
         setLoading(false)
       }
     )

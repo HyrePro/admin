@@ -40,6 +40,8 @@ const InterviewMeetingSettings = dynamic(() => import("@/components/interview-me
   )
 });
 
+
+
 export default function InterviewSettingsPage() {
   const { user } = useAuth();
   const { schoolId, setSchoolId } = useAuthStore();

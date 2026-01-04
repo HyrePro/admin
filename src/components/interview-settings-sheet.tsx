@@ -176,8 +176,11 @@ export function InterviewSettingsSheet({
         // Transform the returned data to match our state structure
         if (data && data.length > 0) {
           // If we get an array back (which is what RPC functions typically return)
-          const settingsData = Array.isArray(data) ? data[0] : data;
-          
+          let settingsData = Array.isArray(data) ? data[0] : data;
+                    
+          // Ensure the data is serializable
+          settingsData = JSON.parse(JSON.stringify(settingsData));
+                    
           const updatedSettings = {
             default_interview_type: settingsData.default_interview_type || 'in-person',
             default_duration: settingsData.default_duration || '30',
@@ -197,9 +200,9 @@ export function InterviewSettingsSheet({
             breaks: settingsData.breaks || [],
             slots: settingsData.slots || []
           };
-          
+                    
           setInterviewSettings(updatedSettings);
-          
+                    
           // Initialize individual slots from database
           const slotsToSet = settingsData.slots && Array.isArray(settingsData.slots) ? settingsData.slots : [];
           setIndividualSlots(slotsToSet);

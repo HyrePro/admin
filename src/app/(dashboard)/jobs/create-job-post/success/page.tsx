@@ -6,7 +6,6 @@ import JobPostSuccessShare from "@/components/job-post-success/job-post-success-
 import JobPostSuccessNextSteps from "@/components/job-post-success/job-post-success-next-steps"
 import JobPostSuccessWhatNext from "@/components/job-post-success/job-post-success-what-next"
 import JobPostSuccessActions from "@/components/job-post-success/job-post-success-actions"
-import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +15,6 @@ function JobPostSuccessContent() {
   const jobId = searchParams.get("jobId") || "";
 
   return (
-    <AuthGuard>
       <div className="flex flex-1 flex-col h-full">
         <div className="flex-1 overflow-y-auto px-4">
           <div className="mx-auto w-full py-8">
@@ -35,9 +33,10 @@ function JobPostSuccessContent() {
           </div>
         </div>
       </div>
-    </AuthGuard>
   )
 }
+
+
 
 export default function JobPostSuccess() {
   return (

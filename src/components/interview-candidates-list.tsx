@@ -38,6 +38,7 @@ const fetchSchoolInfo = async (userId: string): Promise<string | null> => {
         .single();
 
     if (error) throw error;
+    // Ensure the returned data is serializable
     return data?.school_id || null;
 };
 
@@ -58,7 +59,9 @@ const fetchApplications = async (
     });
 
     if (error) throw error;
-    return data || [];
+    // Ensure the returned data is serializable
+    const applications = data || [];
+    return JSON.parse(JSON.stringify(applications));
 };
 
 const CandidatesList: React.FC = () => {
