@@ -181,31 +181,34 @@ export default function JobsPage() {
         Create New Job Post
       </Button>
     </div>
-    
-    <ErrorBoundary>
-      <JobsTable 
-        jobs={jobs} 
-        originalJobs={jobs}
-        totalJobsCount={totalJobsCount}
-        loading={isInitialLoading} 
-        onRefresh={handleRefresh}
-        hasNextPage={hasNextPage}
-        hasPreviousPage={hasPreviousPage}
-        isFetchingNextPage={isFetchingJobs && !isInitialLoading}
-        serverSidePagination={true}
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-        onSearchChange={handleSearchChange}
-        onStatusFilterChange={handleStatusFilterChange}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        onSortChange={handleSortChange}
-      />
+    <main className="flex-1 min-h-0 h-full overflow-hidden">
+  <ErrorBoundary>
+        <JobsTable 
+          jobs={jobs} 
+          originalJobs={jobs}
+          totalJobsCount={totalJobsCount}
+          loading={isInitialLoading} 
+          onRefresh={handleRefresh}
+          hasNextPage={hasNextPage}
+          hasPreviousPage={hasPreviousPage}
+          isFetchingNextPage={isFetchingJobs && !isInitialLoading}
+          serverSidePagination={true}
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSearchChange={handleSearchChange}
+          onStatusFilterChange={handleStatusFilterChange}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onSortChange={handleSortChange}
+        />
     </ErrorBoundary>
+</main>
+
+    
   </div>
 );
 }

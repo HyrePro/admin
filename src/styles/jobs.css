@@ -2,9 +2,11 @@
 .jobs-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   padding: 1rem;
   gap: 1rem;
+  overflow: hidden;
 }
 
 .jobs-header {
@@ -62,14 +64,14 @@
 }
 
 .table-container {
-  flex: 1;
-  min-height: 0;
   background-color: white;
   border-radius: 0.5rem;
   border: 1px solid rgb(229 231 235);
-  overflow: hidden;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .loading-indicator {
@@ -249,6 +251,9 @@
 
 .table-body {
   table-layout: fixed;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .table-body .table-cell-border:nth-child(1) {
@@ -503,7 +508,6 @@
   padding: 0.75rem 1rem;
   flex-shrink: 0;
   background: white;
-  border-top: 1px solid #e5e7eb;
 }
 
 .pagination-info {

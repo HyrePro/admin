@@ -271,7 +271,7 @@ function JobsTableComponent({
   }
 
   return (
-   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+   <div className="flex flex-col h-full min-h-0">
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible flex-shrink-0">
         <div className="relative flex-1 overflow-visible">
@@ -342,7 +342,7 @@ function JobsTableComponent({
           )}
         </div>
       </div>
-      
+        
       {/* Display partial errors */}
       {jobsPartialErrors.map((error, index) => (
         <PartialErrorState
@@ -353,13 +353,13 @@ function JobsTableComponent({
           onRetry={onRefresh}
         />
       ))}
-
+    
       {/* Table Container - fills remaining space */}
-      <div className="table-container">
-        <div className="table-scroll">
+      <div className="table-container h-full overflow-hidden">
+        <div className="h-full overflow-auto">
           <Table role="table" aria-label="Jobs table" aria-describedby="table-description">
             <caption id="table-description" className="sr-only">Job listings with title, applications, status, creation date, grade levels, hiring manager, and actions</caption>
-            <TableHeader className="table-header">
+            <TableHeader className="table-header sticky top-0 z-10 bg-white">
               <TableRow role="row" className="border-l border-l-gray-200">
                 <TableHead className={cn("table-head table-head-border table-head-first")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'title' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
@@ -422,7 +422,7 @@ function JobsTableComponent({
                 <TableHead className={cn("table-head table-head-actions")} role="columnheader" scope="col">{table.actions}</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="table-body" role="rowgroup" aria-label="Jobs data">
+            <TableBody className="flex-1 min-h-0 overflow-y-auto" role="rowgroup" aria-label="Jobs data">
               {paginatedJobs.length === 0 ? (
                 <TableRow role="row">
                   <TableCell colSpan={7} className="text-center py-8" role="cell" aria-live="polite">
@@ -504,7 +504,7 @@ function JobsTableComponent({
             </TableBody>
           </Table>
         </div>
-        
+          
         {/* Loading overlay - positioned within table container */}
         {isFetchingNextPage && (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 pointer-events-none">
@@ -515,7 +515,7 @@ function JobsTableComponent({
           </div>
         )}
       </div>
-
+  
       {/* Pagination controls - Always visible at bottom */}
       <JobsPagination
         currentPage={jobsCurrentPage}

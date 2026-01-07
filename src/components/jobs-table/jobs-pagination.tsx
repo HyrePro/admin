@@ -63,7 +63,7 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
   });
 
   return (
-    <div className="pagination-container flex-shrink-0" style={{ zIndex: 20, marginTop: 8 }} role="navigation" aria-label="Pagination">
+    <div className="pagination-container flex-shrink-0 mb-14"  role="navigation" aria-label="Pagination">
       <div className="pagination-info" aria-live="polite">
         {translations.pagination.showing} <span className="pagination-value">{formatNumber(startIndex + 1)}</span> {translations.pagination.to}{' '}
         <span className="pagination-value">{formatNumber(endIndex || 0)}</span> {translations.pagination.of}{' '}

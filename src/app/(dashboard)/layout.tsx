@@ -9,11 +9,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Bell, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/api/client";
-import { getJobApplication } from "@/lib/supabase/api/get-job-application";
 import { NavUser } from "@/components/nav-user";
 import { Badge } from "@/components/ui/badge";
 import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
@@ -171,7 +167,7 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
       <AppSidebar />
       <SidebarInset className="flex flex-col h-screen overflow-hidden">
         {/* Fixed Header */}
-        <header className="shrink-0 flex h-18 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 border-b border-gray-200 dark:border-gray-800">
+        <header className="shrink-0 flex h-18 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 border-b border-gray-200 dark:border-gray-800 z-50">
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>
