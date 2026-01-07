@@ -96,20 +96,21 @@ export const useJobsTable = ({
   
   useEffect(() => {
     if (!serverSidePagination) {
+      // Client-side mode: debounce for filtering
       const timer = setTimeout(() => {
         setDebouncedJobSearchQuery(jobSearchQuery);
       }, 300);
       return () => clearTimeout(timer);
     } else {
-      // In server mode, use debounced callback
+      // Server-side mode: debounce and call parent callback
       const timer = setTimeout(() => {
-        if (jobSearchQuery !== controlledSearchQuery && onSearchChange) {
+        if (onSearchChange) {
           onSearchChange(jobSearchQuery);
         }
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [jobSearchQuery, serverSidePagination, controlledSearchQuery, onSearchChange]);
+  }, [jobSearchQuery, serverSidePagination, onSearchChange]);
 
   const jobStatusColors: Record<string, string> = {
     OPEN: "bg-green-50 text-green-700 border-green-200",
@@ -167,15 +168,11 @@ export const useJobsTable = ({
     return getPaginationDetails(totalDisplayCount, jobsCurrentPage, pageSize);
   }, [serverSidePagination, totalJobsCount, jobsCurrentPage, pageSize, jobs?.length, totalDisplayCount]);
 
-  // Handlers for search
+  // Handlers for search - update local state immediately for input responsiveness
   const setJobSearchQuery = useCallback((query: string) => {
-    if (serverSidePagination && onSearchChange) {
-      // Let the debounce effect handle the API call
-      setLocalSearchQuery(query);
-    } else {
-      setLocalSearchQuery(query);
-    }
-  }, [serverSidePagination, onSearchChange]);
+    setLocalSearchQuery(query); // Update immediately for typing
+    // Debounce effect will handle API call if in server mode
+  }, []);
 
   // Handlers for status filter
   const setJobStatusFilter = useCallback((status: string) => {

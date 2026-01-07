@@ -118,22 +118,26 @@ export function DashboardContent({
           <DashboardCard
             title="Active Jobs"
             value={jobs.length}
-            icon={<Briefcase className="h-5 w-5 text-emerald-600" />} />
+            icon={<Briefcase className="h-5 w-5 text-emerald-600" />}
+            onClick={() => router.push("/jobs")} />
     
           <DashboardCard
             title="Total Applications"
             value={dashboardStats?.total_applications || 0}
-            icon={<Users className="h-5 w-5 text-rose-600" />} />
+            icon={<Users className="h-5 w-5 text-rose-600" />}
+            onClick={() => router.push("/candidates")} />
     
           <DashboardCard
             title="Interviews Scheduled"
             value={dashboardStats?.interview_ready || 0}
-            icon={<TvMinimalIcon className="h-5 w-5 text-amber-600" />} />
+            icon={<TvMinimalIcon className="h-5 w-5 text-amber-600" />}
+            onClick={() => router.push("/interviews")} />
     
           <DashboardCard
             title="Offers Sent"
             value={dashboardStats?.offered || 0}
-            icon={<BookText className="h-5 w-5 text-violet-600" />} />
+            icon={<BookText className="h-5 w-5 text-violet-600" />}
+            onClick={() => router.push("/candidates")} />
         </div>
         {/* <HiringSummaryBar /> */}
     
@@ -161,10 +165,10 @@ export function DashboardContent({
           </div>
     
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="lg-w-1/3">
+            <div className="w-full lg:w-1/3">
               <HiringProgressChart schoolId={schoolId || ''} />
             </div>
-            <div className="lg-w-2/3">
+            <div className="w-full lg:w-2/3">
               <WeeklyActivity schoolId={schoolId || ''} />
             </div>
           </div>

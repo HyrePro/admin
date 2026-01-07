@@ -143,7 +143,7 @@ function JobsTableComponent({
   if (hasError) {
     if (isNetworkError) {
       return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col">
           <NetworkErrorState 
             onRetry={onRefresh}
             message={error || "Unable to connect to the server. Please check your internet connection and try again."}
@@ -152,7 +152,7 @@ function JobsTableComponent({
       );
     } else {
       return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col">
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <div className="mb-4 text-6xl text-gray-300">⚠️</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Something went wrong</h3>
@@ -171,7 +171,7 @@ function JobsTableComponent({
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col">
         {/* Search and filter skeleton */}
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="relative flex-1">
@@ -271,9 +271,9 @@ function JobsTableComponent({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible">
+      <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible flex-shrink-0">
         <div className="relative flex-1 overflow-visible">
           <Search className="absolute left-4 top-4 transform text-gray-400 h-4 w-4" />
           <Input
@@ -354,10 +354,9 @@ function JobsTableComponent({
         />
       ))}
 
-      {/* Table Container */}
-      <div className="relative">
-        <div className="table-container">
-          <div className="table-scroll">
+      {/* Table Container - fills remaining space */}
+      <div className="table-container">
+        <div className="table-scroll">
           <Table role="table" aria-label="Jobs table" aria-describedby="table-description">
             <caption id="table-description" className="sr-only">Job listings with title, applications, status, creation date, grade levels, hiring manager, and actions</caption>
             <TableHeader className="table-header">
@@ -406,7 +405,7 @@ function JobsTableComponent({
                     {getSortIndicator('created_at') === 'asc' ? '↑' : getSortIndicator('created_at') === 'desc' ? '↓' : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
                   </Button>
                 </TableHead>
-                <TableHead className={cn("table-head table-head-border")} role="columnheader" scope="col">
+                <TableHead className={cn("table-head table-head-border")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'grade_levels' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   {table.gradeLevels}
                 </TableHead>
                 <TableHead className={cn("table-head table-head-border")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'hiring_name' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
@@ -505,20 +504,19 @@ function JobsTableComponent({
             </TableBody>
           </Table>
         </div>
-      </div>
-
-      {/* Show loading overlay when fetching (overlay style, not appending) */}
-      {isFetchingNextPage && (
-        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-current border-t-transparent" />
-            <span className="text-sm text-gray-600">Loading more jobs...</span>
+        
+        {/* Loading overlay - positioned within table container */}
+        {isFetchingNextPage && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 pointer-events-none">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-current border-t-transparent" />
+              <span className="text-sm text-gray-600">Loading more jobs...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
-      {/* Pagination controls */}
+      {/* Pagination controls - Always visible at bottom */}
       <JobsPagination
         currentPage={jobsCurrentPage}
         totalPages={totalPages || 0}

@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status') || 'ALL'
     const search = searchParams.get('search') || ''
+    const sort = searchParams.get('sort') || ''
+    const asc = searchParams.get('asc') || ''
     
     // Validate and sanitize pagination parameters
     const rawStartIndex = parseInt(searchParams.get('startIndex') || '0') || 0
@@ -143,6 +145,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('Fetching jobs with parameters:', { status, search, sort, asc, startIndex, endIndex })
+
     // Call the RPC with user's school_id and validated parameters
     // Using function signature without p_search parameter based on schema error
     const { data, error } = await supabaseService.rpc("get_jobs_with_analytics", {
@@ -150,7 +154,9 @@ export async function GET(request: NextRequest) {
       p_start_index: startIndex,
       p_end_index: endIndex,
       p_status: status.toUpperCase(),
-      p_search: search || null
+      p_search: search || null,
+      p_sort: sort || null,
+      p_asc: asc || null
     })
 
     if (error) {

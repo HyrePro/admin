@@ -147,7 +147,7 @@ export default function JobsPage() {
   }, [refetchCount, refetchJobs]);
 
   // Calculate pagination flags
-  const hasNextPage = (currentPage + 1) * pageSize < totalJobsCount;
+  const hasNextPage = totalJobsCount > (currentPage + 1) * pageSize;
   const hasPreviousPage = currentPage > 0;
 
   // Determine loading states
@@ -169,8 +169,8 @@ export default function JobsPage() {
   });
 
   return (
-    <div className="jobs-container flex flex-col h-full overflow-hidden">
-      <div className="jobs-header flex-shrink-0">
+    <div className="jobs-container">
+      <div className="jobs-header">
         <h1 className="jobs-title">Jobs</h1>
         <Button
           variant="outline"
@@ -182,34 +182,34 @@ export default function JobsPage() {
         </Button>
       </div>
       
-      <div className="flex-1 overflow-hidden min-h-0">
-        <ErrorBoundary>
+      <ErrorBoundary>
+        <div className="table-wrapper">
           <JobsTable 
-            jobs={jobs} 
-            originalJobs={jobs}
-            totalJobsCount={totalJobsCount}
-            loading={isInitialLoading} 
-            onRefresh={handleRefresh}
-            hasNextPage={hasNextPage}
-            hasPreviousPage={hasPreviousPage}
-            isFetchingNextPage={isFetchingJobs && !isInitialLoading}
-            serverSidePagination={true}
-            // Pass controlled state
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            sortColumn={sortColumn}
-            sortDirection={sortDirection}
-            // Pass handlers
-            onSearchChange={handleSearchChange}
-            onStatusFilterChange={handleStatusFilterChange}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-            onSortChange={handleSortChange}
-          />
-        </ErrorBoundary>
-      </div>
+              jobs={jobs} 
+              originalJobs={jobs}
+              totalJobsCount={totalJobsCount}
+              loading={isInitialLoading} 
+              onRefresh={handleRefresh}
+              hasNextPage={hasNextPage}
+              hasPreviousPage={hasPreviousPage}
+              isFetchingNextPage={isFetchingJobs && !isInitialLoading}
+              serverSidePagination={true}
+              // Pass controlled state
+              searchQuery={searchQuery}
+              statusFilter={statusFilter}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              // Pass handlers
+              onSearchChange={handleSearchChange}
+              onStatusFilterChange={handleStatusFilterChange}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              onSortChange={handleSortChange}
+            />
+        </div>
+      </ErrorBoundary>
     </div>
   );
 }

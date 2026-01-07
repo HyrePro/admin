@@ -155,17 +155,20 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
         }
         
         // Ensure data is properly serialized to avoid non-serializable object errors
-        console.log('Component - Processed overview data:', overviewData && overviewData.length > 0 ? overviewData[0] : null);
-        console.log('Component - Processed funnel data:', funnelData && funnelData.length > 0 ? funnelData[0] : null);
+        const processedOverviewData = overviewData ?? null;
+        const processedFunnelData = funnelData ?? null;
+        
+        console.log('Component - Processed overview data:', processedOverviewData);
+        console.log('Component - Processed funnel data:', processedFunnelData);
         
         // Check if data exists before setting state
-        const hasOverviewData = overviewData && overviewData.length > 0;
-        const hasFunnelData = funnelData && funnelData.length > 0;
+        const hasOverviewData = processedOverviewData !== null;
+        const hasFunnelData = processedFunnelData !== null;
         
         console.log('Component - Data availability check:', { hasOverviewData, hasFunnelData });
         
-        setOverviewData(hasOverviewData ? JSON.parse(JSON.stringify(overviewData[0])) : null);
-        setFunnelData(hasFunnelData ? JSON.parse(JSON.stringify(funnelData[0])) : null);
+        setOverviewData(hasOverviewData ? JSON.parse(JSON.stringify(processedOverviewData)) : null);
+        setFunnelData(hasFunnelData ? JSON.parse(JSON.stringify(processedFunnelData)) : null);
         
         // Mock demographics data - in a real implementation, this would be fetched from an API
         const mockDemographics = {
@@ -347,14 +350,6 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
 
   return (
     <div className="pb-8">
-      <details className="mb-4">
-        <summary className="cursor-pointer text-sm text-blue-600">Show Raw Data</summary>
-        <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-60">
-          <pre>Overview Data: {JSON.stringify(overviewData, null, 2)}</pre>
-          <pre>Funnel Data: {JSON.stringify(funnelData, null, 2)}</pre>
-          <pre>Demographics Data: {JSON.stringify(demographicsData, null, 2)}</pre>
-        </div>
-      </details>
       
       {/* KPI metrics with common border and individual left borders, selected metric without bottom border */}
       <div className="border rounded-lg rounded-b-none">

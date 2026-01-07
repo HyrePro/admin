@@ -1,40 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Users, TvMinimalIcon, BookText, MoreVertical } from "@/components/icons";
-import { createClient } from '@/lib/supabase/api/client';
-import { Card, CardDescription, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react'
+import { MoreVertical } from "@/components/icons"
+import { createClient } from '@/lib/supabase/api/client'
+import { Card, CardDescription, CardTitle } from './ui/card'
+import { Button } from './ui/button'
+import { Badge } from './ui/badge'
+import { useRouter } from 'next/navigation'
 
+// =====================
 // Type Definitions
+// =====================
+
 interface Applicant {
-    firstName: string;
-    lastName: string;
-    avatar: string | null;
+  firstName: string
+  lastName: string
+  avatar: string | null
 }
 
 interface JobData {
-    id: string;
-    title: string;
-    description: string;
-    plan: string;
-    max_applications: number;
-    recent_applicants: Applicant[];
-    candidates_evaluated: number;
-    demo_completed: number;
-    interview_ready: number;
-    offered: number;
-    created_at: string;
+  id: string
+  title: string
+  description: string
+  plan: string
+  max_applications: number
+  recent_applicants: Applicant[]
+  candidates_evaluated: number
+  demo_completed: number
+  interview_ready: number
+  offered: number
+  created_at: string
 }
 
 interface JobCardProps {
-    data: JobData;
-    router?: ReturnType<typeof useRouter>;
+  data: JobData
+  router?: ReturnType<typeof useRouter>
 }
 
 interface SchoolJobsContainerProps {
-    schoolId: string;
+  schoolId: string
 }
+
+// =====================
+// SchoolJobsContainer
+// =====================
 
 const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) => {
   const [jobs, setJobs] = useState<JobData[]>([])
@@ -103,43 +110,41 @@ const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) =
     )
   }
 
-  // Calculate number of placeholder cards needed
-  const placeholderCount = Math.max(0, 3 - jobs.length);
- const placeholders = Array.from({ length: placeholderCount }, (_, i) => (
-  <div 
-    key={`placeholder-${i}`}
-    className="group relative flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all duration-300 ease-out overflow-hidden gap-3 min-h-[200px]"
-    onClick={() => router.push('/jobs/create-job-post')}
-  >
-    {/* Subtle background gradient on hover */}
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/50 group-hover:to-blue-100/30 transition-all duration-300" />
-    
-    <div className="relative flex flex-col items-center justify-center flex-1 text-center">
-      <div className="relative inline-block mb-3">
-        <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-lg group-hover:bg-blue-400/40 transition-all duration-300" />
-        <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-blue-100 group-hover:to-blue-200 transition-all duration-300 shadow-sm">
-          <svg 
-            className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-300" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+  const placeholderCount = Math.max(0, 3 - jobs.length)
+  const placeholders = Array.from({ length: placeholderCount }, (_, i) => (
+    <div
+      key={`placeholder-${i}`}
+      className="group relative flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all duration-300 ease-out overflow-hidden gap-3 min-h-[200px]"
+      onClick={() => router.push('/jobs/create-job-post')}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-100/0 group-hover:from-blue-50/50 group-hover:to-blue-100/30 transition-all duration-300" />
+
+      <div className="relative flex flex-col items-center justify-center flex-1 text-center">
+        <div className="relative inline-block mb-3">
+          <div className="absolute inset-0 bg-blue-400/20 rounded-full blur-lg group-hover:bg-blue-400/40 transition-all duration-300" />
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-blue-100 group-hover:to-blue-200 transition-all duration-300 shadow-sm">
+            <svg
+              className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="text-center space-y-1">
+          <h3 className="text-sm font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-300">
+            Create New Job
+          </h3>
+          <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
+            Click to add a new campaign
+          </p>
         </div>
       </div>
-      
-      <div className="text-center space-y-1">
-        <h3 className="text-sm font-semibold text-gray-700 group-hover:text-blue-600 transition-colors duration-300">
-          Create New Job
-        </h3>
-        <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
-          Click to add a new campaign
-        </p>
-      </div>
     </div>
-  </div>
-));
+  ))
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -151,10 +156,14 @@ const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) =
   )
 }
 
+// =====================
+// JobCard
+// =====================
 
 const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
-  const internalRouter = useRouter();
-  const router = externalRouter || internalRouter;
+  const internalRouter = useRouter()
+  const router = externalRouter || internalRouter
+
   if (!data) return null
 
   const {
@@ -164,9 +173,7 @@ const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
     plan,
     max_applications,
     recent_applicants = [],
-    candidates_evaluated = 0,
-    interview_ready = 0,
-    offered = 0
+    candidates_evaluated = 0
   } = data
 
   const pct =
@@ -174,39 +181,47 @@ const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
       ? Math.min(100, Math.round((candidates_evaluated / max_applications) * 100))
       : 0
 
-  const navigate = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return
+  const goToJobDetails = () => {
     router.push(`/jobs/${id}`)
   }
 
   return (
     <Card
       className="flex flex-col p-3 border-1 border-gray-200 shadow-none hover:shadow-lg transition-shadow cursor-pointer gap-3"
-      onClick={navigate}
+      onClick={goToJobDetails}
     >
       <div className="flex justify-between">
         <div className="flex-1">
-          <CardTitle className="p-0 m-0 text-base font-medium">{title}</CardTitle>
+          <CardTitle className="p-0 m-0 text-base font-medium">
+            {title}
+          </CardTitle>
 
           <CardDescription className="text-gray-600 mt-1 mb-2 line-clamp-2">
             {description || "No description"}
           </CardDescription>
-
-          
         </div>
 
-        <Button variant="ghost" size="icon" className="text-gray-400">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400"
+          onClick={(e) => {
+            e.stopPropagation()
+            router.push(`/jobs/${id}`)
+          }}
+        >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="flex items-center justify-between mb-2">
         <Badge
-            variant="outline"
-            className="border-gray-300 text-black text-xs font-semibold bg-transparent"
-          >
-            {plan}
-          </Badge>
+          variant="outline"
+          className="border-gray-300 text-black text-xs font-semibold bg-transparent"
+        >
+          {plan}
+        </Badge>
+
         <div className="flex -space-x-1.5">
           {recent_applicants.slice(0, 3).map((a, i) => (
             <div
@@ -225,8 +240,6 @@ const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
             </div>
           ))}
         </div>
-
-       
       </div>
 
       <div className="flex items-center gap-2">
@@ -236,13 +249,18 @@ const JobCard: React.FC<JobCardProps> = ({ data, router: externalRouter }) => {
             style={{ width: `${pct}%` }}
           />
         </div>
-        <div className="text-sm text-gray-600 font-semibold">{pct}%</div>
+        <div className="text-sm text-gray-600 font-semibold">
+          {pct}%
+        </div>
       </div>
     </Card>
   )
 }
 
-
-// Export components
-export { JobCard, SchoolJobsContainer };
-export type { JobData, Applicant, JobCardProps, SchoolJobsContainerProps };
+export { JobCard, SchoolJobsContainer }
+export type {
+  JobData,
+  Applicant,
+  JobCardProps,
+  SchoolJobsContainerProps
+}
