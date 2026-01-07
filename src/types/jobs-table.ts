@@ -44,8 +44,8 @@ export interface HiringManager {
  */
 export interface JobsTableProps {
   jobs: Job[];
-  originalJobs?: Job[];
-  totalJobsCount?: number; // Total count of jobs for correct pagination display
+  // originalJobs?: Job[] | undefined;
+  // totalJobsCount?: number; // Total count of jobs for correct pagination display
   loading?: boolean;
   onRefresh?: () => void;
   hasNextPage?: boolean;
@@ -57,6 +57,8 @@ export interface JobsTableProps {
   error?: string | null;
   hasError?: boolean;
   isNetworkError?: boolean;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 /**
@@ -69,6 +71,23 @@ export interface JobRowProps {
   handleViewJob: (jobId: string) => void;
   updateJobStatusOptimistically: (jobId: string, newStatus: string) => Promise<void>;
   undoLastAction: () => void;
+  translations: {
+    actions: {
+      copyLink: string;
+      viewJob: string;
+    };
+  };
+}
+
+/**
+ * Interface for JobRow component props without undo functionality
+ */
+export interface JobRowPropsWithoutUndo {
+  job: Job;
+  statusColors: Record<string, string>;
+  handleCopyLink: (jobId: string) => Promise<void>;
+  handleViewJob: (jobId: string) => void;
+  updateJobStatusOptimistically: (jobId: string, newStatus: string) => Promise<void>;
   translations: {
     actions: {
       copyLink: string;
@@ -139,4 +158,72 @@ export interface ErrorContext {
   component: string;
   url: string;
   method: string;
+}
+
+// Add these to your existing types file or create a new one
+
+export interface JobsTableProps {
+  jobs: Job[] ;
+  originalJobs: Job[] | null;
+  totalJobsCount: number | null;
+  loading?: boolean;
+  onRefresh?: () => void;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
+  hasPreviousPage?: boolean;
+  onLoadPrevious?: () => void;
+  isFetchingNextPage?: boolean;
+  isFetchingPreviousPage?: boolean;
+  error?: string | undefined | null;
+  hasError?: boolean;
+  isNetworkError?: boolean;
+  serverSidePagination?: boolean;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onSortChange?: (column: string, direction: 'asc' | 'desc') => void;
+}
+
+// Update the hook interface
+export interface UseJobsTableProps {
+  jobs: Job[] | null;
+  originalJobs: Job[] | null;
+  totalJobsCount: number | null;
+  onRefresh?: () => void;
+  serverSidePagination?: boolean;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onSortChange?: (column: string, direction: 'asc' | 'desc') => void;
+}
+
+export interface JobsTableProps {
+  jobs: Job[] ;
+  originalJobs: Job[] | null;
+  totalJobsCount: number | null;
+  loading?: boolean;
+  onRefresh?: () => void;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
+  hasPreviousPage?: boolean;
+  onLoadPrevious?: () => void;
+  isFetchingNextPage?: boolean;
+  isFetchingPreviousPage?: boolean;
+  error?: string| null;
+  hasError?: boolean;
+  isNetworkError?: boolean;
+  serverSidePagination?: boolean;
+  
+  // Controlled state
+  searchQuery?: string;
+  statusFilter?: string;
+  currentPage?: number;
+  pageSize?: number;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  
+  // Callbacks
+  onSearchChange?: (query: string) => void;
+  onStatusFilterChange?: (status: string) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onSortChange?: (column: string, direction: 'asc' | 'desc') => void;
 }

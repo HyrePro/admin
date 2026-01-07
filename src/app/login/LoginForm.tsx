@@ -12,6 +12,7 @@ import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { useAuthWithFallback } from "@/hooks/use-auth-with-fallback"
 
 // Dynamically import the forgot password dialog to reduce initial bundle size
 const ForgotPasswordDialog = dynamic(() => import("@/components/forgot-password-dialog").then(mod => mod.ForgotPasswordDialog), {
@@ -41,7 +42,7 @@ export function LoginForm({
   const [invitation, setInvitation] = useState<string | null>(initialInvitation || null)
   const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuthWithFallback()
   
   // Create the supabase client instance
   const supabase = createClient()

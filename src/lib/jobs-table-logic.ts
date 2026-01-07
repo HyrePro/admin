@@ -1,6 +1,5 @@
 import { Job, SortConfig } from '@/types/jobs-table';
 import { filterJobs, sortJobs, paginateJobs, calculatePaginationDetails } from '@/lib/job-utils';
-import { getJobCount } from '@/lib/supabase/api/get-job-count';
 import { requestDeduplicator, generateRequestKey } from '@/lib/request-deduplicator';
 import { updateJobStatus } from '@/lib/supabase/api/update-job-status';
 
@@ -10,6 +9,7 @@ interface PersistedState {
   jobStatusFilter: string;
   jobsCurrentPage: number;
   jobsSortConfig: SortConfig | null;
+  pageSize?: number;
 }
 
 const PERSISTENCE_KEY = 'jobsTablePreferences';
@@ -64,7 +64,8 @@ export const getPaginatedJobs = (sortedJobs: Job[], currentPage: number, pageSiz
  * Get pagination details (total pages, start index, end index)
  */
 export const getPaginationDetails = (filteredJobsLength: number, currentPage: number, pageSize: number) => {
-  return calculatePaginationDetails(filteredJobsLength, currentPage, pageSize);
+  // Note: calculatePaginationDetails expects (totalJobsCount, pageSize, currentPage)
+  return calculatePaginationDetails(filteredJobsLength, pageSize, currentPage);
 };
 
 /**
@@ -131,25 +132,55 @@ export const fetchFilteredJobCount = async (
   }
   
   // Generate a unique request key based on the filter parameters
-  const requestKey = generateRequestKey('/api/jobs/count', {
+  const requestKey = generateRequestKey('/api/get-job-count', {
     status: statusFilter !== "ALL" ? statusFilter : undefined,
     search: searchQuery
   }, 'GET');
   
+  console.log('fetchFilteredJobCount called with params:', { searchQuery, statusFilter, totalJobsCount });
   // Execute the request with deduplication and throttling
   const result = await requestDeduplicator.execute(requestKey, async () => {
-    return await getJobCount(
-      statusFilter !== "ALL" ? statusFilter : undefined,
-      searchQuery
-    );
+    console.log('Making getJobCount call with params:', {
+      status: statusFilter !== "ALL" ? statusFilter : undefined,
+      search: searchQuery
+    });
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (statusFilter !== "ALL") params.append('status', statusFilter);
+    if (searchQuery) params.append('search', searchQuery);
+
+    const queryParams = params.toString();
+    const url = queryParams ? `/api/get-job-count?${queryParams}` : `/api/get-job-count`;
+
+    console.log('Making job count API request to:', url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('Job count API response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Job count API error response:', errorText);
+      throw new Error(errorText || 'Failed to fetch job count');
+    }
+
+    const data = await response.json();
+    console.log('getJobCount API response:', data);
+    return { data, error: null };
   }, 'anonymous', '/api/jobs/count', 'GET');
   
   const { data, error } = result;
+  console.log('fetchFilteredJobCount result:', { data, error });
   
   if (error) {
     console.error('Error fetching filtered job count:', error);
     throw new Error(error);
   }
   
-  return data?.count || 0;
+  const count = data?.count || 0;
+  console.log('Returning count:', count);
+  return count;
 };

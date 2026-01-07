@@ -24,12 +24,15 @@ export async function GET(request: Request) {
         p_type: type
       });
 
+    console.log('API - Raw RPC response:', { data: analyticsData, error: analyticsError });
+
     if (analyticsError) {
       console.error(`Error fetching job analytics:`, analyticsError);
       return NextResponse.json({ error: 'Failed to fetch job analytics' }, { status: 500 });
     }
 
     if (!analyticsData || (Array.isArray(analyticsData) && analyticsData.length === 0) || (!Array.isArray(analyticsData) && !analyticsData)) {
+      console.log('API - No analytics data found for job:', jobId);
       return NextResponse.json({ error: 'Job analytics not found' }, { status: 404 });
     }
 

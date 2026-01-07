@@ -8,6 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function GET(request: NextRequest) {
+  console.log("RPC get job count: Request received")
   try {
     // Validate required env
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -98,59 +99,67 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams
-    const status = searchParams.get('status') || 'ALL'
-    const search = searchParams.get('search') || ''
+    // Get query parameters with validation
+    const searchParams = request.nextUrl.searchParams;
+    const status = searchParams.get('status') || 'ALL';
+    const search = searchParams.get('search') || '';
     
     // Validate status parameter
-    const validStatuses = ['ALL', 'OPEN', 'IN_PROGRESS', 'COMPLETED', 'SUSPENDED', 'PAUSED', 'APPEALED']
-    if (status !== 'ALL' && !validStatuses.includes(status.toUpperCase())) {
+    const validStatuses = ['ALL', 'OPEN', 'IN_PROGRESS', 'COMPLETED', 'SUSPENDED', 'PAUSED', 'APPEALED'];
+    if (!validStatuses.includes(status.toUpperCase())) {
       return NextResponse.json(
-        { error: `Invalid status. Valid values are: ${validStatuses.filter(s => s !== 'ALL').join(', ')}` },
+        { error: `Invalid status. Valid values are: ${validStatuses.join(', ')}` },
         { status: 400 }
-      )
+      );
     }
-
-    // Build the query to count jobs
-    let query = supabaseService
-      .from('jobs')
-      .select('*', { count: 'exact', head: true })
-      .eq('school_id', adminInfo.school_id)
-
-    // Apply status filter if not ALL
-    if (status !== 'ALL') {
-      query = query.eq('status', status)
-    }
-
-    // Apply search filter if provided
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,grade_levels::text.ilike.%${search}%`)
-    }
-
-    const { count, error } = await query
+    console.log('RPC get job count: Query parameters:', { status, search })
+    // Call the RPC with user's school_id and parameters
+    const { data: countData, error } = await supabaseService.rpc('get_jobs_count', {
+      p_school_id: adminInfo.school_id,
+      p_status: status,
+      p_search: search || null
+    });
 
     if (error) {
-      console.error('Error counting jobs:', error)
+      console.error('Supabase RPC error:', error);
       return NextResponse.json(
-        { error: 'Failed to count jobs' },
+        { error: `Failed to count jobs: ${error.message || 'Unknown error'}`, details: error },
         { status: 500 }
-      )
+      );
     }
+    console.log('RPC get job count: Supabase RPC response:', countData);
+    // Extract the count - Supabase RPC can return different data structures
+    let count = 0;
+    if (countData && Array.isArray(countData) && countData.length > 0) {
+      // If it's an array, get the first element
+      count = Number(countData[0]);
+    } else if (countData && typeof countData === 'object' && 'count' in countData) {
+      // If it's an object with a count property
+      count = Number(countData.count);
+    } else if (countData && typeof countData === 'number') {
+      // If it's already a number
+      count = Number(countData);
+    } else if (countData && Array.isArray(countData) && countData.length === 0) {
+      // If it's an empty array
+      count = 0;
+    } else {
+      // Fallback
+      count = 0;
+    }
+    console.log('RPC get job count: Processed count value:', count);
 
     return NextResponse.json(
       { 
-        count: count || 0,
+        count: count,
         message: 'Job count fetched successfully'
       },
       { status: 200 }
-    )
-
+    );
   } catch (error) {
-    console.error('API error:', error)
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
-    )
+    );
   }
 }

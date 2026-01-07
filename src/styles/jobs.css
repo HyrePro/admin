@@ -105,6 +105,9 @@
   overflow: auto;
   flex: 1;
   position: relative;
+  max-height: calc(100vh - 250px); /* Fixed height to enable scrolling */
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 /* Table Header */
@@ -114,22 +117,77 @@
   background-color: rgb(255, 255, 255);
   z-index: 50;
   border-bottom: 1px solid rgb(229 231 235);
+  table-layout: fixed;
 }
 
-.table-head {
+.table-header tr {
+  table-layout: fixed;
+}
+
+.table-header .table-head {
   font-weight: 400;
   font-size: 0.875rem;
   padding: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.table-head-border {
-  border-right: 1px solid rgb(229 231 235)
+/* All header cells except the last should have a right border */
+.table-header .table-head:not(:last-child) {
+  border-right: 1px solid #d1d5db;
 }
 
-.table-head-actions {
+/* Last header cell (actions) should only have a left border */
+.table-header .table-head:last-child {
+  border-left: 1px solid #d1d5db;
+  border-right: none;
+}
+
+/* Specific column widths */
+.table-header .table-head:nth-child(1) { /* Job Title */
+  width: 25%;
+}
+
+.table-header .table-head:nth-child(2) { /* Applications */
+  width: 10%;
+}
+
+.table-header .table-head:nth-child(3) { /* Status */
+  width: 12%;
+}
+
+.table-header .table-head:nth-child(4) { /* Created */
+  width: 15%;
+}
+
+.table-header .table-head:nth-child(5) { /* Grade Levels */
+  width: 18%;
+}
+
+.table-header .table-head:nth-child(6) { /* Hiring Manager */
+  width: 15%;
+}
+
+.table-header .table-head:nth-child(7) { /* Actions */
+  width: 5%;
+}
+
+.table-header .table-head-border {
+  border-right: 1px solid #d1d5db;
+}
+
+.table-header .table-head-actions {
+  font-weight: 400;
+  font-size: 0.875rem;
   padding: 0.5rem;
-  border-left: 1px solid rgb(229 231 235);
-  border-right: 1px solid rgb(229 231 235);
+  border-left: 1px solid #d1d5db;
+  border-right: none;
+}
+
+.table-header .table-head-first {
+  border-left: none;
+  border-right: 1px solid #d1d5db;
 }
 
 .table-head-content {
@@ -176,42 +234,104 @@
 } */
 
 .table-row-hover {
-  transition: background-color 0.15s;
-  border-bottom: 1px solid rgb(229 231 235);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
 }
 
 .table-row-hover:hover {
   background-color: rgb(249 250 251);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.table-row-hover:focus {
+  background-color: rgb(241 245 249);
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
 }
 
 /* Table Cells */
 .table-cell-border {
   border-right: 1px solid rgb(229 231 235);
-  padding: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table-cell-actions {
-  padding: 0.5rem;
+  padding: 0.75rem 0.5rem;
+}
+
+/* Set consistent column widths for table body to match header */
+.table-body {
+  table-layout: fixed;
+}
+
+.table-body .table-cell-border:nth-child(1) { /* Job Title */
+  width: 25%;
+}
+
+.table-body .table-cell-border:nth-child(2) { /* Applications */
+  width: 10%;
+}
+
+.table-body .table-cell-border:nth-child(3) { /* Status */
+  width: 12%;
+}
+
+.table-body .table-cell-border:nth-child(4) { /* Created */
+  width: 15%;
+}
+
+.table-body .table-cell-border:nth-child(5) { /* Grade Levels */
+  width: 18%;
+}
+
+.table-body .table-cell-border:nth-child(6) { /* Hiring Manager */
+  width: 15%;
+}
+
+.table-body .table-cell-border:nth-child(7) { /* Actions */
+  width: 5%;
 }
 
 .cell-content {
   padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
 }
 
-.candidate-name {
+/* Typography improvements */
+.job-title {
   font-weight: 500;
+  color: rgb(17 24 39);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
-.candidate-email {
+.job-applications {
+  font-weight: 600;
+  color: rgb(31 41 55);
   font-size: 0.875rem;
+}
+
+.job-date {
+  font-size: 0.875rem;
+  color: rgb(75 85 99);
+  font-weight: 400;
+}
+
+.job-grade-levels {
+  font-size: 0.75rem;
   color: rgb(75 85 99);
 }
 
-.candidate-job {
-  font-weight: 500;
-}
-
-.candidate-date {
+.job-manager {
+  font-size: 0.875rem;
+  color: rgb(31 41 55);
   font-weight: 500;
 }
 
@@ -319,40 +439,61 @@
 .skeleton-primary {
   height: 1rem;
   width: 6rem;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
 }
 
 .skeleton-secondary {
   height: 0.75rem;
   width: 8rem;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
 }
 
 .skeleton-badge {
   height: 1.5rem;
   width: 4rem;
   border-radius: 9999px;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
 }
 
 .skeleton-score {
   height: 1rem;
   width: 2rem;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
   margin: 0 auto;
 }
 
 .skeleton-date {
   height: 1rem;
   width: 6rem;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
 }
 
 .skeleton-action {
   height: 2rem;
   width: 2rem;
   border-radius: 0.25rem;
-  background-color: rgb(229 231 235);
+  background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .assessment-score-col {
@@ -413,17 +554,7 @@
   gap: 0.25rem;
 }
 
-/* Better focus states for accessibility */
-.table-row-hover:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: -2px;
-}
 
-.table-cell-border:focus,
-.table-cell-actions:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: -1px;
-}
 
 /* Improved contrast for table borders */
 .table-container {
@@ -456,7 +587,19 @@
 
 .table-head-actions {
   border-left: 1px solid #d1d5db;
-  border-right: 1px solid #d1d5db;
+  /* No right border for actions column */
+}
+
+/* Better focus states for accessibility */
+.table-row-hover:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.table-cell-border:focus,
+.table-cell-actions:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
 }
 
 /* High contrast mode support */
@@ -545,52 +688,102 @@
   gap: 0.25rem;
 }
 
-/* Improved focus states for accessibility */
-.table-row-hover:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: -2px;
-}
 
-.table-cell-border:focus,
-.table-cell-actions:focus {
-  outline: 2px solid #2563eb;
-  outline-offset: -1px;
-}
-
-/* Better contrast for table borders */
-.table-container {
-  border: 1px solid #d1d5db;
-}
-
-.table-header {
-  border-bottom: 1px solid #d1d5db;
-}
-
-.table-row-hover {
-  border-bottom: 1px solid #d1d5db;
-}
-
-.table-cell-border {
-  border-right: 1px solid #d1d5db;
-}
-
-.assessment-col {
-  border-right: 1px solid #d1d5db;
-}
-
-.assessment-value {
-  border-right: 1px solid #d1d5db;
-}
-
-.table-head-border {
-  border-right: 1px solid #d1d5db;
-}
-
-.table-head-actions {
-  border-left: 1px solid #d1d5db;
-  border-right: 1px solid #d1d5db;
-}
 
 .legend-key {
   font-weight: 600;
+}.jobs-container > div:nth-child(2) {
+  flex: 1;
+  min-height: 0; /* CRITICAL - allows scrolling */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow: auto; /* Scrollable */
+  min-height: 0; /* CRITICAL */
+}
+
+.pagination-container {
+  flex-shrink: 0; /* Always visible */
+}
+
+/* Add these to your jobs.css or global CSS file */
+
+/* Ensure the jobs container takes full height */
+.jobs-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* or 100% depending on your layout */
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* Header should not shrink */
+.jobs-header {
+  flex-shrink: 0;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Content area should grow and allow scrolling */
+.jobs-container > div:nth-child(2) {
+  flex: 1;
+  min-height: 0; /* Important for proper flexbox overflow */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Table container layout */
+.table-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.table-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Pagination should always be visible */
+.pagination-container {
+  flex-shrink: 0;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Ensure proper spacing */
+.pagination-info {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Make sure the layout works on mobile too */
+@media (max-width: 640px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .pagination-controls {
+    justify-content: space-between;
+  }
 }

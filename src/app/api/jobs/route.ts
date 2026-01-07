@@ -144,17 +144,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Call the RPC with user's school_id and validated parameters
+    // Using function signature without p_search parameter based on schema error
     const { data, error } = await supabaseService.rpc("get_jobs_with_analytics", {
       p_school_id: adminInfo.school_id,
       p_start_index: startIndex,
       p_end_index: endIndex,
       p_status: status.toUpperCase(),
-      p_search: search,
+      p_search: search || null
     })
 
     if (error) {
+      console.error('Supabase RPC error:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch jobs' },
+        { error: `Failed to fetch jobs: ${error.message || 'Unknown error'}`, details: error },
         { status: 500 }
       )
     }
@@ -170,7 +172,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     )
   }

@@ -1,185 +1,176 @@
 "use client";
-
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { JobsTable } from "@/components/jobs-table";
 import ErrorBoundary from "@/components/error-boundary";
-import { retryWithBackoff, isNetworkError } from "@/lib/utils";
-import GlobalErrorHandler from "@/lib/error-handler";
 import { useQuery } from '@tanstack/react-query';
-import { sanitizeJobList } from '@/lib/sanitize';
-import { isValidAuthState, validateSessionIntegrity, refreshAuthTokenIfNeeded } from '@/lib/auth-validation';
 import { Job } from '@/types/jobs-table';
-import { requestDeduplicator, generateRequestKey } from "@/lib/request-deduplicator";
-import { useJobs } from "@/hooks/useJobs";
-import { useOptimisticJobs } from "@/hooks/useOptimisticJobs";
-import '@/styles/jobs.css'
-
-
-
-
 
 export default function JobsPage() {
   const router = useRouter();
-  const { user, session, loading: authLoading } = useAuth();
-
-  const [totalJobsCount, setTotalJobsCount] = useState<number>(0);
+  const { user, session } = useAuth();
   
-  const { data: jobs, isLoading: loading, error, refetch } = useQuery<Job[]>({
-    queryKey: ['jobs', 'ALL', 0, 20],
-    queryFn: async (): Promise<Job[]> => {
-      // Validate authentication state
-      if (!isValidAuthState(user, session) || !validateSessionIntegrity(session)) {
-        throw new Error("Authentication required: Please log in to view job listings");
+  // State for filters and pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [sortColumn, setSortColumn] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Fetch total job count (updates when filters change)
+  const { data: totalJobsCount = 0, isLoading: countLoading, refetch: refetchCount } = useQuery<number>({
+    queryKey: ['job-count', statusFilter, searchQuery],
+    queryFn: async () => {
+      console.log('Fetching job count with filters:', { statusFilter, searchQuery });
+      const response = await fetch(`/api/get-job-count?status=${statusFilter}&search=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch job count: ${response.status}`);
       }
       
-      // Refresh token if needed
-      const updatedSession = await refreshAuthTokenIfNeeded(session);
-      if (updatedSession) {
-        // Update session if refresh was successful
-        // In a real implementation, you'd update the session in context
-      } else if (!session) {
-        // If refresh failed and we don't have a session, throw error
-        throw new Error("Authentication required: Please log in to view job listings");
-      }
-      
-      try {
-        const queryParams = new URLSearchParams({
-          status: "ALL",
-          startIndex: '0',
-          endIndex: '20'
-        });
-
-        // Generate a unique request key based on URL and parameters
-        const requestKey = generateRequestKey('/api/jobs', {
-          status: "ALL",
-          startIndex: '0',
-          endIndex: '20'
-        }, 'GET');
-        
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-
-        // Add Authorization header if we have an access token
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-
-        // Execute the request with deduplication and throttling
-        const response = await requestDeduplicator.execute(requestKey, async () => {
-          return await fetch(`/api/jobs?${queryParams}`, {
-            method: 'GET',
-            headers,
-            credentials: 'include', // Include cookies for server-side auth
-          });
-        }, user?.id || 'anonymous', '/api/jobs', 'GET');
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          const errorMessage = errorData.error || `Failed to fetch jobs: Server responded with status ${response.status}`;
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        const jobs = data.jobs || [];
-        const sanitizedJobs = sanitizeJobList(jobs);
-        // Ensure the returned data is serializable
-        return JSON.parse(JSON.stringify(sanitizedJobs));
-      } catch (err) {
-        // Use global error handler
-        const context = {
-          operation: 'fetchJobs',
-          component: 'JobsPage',
-          url: '/api/jobs',
-          method: 'GET',
-        };
-        
-        GlobalErrorHandler.logError(err, context);
-        throw err; // Re-throw to be handled by React Query
-      }
+      const data = await response.json();
+      console.log('Job count:', data.count);
+      return data.count || 0;
     },
-    retry: 3,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
-    enabled: !!user && !!session, // Only run query when user is authenticated
+    enabled: !!user && !!session,
+    retry: 2,
   });
 
-
-
-  const fetchTotalJobCount = async () => {
-    // Validate authentication state
-    if (!isValidAuthState(user, session) || !validateSessionIntegrity(session)) {
-      return;
-    }
-    
-    // Refresh token if needed
-    const updatedSession = await refreshAuthTokenIfNeeded(session);
-    if (!updatedSession && !session) {
-      return; // Not authenticated
-    }
-
-    try {
-      // Wrap the fetch operation with retry logic
-      const fetchTotalCountWithRetry = async () => {
-        // Generate a unique request key for the total job count API
-        const requestKey = generateRequestKey('/api/get-total-job-count', {}, 'GET');
-        
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-
-        // Add Authorization header if we have an access token
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-
-        // Execute the request with deduplication and throttling
-        const response = await requestDeduplicator.execute(requestKey, async () => {
-          return await fetch(`/api/get-total-job-count`, {
-            method: 'GET',
-            headers,
-            credentials: 'include', // Include cookies for server-side auth
-          });
-        }, user?.id || 'anonymous', '/api/get-total-job-count', 'GET');
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          const errorMessage = errorData.error || `Failed to fetch total job count: Server responded with status ${response.status}`;
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        setTotalJobsCount(data.totalJobs || 0);
-      };
-
-      // Execute the fetch with retry logic
-      await retryWithBackoff(fetchTotalCountWithRetry, 3, 1000, 2);
-    } catch (err) {
-      // Use global error handler
-      const context = {
-        operation: 'fetchTotalJobCount',
-        component: 'JobsPage',
-        url: '/api/get-total-job-count',
-        method: 'GET',
-      };
+  // Fetch jobs data (updates when any parameter changes)
+  const { 
+    data: jobsData, 
+    isLoading: loading, 
+    error, 
+    refetch: refetchJobs, 
+    isFetching: isFetchingJobs 
+  } = useQuery<Job[]>({
+    queryKey: ['jobs', statusFilter, searchQuery, currentPage, pageSize, sortColumn, sortDirection],
+    queryFn: async () => {
+      const startIndex = currentPage * pageSize;
+      const endIndex = startIndex + pageSize;
       
-      GlobalErrorHandler.handleApiError(err, context);
-    }
-  };
+      console.log('Fetching jobs with params:', {
+        status: statusFilter,
+        search: searchQuery,
+        startIndex,
+        endIndex,
+        sort: sortColumn,
+        asc: sortDirection === 'asc'
+      });
+      
+      const params = new URLSearchParams({
+        status: statusFilter,
+        search: searchQuery,
+        startIndex: startIndex.toString(),
+        endIndex: endIndex.toString(),
+        sort: sortColumn,
+        asc: (sortDirection === 'asc').toString()
+      });
+      
+      const response = await fetch(`/api/jobs?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs');
+      }
+      
+      const data = await response.json();
+      console.log('Fetched jobs:', data.jobs?.length || 0);
+      return data.jobs || [];
+    },
+    enabled: !!user && !!session,
+    retry: 2,
+    placeholderData: (previousData) => previousData, // Prevent flicker while loading (React Query v5)
+  });
 
-  useEffect(() => {
-    if (!authLoading && user && session) {
-      fetchTotalJobCount();
-    }
-  }, [user, session, authLoading]);
+  // Handle undefined case
+  const jobs = jobsData ?? [];
+
+  // Handle search change
+  const handleSearchChange = useCallback((query: string) => {
+    console.log('Search changed:', query);
+    setSearchQuery(query);
+    setCurrentPage(0); // Reset to first page on search
+  }, []);
+
+  // Handle status filter change
+  const handleStatusFilterChange = useCallback((status: string) => {
+    console.log('Status filter changed:', status);
+    setStatusFilter(status);
+    setCurrentPage(0); // Reset to first page on filter
+  }, []);
+
+  // Handle page change
+  const handlePageChange = useCallback((page: number) => {
+    console.log('Page changed to:', page);
+    setCurrentPage(page);
+  }, []);
+
+  // Handle page size change
+  const handlePageSizeChange = useCallback((size: number) => {
+    console.log('Page size changed to:', size);
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when page size changes
+  }, []);
+
+  // Handle sort change
+  const handleSortChange = useCallback((column: string, direction: 'asc' | 'desc') => {
+    console.log('Sort changed:', { column, direction });
+    setSortColumn(column);
+    setSortDirection(direction);
+    setCurrentPage(0); // Reset to first page on sort
+  }, []);
+
+  // Handle refresh - refetch everything
+  const handleRefresh = useCallback(async () => {
+    console.log('Refresh requested');
+    // Reset all filters and fetch fresh data
+    setSearchQuery('');
+    setStatusFilter('ALL');
+    setCurrentPage(0);
+    setSortColumn('created_at');
+    setSortDirection('desc');
+    
+    // Refetch both count and jobs
+    await Promise.all([refetchCount(), refetchJobs()]);
+  }, [refetchCount, refetchJobs]);
+
+  // Calculate pagination flags
+  const hasNextPage = (currentPage + 1) * pageSize < totalJobsCount;
+  const hasPreviousPage = currentPage > 0;
+
+  // Determine loading states
+  const isInitialLoading = loading && currentPage === 0;
+
+  console.log('JobsPage render:', {
+    currentPage,
+    pageSize,
+    jobsLength: jobs.length,
+    totalJobsCount,
+    hasNextPage,
+    hasPreviousPage,
+    isInitialLoading,
+    isFetchingJobs,
+    searchQuery,
+    statusFilter,
+    sortColumn,
+    sortDirection
+  });
 
   return (
-    <div className="jobs-container flex flex-col h-full">
-      <div className="jobs-header">
+    <div className="jobs-container flex flex-col h-full overflow-hidden">
+      <div className="jobs-header flex-shrink-0">
         <h1 className="jobs-title">Jobs</h1>
         <Button
           variant="outline"
@@ -191,14 +182,31 @@ export default function JobsPage() {
         </Button>
       </div>
       
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         <ErrorBoundary>
           <JobsTable 
-            jobs={jobs ? JSON.parse(JSON.stringify(jobs || [])) : []} 
-            originalJobs={jobs ? JSON.parse(JSON.stringify(jobs || [])) : []}
+            jobs={jobs} 
+            originalJobs={jobs}
             totalJobsCount={totalJobsCount}
-            loading={loading} 
-            onRefresh={() => refetch()} 
+            loading={isInitialLoading} 
+            onRefresh={handleRefresh}
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+            isFetchingNextPage={isFetchingJobs && !isInitialLoading}
+            serverSidePagination={true}
+            // Pass controlled state
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            // Pass handlers
+            onSearchChange={handleSearchChange}
+            onStatusFilterChange={handleStatusFilterChange}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSortChange={handleSortChange}
           />
         </ErrorBoundary>
       </div>

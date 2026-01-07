@@ -8,9 +8,6 @@ import {
   getPaginatedJobs, 
   getPaginationDetails,
   updateJobStatusOptimistically as updateJobStatusOptimisticallyLogic,
-  fetchFilteredJobCount,
-  saveStateToStorage,
-  loadStateFromStorage
 } from '@/lib/jobs-table-logic';
 import { useTranslations } from '@/contexts/i18n-context';
 
@@ -19,67 +16,42 @@ interface UseJobsTableProps {
   originalJobs: Job[] | null;
   totalJobsCount: number | null;
   onRefresh?: () => void;
-}
-
-interface UseJobsTableReturn {
-  // State
-  jobSearchQuery: string;
-  jobStatusFilter: string;
-  jobsCurrentPage: number;
-  jobsFilteredCount: number;
-  jobsFilterLoading: boolean;
-  jobsPartialErrors: {
-    type: string;
-    message: string;
-    severity: 'info' | 'warning' | 'error';
-    timestamp: Date;
-  }[];
-  jobsSortConfig: SortConfig | null;
-  jobStatusOptions: { value: string; label: string }[];
-  jobStatusColors: Record<string, string>;
-  pageSize: number;
+  serverSidePagination?: boolean;
   
-  // Refs
-  jobSearchInputRef: React.RefObject<HTMLInputElement | null>;
+  // Controlled state from parent
+  searchQuery?: string;
+  statusFilter?: string;
+  currentPage?: number;
+  pageSize?: number;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
   
-  // Computed values
-  filteredJobs: Job[];
-  sortedJobs: Job[];
-  paginatedJobs: Job[];
-  totalPages: number;
-  startIndex: number;
-  endIndex: number;
-  totalDisplayCount: number;
-  
-  // Handlers
-  setJobSearchQuery: React.Dispatch<React.SetStateAction<string>>;
-  setJobStatusFilter: React.Dispatch<React.SetStateAction<string>>;
-  setJobsCurrentPage: React.Dispatch<React.SetStateAction<number>>;
-  handleViewJob: (jobId: string) => void;
-  handleCopyLink: (jobId: string) => Promise<void>;
-  handlePreviousPage: () => void;
-  handleNextPage: () => void;
-  requestSort: (column: string) => void;
-  getSortIndicator: (columnName: string) => string | null;
-  updateJobStatusOptimistically: (jobId: string, newStatus: string) => Promise<void>;
-  undoLastAction: () => void;
-  
-  // Translations
-  translations: any;
-  common: any;
-  table: any;
-  empty: any;
-  pagination: any;
-  actions: any;
-  help: any;
+  // Callbacks to parent
+  onSearchChange?: (query: string) => void;
+  onStatusFilterChange?: (status: string) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  onSortChange?: (column: string, direction: 'asc' | 'desc') => void;
 }
 
 export const useJobsTable = ({
   jobs,
   originalJobs,
   totalJobsCount,
-  onRefresh
-}: UseJobsTableProps): UseJobsTableReturn => {
+  onRefresh,
+  serverSidePagination = false,
+  searchQuery: controlledSearchQuery,
+  statusFilter: controlledStatusFilter,
+  currentPage: controlledCurrentPage,
+  pageSize: controlledPageSize,
+  sortColumn: controlledSortColumn,
+  sortDirection: controlledSortDirection,
+  onSearchChange,
+  onStatusFilterChange,
+  onPageChange,
+  onPageSizeChange,
+  onSortChange,
+}: UseJobsTableProps) => {
   const translations = useTranslations();
   const router = useRouter();
   
@@ -92,64 +64,52 @@ export const useJobsTable = ({
   
   const { common, table, empty, pagination, actions, help } = translations;
 
-  // Load persisted state from localStorage
-  const persistedState = loadStateFromStorage();
+  // Use controlled state if in server-side mode, otherwise manage locally
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+  const [localStatusFilter, setLocalStatusFilter] = useState("ALL");
+  const [localCurrentPage, setLocalCurrentPage] = useState(0);
+  const [localPageSize, setLocalPageSize] = useState(20);
+  const [localSortConfig, setLocalSortConfig] = useState<SortConfig | null>(null);
   
-  // Existing state with initial values from persisted state
-  const [jobSearchQuery, setJobSearchQuery] = useState<string>(
-    persistedState?.jobSearchQuery || ""
-  );
   const jobSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const [jobStatusFilter, setJobStatusFilter] = useState(
-    persistedState?.jobStatusFilter || "ALL"
-  );
-  const [jobsCurrentPage, setJobsCurrentPage] = useState(
-    persistedState?.jobsCurrentPage || 0
-  );
-  const [jobsFilteredCount, setJobsFilteredCount] = useState<number>(0);
-  const [jobsFilterLoading, setJobsFilterLoading] = useState(false);
-  
-  // State for partial errors
-  // State for tracking last action for undo functionality
   const [lastAction, setLastAction] = useState<{ type: string; jobId: string; previousStatus: string; newStatus: string } | null>(null);
-  
   const [jobsPartialErrors, setJobsPartialErrors] = useState<{
     type: string;
     message: string;
     severity: 'info' | 'warning' | 'error';
     timestamp: Date;
   }[]>([]);
-  
-  // Sorting state with initial value from persisted state
-  const [jobsSortConfig, setJobsSortConfig] = useState<SortConfig | null>(
-    persistedState?.jobsSortConfig || null
-  );
-  
-  const pageSize = 10;
 
-  // Debounced search query to prevent too many API calls while typing
+  // Determine which state to use
+  const jobSearchQuery = serverSidePagination ? (controlledSearchQuery ?? "") : localSearchQuery;
+  const jobStatusFilter = serverSidePagination ? (controlledStatusFilter ?? "ALL") : localStatusFilter;
+  const jobsCurrentPage = serverSidePagination ? (controlledCurrentPage ?? 0) : localCurrentPage;
+  const pageSize = serverSidePagination ? (controlledPageSize ?? 20) : localPageSize;
+  
+  // For sort config, convert from controlled to SortConfig format
+  const jobsSortConfig = serverSidePagination && controlledSortColumn
+    ? { column: controlledSortColumn, direction: controlledSortDirection || 'asc' }
+    : localSortConfig;
+
+  // Debounced search query for client-side mode only
   const [debouncedJobSearchQuery, setDebouncedJobSearchQuery] = useState(jobSearchQuery);
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedJobSearchQuery(jobSearchQuery);
-    }, 300); // 300ms debounce time
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [jobSearchQuery]);
-
-  // Save state to localStorage when relevant state changes
-  useEffect(() => {
-    const stateToSave = {
-      jobSearchQuery,
-      jobStatusFilter,
-      jobsCurrentPage,
-      jobsSortConfig,
-    };
-    saveStateToStorage(stateToSave);
-  }, [jobSearchQuery, jobStatusFilter, jobsCurrentPage, jobsSortConfig]);
+    if (!serverSidePagination) {
+      const timer = setTimeout(() => {
+        setDebouncedJobSearchQuery(jobSearchQuery);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      // In server mode, use debounced callback
+      const timer = setTimeout(() => {
+        if (jobSearchQuery !== controlledSearchQuery && onSearchChange) {
+          onSearchChange(jobSearchQuery);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [jobSearchQuery, serverSidePagination, controlledSearchQuery, onSearchChange]);
 
   const jobStatusColors: Record<string, string> = {
     OPEN: "bg-green-50 text-green-700 border-green-200",
@@ -160,48 +120,146 @@ export const useJobsTable = ({
     APPEALED: "bg-purple-50 text-purple-700 border-purple-200",
   };
 
-  /**
-   * Filter and search jobs based on search query and status filter
-   * @returns Array of jobs that match the current search and filter criteria
-   */
+  // Client-side filtering (only in client-side mode)
   const filteredJobs = useMemo(() => {
+    if (serverSidePagination) {
+      return jobs || [];
+    }
     return getFilteredJobs(jobs || [], debouncedJobSearchQuery, jobStatusFilter);
-  }, [jobs, debouncedJobSearchQuery, jobStatusFilter]);
+  }, [jobs, debouncedJobSearchQuery, jobStatusFilter, serverSidePagination]);
 
-  /**
-   * Sort jobs based on the current sort configuration
-   * @returns Array of jobs sorted according to the current sort settings
-   */
+  // Client-side sorting (only in client-side mode)
   const sortedJobs = useMemo(() => {
+    if (serverSidePagination) {
+      return filteredJobs;
+    }
     return getSortedJobs(filteredJobs, jobsSortConfig);
-  }, [filteredJobs, jobsSortConfig]);
+  }, [filteredJobs, jobsSortConfig, serverSidePagination]);
 
-  /**
-   * Paginate sorted jobs based on current page and page size
-   * @returns Array of jobs for the current page
-   */
+  // Client-side pagination (only in client-side mode)
   const paginatedJobs = useMemo(() => {
+    if (serverSidePagination) {
+      // In server mode, show exactly what we received
+      return sortedJobs;
+    }
     return getPaginatedJobs(sortedJobs, jobsCurrentPage, pageSize);
-  }, [sortedJobs, jobsCurrentPage]);
+  }, [sortedJobs, jobsCurrentPage, pageSize, serverSidePagination]);
 
-  const { totalPages, startIndex, endIndex } = getPaginationDetails(filteredJobs.length, jobsCurrentPage, pageSize);
-  
-  // Use the filtered job count which is fetched from the API when filters are applied
-  const totalDisplayCount = jobsFilteredCount;
+  // Calculate display count
+  const totalDisplayCount = serverSidePagination 
+    ? (totalJobsCount || 0) 
+    : sortedJobs.length;
 
-  /**
-   * Handle viewing a job by navigating to the job details page
-   * @param jobId - The ID of the job to view
-   */
+  // Pagination details
+  const { totalPages, startIndex, endIndex } = useMemo(() => {
+    if (serverSidePagination) {
+      const total = totalJobsCount || 0;
+      const pages = Math.ceil(total / pageSize);
+      const start = jobsCurrentPage * pageSize;
+      const end = Math.min(start + (jobs?.length || 0), total);
+      
+      return {
+        totalPages: pages,
+        startIndex: start,
+        endIndex: end
+      };
+    }
+    return getPaginationDetails(totalDisplayCount, jobsCurrentPage, pageSize);
+  }, [serverSidePagination, totalJobsCount, jobsCurrentPage, pageSize, jobs?.length, totalDisplayCount]);
+
+  // Handlers for search
+  const setJobSearchQuery = useCallback((query: string) => {
+    if (serverSidePagination && onSearchChange) {
+      // Let the debounce effect handle the API call
+      setLocalSearchQuery(query);
+    } else {
+      setLocalSearchQuery(query);
+    }
+  }, [serverSidePagination, onSearchChange]);
+
+  // Handlers for status filter
+  const setJobStatusFilter = useCallback((status: string) => {
+    if (serverSidePagination && onStatusFilterChange) {
+      onStatusFilterChange(status);
+    } else {
+      setLocalStatusFilter(status);
+      setLocalCurrentPage(0);
+    }
+  }, [serverSidePagination, onStatusFilterChange]);
+
+  // Handlers for pagination
+  const handlePreviousPage = useCallback(() => {
+    const newPage = Math.max(0, jobsCurrentPage - 1);
+    if (serverSidePagination && onPageChange) {
+      onPageChange(newPage);
+    } else {
+      setLocalCurrentPage(newPage);
+    }
+  }, [jobsCurrentPage, serverSidePagination, onPageChange]);
+
+  const handleNextPage = useCallback(() => {
+    const newPage = Math.min(totalPages - 1, jobsCurrentPage + 1);
+    if (serverSidePagination && onPageChange) {
+      onPageChange(newPage);
+    } else {
+      setLocalCurrentPage(newPage);
+    }
+  }, [totalPages, jobsCurrentPage, serverSidePagination, onPageChange]);
+
+  const setPageSize = useCallback((newSize: number | ((prev: number) => number)) => {
+    const resolvedSize = typeof newSize === 'function' ? newSize(pageSize) : newSize;
+    
+    if (serverSidePagination && onPageSizeChange) {
+      onPageSizeChange(resolvedSize);
+    } else {
+      setLocalPageSize(resolvedSize);
+      setLocalCurrentPage(0);
+    }
+  }, [serverSidePagination, onPageSizeChange, pageSize]);
+
+  // Sort handler
+  const requestSort = useCallback((column: string) => {
+    if (serverSidePagination && onSortChange) {
+      // In server mode, determine new direction
+      let newDirection: 'asc' | 'desc' = 'asc';
+      
+      if (jobsSortConfig && jobsSortConfig.column === column) {
+        if (jobsSortConfig.direction === 'asc') {
+          newDirection = 'desc';
+        } else {
+          // Reset to default sort
+          onSortChange('created_at', 'desc');
+          return;
+        }
+      }
+      
+      onSortChange(column, newDirection);
+    } else {
+      // Client-side sorting
+      if (jobsSortConfig && jobsSortConfig.column === column) {
+        if (jobsSortConfig.direction === 'asc') {
+          setLocalSortConfig({ column, direction: 'desc' });
+        } else {
+          setLocalSortConfig(null);
+        }
+      } else {
+        setLocalSortConfig({ column, direction: 'asc' });
+      }
+    }
+  }, [jobsSortConfig, serverSidePagination, onSortChange]);
+
+  const getSortIndicator = useCallback((columnName: string) => {
+    if (jobsSortConfig?.column === columnName) {
+      return jobsSortConfig.direction === 'asc' ? 'asc' : 'desc';
+    }
+    return 'none';
+  }, [jobsSortConfig]);
+
+  // Other handlers
   const handleViewJob = useCallback((jobId: string) => {
     router.push(`/jobs/${jobId}`);
   }, [router]);
 
-  /**
-   * Handle copying a job link to the clipboard
-   * @param jobId - The ID of the job to copy the link for
-   * @returns Promise that resolves when the link is copied
-   */
   const handleCopyLink = useCallback(async (jobId: string) => {
     const jobLink = `https://www.hyriki.com/apply/${jobId}`;
     try {
@@ -213,95 +271,25 @@ export const useJobsTable = ({
     }
   }, []);
 
-  /**
-   * Handle navigating to the previous page
-   */
-  const handlePreviousPage = useCallback(() => {
-    setJobsCurrentPage(prev => Math.max(0, prev - 1));
-  }, []);
-
-  /**
-   * Handle navigating to the next page
-   */
-  const handleNextPage = useCallback(() => {
-    setJobsCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
-  }, [totalPages]);
-
-  /**
-   * Request sorting by a specific column
-   * @param column - The column to sort by
-   */
-  const requestSort = useCallback((column: string) => {
-    if (jobsSortConfig && jobsSortConfig.column === column) {
-      // If clicking the same column, toggle direction
-      if (jobsSortConfig.direction === 'asc') {
-        setJobsSortConfig({ column, direction: 'desc' });
-      } else {
-        setJobsSortConfig(null); // Clear sort if going from desc to asc again
-      }
-    } else {
-      // If clicking a different column, sort ascending by default
-      setJobsSortConfig({ column, direction: 'asc' });
-    }
-  }, [jobsSortConfig]);
-
-  /**
-   * Get the sort indicator for a column
-   * @param columnName - The name of the column
-   * @returns Sort indicator (↑ or ↓) or null if not sorted by this column
-   */
-  const getSortIndicator = useCallback((columnName: string) => {
-    if (jobsSortConfig?.column === columnName) {
-      return jobsSortConfig.direction === 'asc' ? '↑' : '↓';
-    }
-    return null;
-  }, [jobsSortConfig]);
-  
-  /**
-   * Update job status with optimistic update
-   * @param jobId - The ID of the job to update
-   * @param newStatus - The new status to set
-   * @returns Promise that resolves when the update is complete
-   */
   const updateJobStatusOptimistically = useCallback(async (jobId: string, newStatus: string) => {
     try {
-      // Optimistically update the UI by modifying the jobs array directly
-      // This creates an immediate visual feedback before the API call completes
       const jobIndex = jobs?.findIndex(job => job.id === jobId);
       if (jobIndex === -1 || jobIndex === undefined) {
         throw new Error('Job not found');
       }
       
-      // Store previous status for potential undo
       const previousStatus = (jobs || [])[jobIndex].status;
       
-      // Create a new jobs array with the updated job status
-      const updatedJobs = [...(jobs || [])];
-      updatedJobs[jobIndex] = { ...updatedJobs[jobIndex], status: newStatus };
-      
-      // Update the jobs prop with the optimistic update
-      // In a real implementation with React Query, we would update the cache
-      
-      // Call the business logic function to update the job status (renamed to avoid conflict)
       await updateJobStatusOptimisticallyLogic(jobId, newStatus, jobs, onRefresh);
       
       toast.success('Job status updated successfully');
-      
-      // Store the action for potential undo
       setLastAction({ type: 'status-update', jobId, previousStatus, newStatus });
-      
-      // If the API call was successful, the UI is already updated optimistically
-      // If it fails, we would rollback the change (not implemented here for simplicity)
     } catch (error) {
       console.error('Error updating job status:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update job status');
-      
-      // In a full implementation, we would rollback the optimistic update here
-      // by restoring the previous job status in the UI
     }
   }, [jobs, onRefresh]);
   
-  // Undo the last action
   const undoLastAction = useCallback(() => {
     if (!lastAction) {
       toast.info('No action to undo');
@@ -311,80 +299,19 @@ export const useJobsTable = ({
     const { type, jobId, previousStatus } = lastAction;
     
     if (type === 'status-update') {
-      // Revert the status to the previous value
       updateJobStatusOptimistically(jobId, previousStatus);
       toast.success('Action undone');
       setLastAction(null);
     }
   }, [lastAction, updateJobStatusOptimistically]);
-  
-  // Fetch filtered job count when filters change
-  useEffect(() => {
-    setJobsFilterLoading(true);
-    
-    const fetchFilteredCount = async () => {
-      // If no filters are applied, use the totalJobsCount prop
-      if (!debouncedJobSearchQuery && jobStatusFilter === "ALL") {
-        setJobsFilteredCount(totalJobsCount || 0);
-        setJobsFilterLoading(false);
-        return;
-      }
-      
-      try {
-        const count = await fetchFilteredJobCount(
-          debouncedJobSearchQuery,
-          jobStatusFilter,
-          totalJobsCount
-        );
-        setJobsFilteredCount(count);
-        
-        // Remove any existing job count partial error
-        setJobsPartialErrors(prev => prev.filter(err => err.type !== 'job-count'));
-      } catch (err) {
-        console.error('Error in fetchFilteredCount:', err);
-        
-        // Add partial error for failed job count
-        setJobsPartialErrors(prev => [
-          ...prev,
-          {
-            type: 'job-count',
-            message: 'Failed to load accurate job count. Displaying estimated count.',
-            severity: 'warning',
-            timestamp: new Date(),
-          }
-        ]);
-        
-        // Fallback to filtered jobs length if API fails
-        setJobsFilteredCount(filteredJobs.length);
-      } finally {
-        setJobsFilterLoading(false);
-      }
-    };
-    
-    fetchFilteredCount();
-  }, [debouncedJobSearchQuery, jobStatusFilter, totalJobsCount, filteredJobs.length]);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setJobsCurrentPage(0);
-  }, [debouncedJobSearchQuery, jobStatusFilter, jobsSortConfig]);
-  
-  // Cleanup effect to cancel any ongoing operations when component unmounts
-  useEffect(() => {
-    return () => {
-      // Clear any pending timeouts
-      // Cancel any ongoing API requests if needed
-      // Clean up any subscriptions
-    };
-  }, []);
 
   return {
     // State
     jobSearchQuery,
     jobStatusFilter,
     jobsCurrentPage,
-    jobsFilteredCount,
-    jobsFilterLoading,
+    jobsFilteredCount: totalDisplayCount,
+    jobsFilterLoading: false,
     jobsPartialErrors,
     jobsSortConfig,
     jobStatusOptions,
@@ -402,11 +329,14 @@ export const useJobsTable = ({
     startIndex,
     endIndex,
     totalDisplayCount,
+    hasPreviousPage: jobsCurrentPage > 0,
+    hasNextPage: jobsCurrentPage < totalPages - 1,
     
     // Handlers
     setJobSearchQuery,
     setJobStatusFilter,
-    setJobsCurrentPage,
+    setJobsCurrentPage: serverSidePagination && onPageChange ? onPageChange : setLocalCurrentPage,
+    setPageSize,
     handleViewJob,
     handleCopyLink,
     handlePreviousPage,

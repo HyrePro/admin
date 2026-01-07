@@ -134,7 +134,10 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
             p_type: 'overview'
           });
         
+        console.log('Component - Overview RPC response:', { data: overviewData, error: overviewError });
+        
         if (overviewError) {
+          console.error('Component - Overview RPC error:', overviewError);
           throw new Error(overviewError.message || 'Failed to fetch overview analytics');
         }
         
@@ -144,13 +147,25 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
             p_job_id: jobId
           });
         
+        console.log('Component - Funnel RPC response:', { data: funnelData, error: funnelError });
+        
         if (funnelError) {
+          console.error('Component - Funnel RPC error:', funnelError);
           throw new Error(funnelError.message || 'Failed to fetch funnel analytics');
         }
         
         // Ensure data is properly serialized to avoid non-serializable object errors
-        setOverviewData(overviewData && overviewData.length > 0 ? JSON.parse(JSON.stringify(overviewData[0])) : null);
-        setFunnelData(funnelData && funnelData.length > 0 ? JSON.parse(JSON.stringify(funnelData[0])) : null);
+        console.log('Component - Processed overview data:', overviewData && overviewData.length > 0 ? overviewData[0] : null);
+        console.log('Component - Processed funnel data:', funnelData && funnelData.length > 0 ? funnelData[0] : null);
+        
+        // Check if data exists before setting state
+        const hasOverviewData = overviewData && overviewData.length > 0;
+        const hasFunnelData = funnelData && funnelData.length > 0;
+        
+        console.log('Component - Data availability check:', { hasOverviewData, hasFunnelData });
+        
+        setOverviewData(hasOverviewData ? JSON.parse(JSON.stringify(overviewData[0])) : null);
+        setFunnelData(hasFunnelData ? JSON.parse(JSON.stringify(funnelData[0])) : null);
         
         // Mock demographics data - in a real implementation, this would be fetched from an API
         const mockDemographics = {
@@ -298,6 +313,14 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
       <div className="space-y-6">
         <div className="p-4 border rounded-lg bg-yellow-50">
           <p className="text-yellow-800">No analytics data available for this job yet.</p>
+          <p className="text-yellow-600 mt-2">Job ID: {jobId}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-sm text-blue-600">Show Debug Info</summary>
+            <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40">
+              <pre>Overview Data: {JSON.stringify(overviewData, null, 2)}</pre>
+              <pre>Funnel Data: {JSON.stringify(funnelData, null, 2)}</pre>
+            </div>
+          </details>
           <button 
             onClick={() => window.location.reload()}
             className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -324,6 +347,15 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
 
   return (
     <div className="pb-8">
+      <details className="mb-4">
+        <summary className="cursor-pointer text-sm text-blue-600">Show Raw Data</summary>
+        <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-60">
+          <pre>Overview Data: {JSON.stringify(overviewData, null, 2)}</pre>
+          <pre>Funnel Data: {JSON.stringify(funnelData, null, 2)}</pre>
+          <pre>Demographics Data: {JSON.stringify(demographicsData, null, 2)}</pre>
+        </div>
+      </details>
+      
       {/* KPI metrics with common border and individual left borders, selected metric without bottom border */}
       <div className="border rounded-lg rounded-b-none">
         <div className="flex justify-between">

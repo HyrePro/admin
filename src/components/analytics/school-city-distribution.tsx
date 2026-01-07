@@ -1,7 +1,7 @@
 "use client"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 import {
-Card,
+  Card,
 CardContent,
 CardHeader,
 CardTitle,
@@ -59,7 +59,7 @@ return Object.entries(cityData)
   }, [demographics]);
 
 return (
-<Card className="h-full">
+ <Card className="w-full max-w-2xl mx-auto shadow-none">
 <CardHeader>
 <CardTitle>City Distribution</CardTitle>
 </CardHeader>
