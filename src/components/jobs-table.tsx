@@ -271,7 +271,7 @@ function JobsTableComponent({
   }
 
   return (
-    <div className="flex flex-col">
+   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible flex-shrink-0">
         <div className="relative flex-1 overflow-visible">

@@ -168,11 +168,9 @@ export const useJobsTable = ({
     return getPaginationDetails(totalDisplayCount, jobsCurrentPage, pageSize);
   }, [serverSidePagination, totalJobsCount, jobsCurrentPage, pageSize, jobs?.length, totalDisplayCount]);
 
-  // Handlers for search - update local state immediately for input responsiveness
   const setJobSearchQuery = useCallback((query: string) => {
-    setLocalSearchQuery(query); // Update immediately for typing
-    // Debounce effect will handle API call if in server mode
-  }, []);
+  setLocalSearchQuery(query);
+}, []);
 
   // Handlers for status filter
   const setJobStatusFilter = useCallback((status: string) => {

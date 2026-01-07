@@ -169,47 +169,43 @@ export default function JobsPage() {
   });
 
   return (
-    <div className="jobs-container">
-      <div className="jobs-header">
-        <h1 className="jobs-title">Jobs</h1>
-        <Button
-          variant="outline"
-          onClick={() => router.push('/jobs/create-job-post')}
-          className='btn-create'
-        >
-          <Plus className="btn-icon" />
-          Create New Job Post
-        </Button>
-      </div>
-      
-      <ErrorBoundary>
-        <div className="table-wrapper">
-          <JobsTable 
-              jobs={jobs} 
-              originalJobs={jobs}
-              totalJobsCount={totalJobsCount}
-              loading={isInitialLoading} 
-              onRefresh={handleRefresh}
-              hasNextPage={hasNextPage}
-              hasPreviousPage={hasPreviousPage}
-              isFetchingNextPage={isFetchingJobs && !isInitialLoading}
-              serverSidePagination={true}
-              // Pass controlled state
-              searchQuery={searchQuery}
-              statusFilter={statusFilter}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              sortColumn={sortColumn}
-              sortDirection={sortDirection}
-              // Pass handlers
-              onSearchChange={handleSearchChange}
-              onStatusFilterChange={handleStatusFilterChange}
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              onSortChange={handleSortChange}
-            />
-        </div>
-      </ErrorBoundary>
+  <div className="jobs-container">
+    <div className="jobs-header">
+      <h1 className="jobs-title">Jobs</h1>
+      <Button
+        variant="outline"
+        onClick={() => router.push('/jobs/create-job-post')}
+        className='btn-create'
+      >
+        <Plus className="btn-icon" />
+        Create New Job Post
+      </Button>
     </div>
-  );
+    
+    <ErrorBoundary>
+      <JobsTable 
+        jobs={jobs} 
+        originalJobs={jobs}
+        totalJobsCount={totalJobsCount}
+        loading={isInitialLoading} 
+        onRefresh={handleRefresh}
+        hasNextPage={hasNextPage}
+        hasPreviousPage={hasPreviousPage}
+        isFetchingNextPage={isFetchingJobs && !isInitialLoading}
+        serverSidePagination={true}
+        searchQuery={searchQuery}
+        statusFilter={statusFilter}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        sortColumn={sortColumn}
+        sortDirection={sortDirection}
+        onSearchChange={handleSearchChange}
+        onStatusFilterChange={handleStatusFilterChange}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onSortChange={handleSortChange}
+      />
+    </ErrorBoundary>
+  </div>
+);
 }

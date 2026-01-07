@@ -1,35 +1,17 @@
-/* Jobs Page Styles - COMPLETE FIX */
-
-/* ============================================
-   LAYOUT STRUCTURE (CRITICAL FOR PAGINATION)
-   ============================================ */
-
-/* Container - Must have fixed height */
+/* Jobs Page Styles */
 .jobs-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full viewport height */
-  max-height: 100vh;
-  overflow: hidden; /* Prevent page scroll */
+  height: 100vh;
   padding: 1rem;
   gap: 1rem;
 }
 
-/* Header - Fixed height, never shrinks */
 .jobs-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-shrink: 0; /* CRITICAL - prevents compression */
-}
-
-/* Error boundary wrapper - maintain flex layout */
-.table-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Enable scrolling in child elements */
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .jobs-title {
@@ -46,9 +28,8 @@
   width: 1rem;
 }
 
-/* Search - Fixed height, never shrinks */
 .search-container {
-  flex-shrink: 0; /* CRITICAL - prevents compression */
+  flex-shrink: 0;
 }
 
 .search-wrapper {
@@ -80,22 +61,15 @@
   border-color: transparent;
 }
 
-/* ============================================
-   TABLE CONTAINER (FILLS REMAINING SPACE)
-   ============================================ */
-
-/* Table Container - Grows to fill available space */
 .table-container {
-  flex: 1; /* CRITICAL - takes remaining space */
-  min-height: 0; /* CRITICAL - enables scrolling */
+  flex: 1;
+  min-height: 0;
   background-color: white;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgb(229 231 235);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  position: relative; /* For loading overlay */
-  max-height: 100%;
 }
 
 .loading-indicator {
@@ -122,36 +96,20 @@
   }
 }
 
-/* Table Scroll - Scrollable area, fills remaining space */
 .table-scroll {
-  flex: 1; /* CRITICAL - takes remaining space */
-  min-height: 0; /* CRITICAL - enables scrolling */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
-  /* REMOVED: max-height: calc(100vh - 250px); */
-  /* Flex layout handles height automatically */
-  width: 100%;
-  max-width: 100%;
-  min-width: 100%;
-  height: 100%;
-  max-height: 100%;
-  position: relative;
-  display: block;
-  contain: layout style size;
 }
-
-/* ============================================
-   TABLE HEADER (STICKY)
-   ============================================ */
 
 .table-header {
   position: sticky;
   top: 0;
   background-color: rgb(255, 255, 255);
   z-index: 50;
-  border-bottom: 1px solid #d1d5db;
-  width: 100%;
-  display: table-header-group;
+  border-bottom: 1px solid rgb(229 231 235);
+  table-layout: fixed;
 }
 
 .table-header tr {
@@ -167,43 +125,40 @@
   white-space: nowrap;
 }
 
-/* All header cells except the last should have a right border */
 .table-header .table-head:not(:last-child) {
   border-right: 1px solid #d1d5db;
 }
 
-/* Last header cell (actions) should only have a left border */
 .table-header .table-head:last-child {
   border-left: 1px solid #d1d5db;
   border-right: none;
 }
 
-/* Specific column widths */
-.table-header .table-head:nth-child(1) { /* Job Title */
+.table-header .table-head:nth-child(1) {
   width: 25%;
 }
 
-.table-header .table-head:nth-child(2) { /* Applications */
+.table-header .table-head:nth-child(2) {
   width: 10%;
 }
 
-.table-header .table-head:nth-child(3) { /* Status */
+.table-header .table-head:nth-child(3) {
   width: 12%;
 }
 
-.table-header .table-head:nth-child(4) { /* Created */
+.table-header .table-head:nth-child(4) {
   width: 15%;
 }
 
-.table-header .table-head:nth-child(5) { /* Grade Levels */
+.table-header .table-head:nth-child(5) {
   width: 18%;
 }
 
-.table-header .table-head:nth-child(6) { /* Hiring Manager */
+.table-header .table-head:nth-child(6) {
   width: 15%;
 }
 
-.table-header .table-head:nth-child(7) { /* Actions */
+.table-header .table-head:nth-child(7) {
   width: 5%;
 }
 
@@ -262,13 +217,9 @@
   padding: 0.25rem;
 }
 
-/* ============================================
-   TABLE BODY
-   ============================================ */
-
 .table-row-hover {
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  border-bottom: 1px solid #d1d5db;
+  border-bottom: 1px solid #e5e7eb;
   background-color: #ffffff;
 }
 
@@ -283,7 +234,6 @@
   outline-offset: -2px;
 }
 
-/* Table Cells */
 .table-cell-border {
   border-right: 1px solid rgb(229 231 235);
   padding: 0.75rem 0.5rem;
@@ -297,63 +247,35 @@
   padding: 0.75rem 0.5rem;
 }
 
-/* Set consistent column widths for table body to match header */
 .table-body {
   table-layout: fixed;
-  display: table-row-group;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  contain: layout style size;
 }
 
-/* Ensure table fits within scroll container */
-table {
-  width: 100%;
-  display: table;
-  min-width: 600px; /* Minimum width to prevent extreme squeezing */
-  table-layout: fixed;
-  max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  flex-shrink: 0;
-}
-
-/* Make sure table container allows scrolling */
-.table-container {
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.table-body .table-cell-border:nth-child(1) { /* Job Title */
+.table-body .table-cell-border:nth-child(1) {
   width: 25%;
 }
 
-.table-body .table-cell-border:nth-child(2) { /* Applications */
+.table-body .table-cell-border:nth-child(2) {
   width: 10%;
 }
 
-.table-body .table-cell-border:nth-child(3) { /* Status */
+.table-body .table-cell-border:nth-child(3) {
   width: 12%;
 }
 
-.table-body .table-cell-border:nth-child(4) { /* Created */
+.table-body .table-cell-border:nth-child(4) {
   width: 15%;
 }
 
-.table-body .table-cell-border:nth-child(5) { /* Grade Levels */
+.table-body .table-cell-border:nth-child(5) {
   width: 18%;
 }
 
-.table-body .table-cell-border:nth-child(6) { /* Hiring Manager */
+.table-body .table-cell-border:nth-child(6) {
   width: 15%;
 }
 
-.table-body .table-cell-border:nth-child(7) { /* Actions */
+.table-body .table-cell-border:nth-child(7) {
   width: 5%;
 }
 
@@ -364,7 +286,6 @@ table {
   min-height: 24px;
 }
 
-/* Typography improvements */
 .job-title {
   font-weight: 500;
   color: rgb(17 24 39);
@@ -395,7 +316,6 @@ table {
   font-weight: 500;
 }
 
-/* Status Badges */
 .status-new {
   background-color: rgb(243 244 246);
   color: rgb(31 41 55);
@@ -441,7 +361,6 @@ table {
   padding: 0.25rem;
 }
 
-/* Assessment Scores */
 .table-cell-assessment {
   border-right: 1px solid rgb(229 231 235);
   padding: 0;
@@ -482,7 +401,6 @@ table {
   padding: 0.5rem 0;
 }
 
-/* Action Button */
 .action-btn {
   height: 2rem;
   width: 2rem;
@@ -494,50 +412,6 @@ table {
 .action-btn:hover {
   background-color: rgb(243 244 246);
 }
-
-/* ============================================
-   PAGINATION (ALWAYS VISIBLE AT BOTTOM)
-   ============================================ */
-
-.pagination-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  flex-shrink: 0; /* CRITICAL - never gets compressed */
-  background: white;
-  border-top: 1px solid #e5e7eb;
-  gap: 1rem;
-}
-
-.pagination-info {
-  font-size: 0.875rem;
-  color: rgb(55 65 81);
-}
-
-.pagination-value {
-  font-weight: 500;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pagination-page {
-  font-size: 0.875rem;
-  color: rgb(55 65 81);
-  margin-right: 0.5rem;
-}
-
-.pagination-btn {
-  gap: 0.25rem;
-}
-
-/* ============================================
-   SKELETON LOADERS
-   ============================================ */
 
 .skeleton-primary {
   height: 1rem;
@@ -610,10 +484,6 @@ table {
   padding: 0.5rem;
 }
 
-/* ============================================
-   ERROR AND EMPTY STATES
-   ============================================ */
-
 .error-cell {
   text-align: center;
   padding: 2rem 0;
@@ -626,11 +496,41 @@ table {
   color: rgb(107 114 128);
 }
 
-/* ============================================
-   ACCESSIBILITY & HIGH CONTRAST
-   ============================================ */
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  flex-shrink: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
 
-/* Better focus states for accessibility */
+.pagination-info {
+  font-size: 0.875rem;
+  color: rgb(55 65 81);
+}
+
+.pagination-value {
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-page {
+  font-size: 0.875rem;
+  color: rgb(55 65 81);
+  margin-right: 0.5rem;
+}
+
+.pagination-btn {
+  gap: 0.25rem;
+}
+
 .table-row-hover:focus {
   outline: 2px solid #2563eb;
   outline-offset: -2px;
@@ -642,99 +542,14 @@ table {
   outline-offset: -1px;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .table-container {
-    border: 2px solid #000;
-  }
-  
-  .table-header {
-    border-bottom: 2px solid #000;
-  }
-  
-  .table-row-hover {
-    border-bottom: 1px solid #000;
-  }
-  
-  .table-cell-border {
-    border-right: 1px solid #000;
-  }
-  
-  .table-head-border {
-    border-right: 1px solid #000;
-  }
-  
-  .table-head-actions {
-    border-left: 1px solid #000;
-    border-right: 1px solid #000;
-  }
-  
-  .status-new,
-  .status-default {
-    background-color: #ffffff;
-    border: 1px solid #000;
-    color: #000;
-  }
-  
-  .status-reviewed,
-  .status-interview,
-  .status-assessment {
-    background-color: #ffffff;
-    border: 1px solid #000;
-    color: #000;
-  }
-  
-  .status-offer,
-  .status-demo-ready {
-    background-color: #ffffff;
-    border: 1px solid #000;
-    color: #000;
-  }
-  
-  .status-rejected,
-  .status-appealed,
-  .status-suspended {
-    background-color: #ffffff;
-    border: 1px solid #000;
-    color: #000;
-  }
-}
-
-/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .table-row-hover {
     transition: none;
   }
-  
   .loading-pulse {
     animation: none;
   }
 }
-
-/* ============================================
-   MOBILE RESPONSIVE
-   ============================================ */
-
-@media (max-width: 640px) {
-  .jobs-container {
-    padding: 0.5rem;
-    gap: 0.5rem;
-  }
-  
-  .pagination-container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  
-  .pagination-controls {
-    justify-content: space-between;
-  }
-}
-
-/* ============================================
-   LEGEND (IF USED)
-   ============================================ */
 
 .legend-container {
   display: flex;
