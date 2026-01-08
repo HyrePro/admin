@@ -3,6 +3,13 @@
 import { AuthProvider } from '@/context/auth-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
+import { useSchoolIdInitializer } from '@/hooks/use-school-id-initializer';
+
+// Component wrapper for the school ID initializer hook
+function SchoolIdInitializerComponent() {
+  useSchoolIdInitializer();
+  return null;
+}
 
 export function AuthProviderWrapper({ children }: { children: React.ReactNode }) {
   // Create a single instance of QueryClient for the entire app
@@ -25,6 +32,7 @@ export function AuthProviderWrapper({ children }: { children: React.ReactNode })
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <SchoolIdInitializerComponent />
         {children}
         <Toaster position="top-center" />
       </AuthProvider>

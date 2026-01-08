@@ -7,42 +7,27 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ItemDescription, ItemTitle } from '@/components/ui/item'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/context/auth-context'
+import { useAuthStore } from '@/store/auth-store'
 import { createClient } from '@/lib/supabase/api/client'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { Upload, X } from 'lucide-react'
 
 // Fetcher function for school data
-const fetchSchoolInfo = async (userId: string) => {
-  if (!userId) {
+const fetchSchoolInfo = async (schoolId: string) => {
+  if (!schoolId) {
     return null;
   }
 
   const supabase = createClient();
   
-  // First get the school_id from admin_user_info
-  const { data: userInfo, error: userError } = await supabase
-    .from('admin_user_info')
-    .select('school_id')
-    .eq('id', userId)
-    .single();
-
-  if (userError) {
-    console.error('Error fetching user info:', userError);
-    throw userError;
-  }
-  
-  if (!userInfo?.school_id) {
-    return null;
-  }
-  
-  // Then get the school information
+  // TODO: Consider caching and error handling for this API call
+  // Get the school information directly using the schoolId from auth store
   const { data: schoolData, error: schoolError } = await supabase
     .from('school_info')
     .select('*')
-    .eq('id', userInfo.school_id)
+    .eq('id', schoolId)
     .single();
 
   if (schoolError) {
@@ -70,6 +55,7 @@ interface SchoolFormData {
 
 export default function SchoolInformationPage() {
   const { user } = useAuth();
+  const { schoolId } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Log user authentication state changes
@@ -80,9 +66,9 @@ export default function SchoolInformationPage() {
   }, [user]);
   
   const { data: schoolInfo, error, isLoading, mutate } = useSWR(
-    user?.id ? ['school-info', user.id] : null,
-    ([_, userId]) => {
-      return fetchSchoolInfo(userId);
+    schoolId ? ['school-info', schoolId] : null,
+    ([_, schoolId]) => {
+      return fetchSchoolInfo(schoolId);
     }
   );
 
@@ -212,6 +198,7 @@ export default function SchoolInformationPage() {
         const fileExt = logoFile.name.split('.').pop();
         const fileName = `${user.id}/school_logo_${Date.now()}.${fileExt}`;
 
+        // TODO: Consider caching and error handling for this API call
         // Upload file to Supabase Storage in 'school' bucket
         const { error: uploadError } = await supabase.storage
           .from('school')
@@ -232,6 +219,7 @@ export default function SchoolInformationPage() {
         logoUrl = publicUrl;
       }
 
+      // TODO: Consider caching and error handling for this API call
       // Update school info in database
       const response = await fetch('/api/school', {
         method: 'PUT',
@@ -441,7 +429,7 @@ export default function SchoolInformationPage() {
             </div>
 
             {/* Board and School Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="board" className="text-sm font-medium">
                   Board/Curriculum *

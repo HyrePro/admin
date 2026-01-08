@@ -63,7 +63,7 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
   });
 
   return (
-    <div className="pagination-container flex-shrink-0 mb-14"  role="navigation" aria-label="Pagination">
+    <div className="pagination-container flex-shrink-0 w-full flex flex-col sm:flex-row items-center justify-between gap-4 py-2"  role="navigation" aria-label="Pagination">
       <div className="pagination-info" aria-live="polite">
         {translations.pagination.showing} <span className="pagination-value">{formatNumber(startIndex + 1)}</span> {translations.pagination.to}{' '}
         <span className="pagination-value">{formatNumber(endIndex || 0)}</span> {translations.pagination.of}{' '}
@@ -71,8 +71,8 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
         <span className="sr-only">{translations.pagination.page} {currentPage + 1} {translations.pagination.ofTotal} {totalPages || 1}</span>
       </div>
       
-      <div className="pagination-controls">
-        <div className="flex items-center gap-2">
+      <div className="pagination-controls flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <span className="text-sm text-gray-600">Rows per page:</span>
           <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
             <SelectTrigger className="w-20 h-8">
@@ -89,7 +89,7 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
           </Select>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-center">
           <Button
             variant="outline"
             size="sm"
@@ -104,7 +104,7 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
             }}
           >
             <ChevronLeft className="btn-icon" />
-            {translations.common.previous}
+            <span className="hidden sm:inline-block ml-2">{translations.common.previous}</span>
           </Button>
           <Button
             variant="outline"
@@ -122,7 +122,7 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
               }
             }}
           >
-            {isFetchingNextPage ? translations.common.loading + "..." : translations.common.loadMore}
+            <span className="hidden sm:inline-block mr-2">{isFetchingNextPage ? translations.common.loading + "..." : translations.common.loadMore}</span>
             <ChevronRight className="btn-icon" />
           </Button>
         </div>

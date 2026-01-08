@@ -17,7 +17,6 @@ export default function SettingsLayout({
   const tabs = [
     { name: "Account", href: "/settings/account", value: "account" },
     { name: "School Information", href: "/settings/school-information", value: "school-information" },
-    // { name: "Notifications", href: "/settings/notifications", value: "notifications" },
     { name: "Interviews", href: "/settings/interviews", value: "interviews" },
     { name: "Users", href: "/settings/users", value: "users" },
   ];

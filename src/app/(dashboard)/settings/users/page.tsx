@@ -16,6 +16,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Mail, Plus, Trash2, Edit, User, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
 import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
@@ -169,6 +177,7 @@ export default function UsersPage() {
 
       try {
         const supabase = createClient();
+        // TODO: Consider caching and error handling for this API call
         const { data, error } = await supabase
           .from('admin_user_info')
           .select('school_id')
@@ -203,6 +212,7 @@ export default function UsersPage() {
       try {
         const supabase = createClient();
 
+        // TODO: Consider caching and error handling for this API call
         // Fetch admin users with avatar information
         const { data: userData, error: userError } = await supabase
           .from('admin_user_info')
@@ -218,6 +228,7 @@ export default function UsersPage() {
           role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
         }));
 
+        // TODO: Consider caching and error handling for this API call
         // Fetch panelists (no avatar support for panelists in this implementation)
         const { data: panelistData, error: panelistError } = await supabase
           .from('interview_panelists')
@@ -354,29 +365,36 @@ export default function UsersPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           </div>
         ) : paginatedUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center flex-grow">
-            <User className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium mb-2">No users found</h3>
-            <p className="text-muted-foreground mb-4">
-              Get started by inviting a new user to your organization
-            </p>
-            <Button 
-              onClick={() => setIsInviteDialogOpen(true)}
-              disabled={!componentsLoaded}
-            >
-              {!componentsLoaded ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Invite User
-                </>
-              )}
-            </Button>
-          </div>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <User className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No users found</EmptyTitle>
+              <EmptyDescription>
+                Get started by inviting a new user to your organization
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button 
+                size="lg"
+                onClick={() => setIsInviteDialogOpen(true)}
+                disabled={!componentsLoaded}
+              >
+                {!componentsLoaded ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Invite User
+                  </>
+                )}
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
           <>
             <div className="flex-grow overflow-hidden flex flex-col">

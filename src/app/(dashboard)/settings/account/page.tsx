@@ -21,6 +21,7 @@ const getUserInitials = (name: string) => {
         .slice(0, 2);
 };
 
+// TODO: Consider caching and error handling for this API call
 // Fetcher function for user data
 const fetchUserInfo = async (userId: string) => {
     if (!userId) return null;
@@ -114,6 +115,7 @@ export default function AccountPage() {
             const supabase = createClient();
 
             // First, update user info in database
+            // TODO: Consider caching and error handling for this API call
             const { error: updateError } = await supabase
                 .from('admin_user_info')
                 .update({
@@ -133,6 +135,7 @@ export default function AccountPage() {
                 const fileExt = selectedFile.name.split('.').pop();
                 const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
 
+                // TODO: Consider caching and error handling for this API call
                 // Upload file to Supabase Storage in 'profiles' bucket
                 const { error: uploadError } = await supabase.storage
                     .from('profiles')
@@ -147,6 +150,7 @@ export default function AccountPage() {
                     .from('profiles')
                     .getPublicUrl(fileName);
 
+                // TODO: Consider caching and error handling for this API call
                 // Update user info with new avatar URL
                 const { error: avatarUpdateError } = await supabase
                     .from('admin_user_info')
@@ -157,6 +161,7 @@ export default function AccountPage() {
 
                 setAvatarUrl(publicUrl);
             } else if (previewUrl === null && avatarUrl === null) {
+                // TODO: Consider caching and error handling for this API call
                 // If user removed avatar, update database
                 const { error: avatarUpdateError } = await supabase
                     .from('admin_user_info')
@@ -275,7 +280,7 @@ export default function AccountPage() {
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">First Name</label>
                                 <input
