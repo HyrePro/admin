@@ -35,6 +35,11 @@ import { useAuth } from '@/context/auth-context';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "./ui/item"
 import { Button } from "./ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 
 
@@ -93,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={active}
-                    className={`${active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white" : undefined} hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 `}
+                    className={`${active ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700" : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50"} `}
                   >
                     <Link 
                       href={href} 
@@ -104,7 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       }}
                     >
                         <Icon size={18} className={active ? "text-white" : undefined} />
-                        <span className={`${active ? "text-white" : 'text-blue'} hover: text-blue`}>
+                        <span className={`${active ? "text-white" : undefined}  dark:hover:text-blue-200`}>
                           {title}
                         </span>
                       </Link>
@@ -116,7 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-       <Item variant="outline" className="flex flex-col items-center justify-center border-dotted border-2 group-data-[collapsible=icon]:p-2">
+       <Item variant="outline" className="flex flex-col items-center justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:p-2 border-dotted border-2 group-data-[collapsible=icon]:border-0">
         <ItemMedia className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden">
           <div className="flex *:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:grayscale items-center justify-center">
             <Avatar className="hidden sm:flex">
@@ -150,14 +155,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             Post a Job and start receiving applicants.
           </ItemDescription>
         </ItemContent>
-        <ItemActions>
-          <Link href="/jobs/create-job-post" passHref scroll={false}>
-              <Button asChild variant="default" size="sm" className="sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-2 group-data-[collapsible=icon]:w-auto">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text group-data-[collapsible=icon]:bg-none group-data-[collapsible=icon]:text-white">
-                  + Create Job Post
-                </span>
-              </Button>
-            </Link>
+        <ItemActions className="w-full group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/jobs/create-job-post" passHref scroll={false}>
+                <Button asChild variant="default" size="sm" className="w-full sm:flex bg-white dark:bg-gray-950 border-2 border-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-padding group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8">
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text group-data-[collapsible=icon]:bg-none group-data-[collapsible=icon]:text-white group-data-[collapsible=icon]:leading-8">
+                    <span className="group-data-[collapsible=icon]:hidden">+ Create Job Post</span>
+                    <span className="hidden group-data-[collapsible=icon]:block">+</span>
+                  </span>
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="flex items-center gap-2">
+              <span>Create Job Post</span>
+            </TooltipContent>
+          </Tooltip>
         </ItemActions>
       </Item>
         

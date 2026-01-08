@@ -169,8 +169,13 @@ export const useJobsTable = ({
   }, [serverSidePagination, totalJobsCount, jobsCurrentPage, pageSize, jobs?.length, totalDisplayCount]);
 
   const setJobSearchQuery = useCallback((query: string) => {
-  setLocalSearchQuery(query);
-}, []);
+    if (serverSidePagination && onSearchChange) {
+      onSearchChange(query);
+    } else {
+      setLocalSearchQuery(query);
+      setLocalCurrentPage(0); // Reset to first page when search changes
+    }
+  }, [serverSidePagination, onSearchChange]);
 
   // Handlers for status filter
   const setJobStatusFilter = useCallback((status: string) => {

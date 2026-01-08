@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, RefreshCw, ArrowUpDown, Briefcase, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
@@ -406,7 +407,15 @@ function JobsTableComponent({
                   </Button>
                 </TableHead>
                 <TableHead className={cn("table-head table-head-border")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'grade_levels' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  {table.gradeLevels}
+                  <Button
+                    variant="ghost"
+                    className="p-0 h-auto justify-start"
+                    onClick={() => requestSort('grade_levels')}
+                    aria-label={`Sort by grade levels ${jobsSortConfig?.column === 'grade_levels' ? jobsSortConfig.direction === 'asc' ? '(ascending)' : '(descending)' : '(not sorted)'}`}
+                  >
+                    {table.gradeLevels}
+                    {getSortIndicator('grade_levels') === 'asc' ? <ArrowUp className="h-4 w-4 opacity-50" /> : getSortIndicator('grade_levels') === 'desc' ? <ArrowDown className="h-4 w-4 opacity-50" /> : <ArrowUpDown className="h-4 w-4 opacity-50" />}
+                  </Button>
                 </TableHead>
                 <TableHead className={cn("table-head table-head-border")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'hiring_name' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
@@ -428,23 +437,17 @@ function JobsTableComponent({
                   <TableCell colSpan={7} className="text-center py-8" role="cell" aria-live="polite">
                     <div className="flex flex-col items-center justify-center">
                       {(() => {
-                        if (originalJobs && originalJobs.length === 0) {
-                          return (
-                            <div className="text-center">
-                              <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                              <h3 className="text-lg font-medium text-foreground mb-2">{empty.noJobsAvailable}</h3>
-                              <p className="text-muted-foreground mb-4">{empty.noJobsAvailableDescription}</p>
-                              {onRefresh && (
-                                <Button onClick={onRefresh} variant="outline" className="mr-2" aria-label={common.refreshList}>
-                                  {common.refresh}
-                                </Button>
-                              )}
-                              <Button onClick={() => router.push('/jobs/create-job-post')} aria-label={common.createNewJob}>
-                                {common.createNewJob}
-                              </Button>
-                            </div>
-                          );
-                        } else if (jobSearchQuery || jobStatusFilter !== 'ALL') {
+                        // Check if filters are currently active
+                        const isFilterActive = jobSearchQuery || jobStatusFilter !== 'ALL';
+                        
+                        // For server-side pagination, we check the total count without filters
+                        // For client-side pagination, we check originalJobs
+                        const hasOriginalJobs = serverSidePagination 
+                          ? (totalJobsCount != null && totalJobsCount > 0)
+                          : (originalJobs && originalJobs.length > 0);
+                        
+                        // If filters are active and no results match, show 'No Search Results'
+                        if (isFilterActive && paginatedJobs.length === 0) {
                           return (
                             <div className="text-center">
                               <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -463,6 +466,24 @@ function JobsTableComponent({
                                   </Button>
                                 )}
                               </div>
+                            </div>
+                          );
+                        } 
+                        // If no original jobs exist and no filters are active, show 'No jobs available'
+                        else if (!hasOriginalJobs) {
+                          return (
+                            <div className="text-center">
+                              <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                              <h3 className="text-lg font-medium text-foreground mb-2">{empty.noJobsAvailable}</h3>
+                              <p className="text-muted-foreground mb-4">{empty.noJobsAvailableDescription}</p>
+                              {onRefresh && (
+                                <Button onClick={onRefresh} variant="outline" className="mr-2" aria-label={common.refreshList}>
+                                  {common.refresh}
+                                </Button>
+                              )}
+                              <Button onClick={() => router.push('/jobs/create-job-post')} aria-label={common.createNewJob}>
+                                {common.createNewJob}
+                              </Button>
                             </div>
                           );
                         } else {
@@ -654,19 +675,44 @@ const JobRow = React.memo(({ job, statusColors: jobStatusColors, handleCopyLink,
       >
         <div className="cell-content">
           <div className="job-grade-levels flex flex-wrap gap-1">
-            {job.grade_levels?.slice(0, 2).map((grade: string) => (
-              <Badge key={grade} variant="secondary" className="text-xs">
-                {sanitizeInput(grade)}
-              </Badge>
-            ))}
-            {job.grade_levels && job.grade_levels.length > 2 && (
-              <div className="w-full flex flex-wrap gap-1 mt-1">
-                {job.grade_levels.slice(2).map((grade: string) => (
-                  <Badge key={grade} variant="secondary" className="text-xs">
-                    {sanitizeInput(grade)}
+            {job.grade_levels && job.grade_levels.length > 0 && (
+              job.grade_levels.length > 1 ? (
+                // Show tooltip when there are additional grades
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-wrap gap-1">
+                      {/* First grade as a badge */}
+                      <Badge variant="secondary" className="text-xs">
+                        {sanitizeInput(job.grade_levels[0])}
+                      </Badge>
+                      {/* Count of remaining grades as a second badge */}
+                      <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800">
+                        +{job.grade_levels.length - 1}
+                      </Badge>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="max-w-xs">
+                      {job.grade_levels.slice(1).map((grade: string, index: number) => (
+                        <span key={index}>
+                          {sanitizeInput(grade)}
+                          {index < job.grade_levels.slice(1).length - 1 && ', '}
+                        </span>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                // Show only the first grade without tooltip when there's only one grade
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {sanitizeInput(job.grade_levels[0])}
                   </Badge>
-                ))}
-              </div>
+                </div>
+              )
+            )}
+            {!job.grade_levels || job.grade_levels.length === 0 && (
+              <span className="text-xs text-gray-500">-</span>
             )}
           </div>
         </div>
