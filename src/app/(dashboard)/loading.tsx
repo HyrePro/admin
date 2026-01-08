@@ -1,20 +1,9 @@
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header skeleton */}
-      <div className="shrink-0 flex h-18 items-center gap-2 border-b border-gray-200">
-        <div className="flex px-2 items-center ms-2 min-w-0">
-          <div className="font-medium text-gray-900 text-md truncate h-4 bg-gray-200 rounded w-48"></div>
-          <div className="text-xs ms-2 h-4 bg-gray-200 rounded w-20"></div>
-        </div>
-        <div className="ml-auto flex items-center gap-4 px-4">
-          <div className="w-8 h-8 rounded-full bg-gray-200"></div>
-        </div>
-      </div>
-      
-      {/* Main content skeleton */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+    <div className="flex flex-1 flex-col px-4 pb-8 pt-4">
+      <div className="@container/main flex flex-1 flex-col gap-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Dashboard cards skeleton */}
           {[...Array(4)].map((_, i) => (
             <div key={i} className="border rounded-lg p-4 h-24">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -23,20 +12,52 @@ export default function DashboardLoading() {
           ))}
         </div>
         
-        <div className="mb-4 flex justify-between items-center">
-          <div className="h-8 bg-gray-200 rounded w-48"></div>
-          <div className="h-10 bg-gray-200 rounded w-40"></div>
-        </div>
-        
-        <div className="border rounded-lg p-4 h-96">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="space-y-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 border rounded p-4">
-                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+        {/* Active Job Campaigns section skeleton */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-6 bg-gray-200 rounded w-48"></div>
+            <div className="h-10 bg-gray-200 rounded w-32"></div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-lg border p-4 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
+                <div className="h-6 bg-gray-200 rounded w-2/3 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-full mb-4" />
+                <div className="flex gap-2 mb-3">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                  <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                  <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                </div>
+                <div className="h-2 bg-gray-200 rounded w-full" />
               </div>
             ))}
+          </div>
+        </div>
+        
+        {/* Progress and Activity section skeleton */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-6 bg-gray-200 rounded w-48"></div>
+            <div className="h-10 bg-gray-200 rounded w-40"></div>
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="w-full lg:w-1/3">
+              {/* HiringProgressChart loading skeleton */}
+              <div className="border rounded-lg p-4">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+                <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="w-full lg:w-2/3">
+              {/* WeeklyActivity loading skeleton */}
+              <div className="border rounded-lg p-4">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
+                <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
