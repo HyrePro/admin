@@ -19,14 +19,14 @@ export default function Page() {
           Invite Candidate
         </Button>
       </div>
-      <div className="flex flex-col md:flex-row gap-4 w-full flex-1 min-h-0 px-4 pb-4">
-        <div className="md:w-2/3 flex flex-col min-h-0 overflow-hidden">
+      {/* <div className="flex flex-col md:flex-row gap-4 w-full flex-1 min-h-0 px-4 pb-4"> */}
+        {/* <div className="flex flex-col min-h-0 overflow-hidden"> */}
           <InterviewCalendar />
-        </div>
-        <div className="md:w-1/3 flex flex-col min-h-0 overflow-hidden">
+        {/* </div> */}
+        {/* <div className="md:w-1/3 flex flex-col min-h-0 overflow-hidden">
           <CandidatesList />
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
     </div>
   );
 }

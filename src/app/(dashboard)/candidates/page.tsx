@@ -1,250 +1,200 @@
-'use client'
-
-import { useEffect, useState, useMemo, useCallback, memo } from 'react'
-import { useAuth } from '@/context/auth-context'
-import useSWR from 'swr'
-import { createClient } from '@/lib/supabase/api/client'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useRouter } from 'next/navigation'
-import '@/styles/candidates.css'
-import { statusColors } from '../../../../utils/statusColor'
-import { InviteCandidateDialog } from '@/components/invite-candidate-dialog'
-import { toast } from "sonner"
+'use client';
+import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import { useAuthStore } from "@/store/auth-store";
+import { CandidatesTable } from "@/components/candidates-table";
+import ErrorBoundary from "@/components/error-boundary";
+import { useQuery } from '@tanstack/react-query';
+import { InviteCandidateDialog } from '@/components/invite-candidate-dialog';
+import { toast } from "sonner";
 
 // Types
 interface Application {
-  first_name: string
-  last_name: string
-  email: string
-  phone: string
-  city: string
-  score: number
-  demo_score: number
-  application_status: string
-  job_title: string
-  created_at: string
-  job_id: string
-  application_id: string
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  city: string;
+  score: number;
+  demo_score: number;
+  application_status: string;
+  job_title: string;
+  created_at: string;
+  job_id: string;
+  application_id: string;
 }
-
-interface ApplicationsResponse {
-  applications: Application[]
-  total_count: number
-}
-
-// Constants
-const PAGE_SIZE = 10
-const DEBOUNCE_DELAY = 500
-const CACHE_TIME = 60000
-const STALE_TIME = 30000
-
-const STATUS_CONFIG = {
-  in_progress: { text: 'In Progress', color: statusColors.in_progress },
-  application_submitted: { text: 'Application Submitted', color: statusColors.application_submitted },
-  assessment_in_progress: { text: 'Assessment In Progress', color: statusColors.assessment_in_progress },
-  assessment_in_evaluation: { text: 'Assessment In Evaluation', color: statusColors.assessment_in_evaluation },
-  assessment_evaluated: { text: 'Assessment Evaluated', color: statusColors.assessment_evaluated },
-  assessment_questionnaire_creation: { text: 'Assessment Questionnaire Creation', color: statusColors.assessment_questionnaire_creation },
-  assessment_ready: { text: 'Assessment Ready', color: statusColors.assessment_ready },
-  assessment_failed: { text: 'Assessment Failed', color: statusColors.assessment_failed },
-  demo_creation: { text: 'Demo Creation', color: statusColors.demo_creation },
-  demo_ready: { text: 'Demo Ready', color: statusColors.demo_ready },
-  demo_in_progress: { text: 'Demo In Progress', color: statusColors.demo_in_progress },
-  demo_in_evaluation: { text: 'Demo In Evaluation', color: statusColors.demo_in_evaluation },
-  demo_evaluated: { text: 'Demo Evaluated', color: statusColors.demo_evaluated },
-  demo_failed: { text: 'Demo Failed', color: statusColors.demo_failed },
-  interview_in_progress: { text: 'Interview In Progress', color: statusColors.interview_in_progress },
-  interview_ready: { text: 'Interview Ready', color: statusColors.interview_ready },
-  interview_scheduled: { text: 'Interview Scheduled', color: statusColors.interview_scheduled },
-  paused: { text: 'Paused', color: statusColors.paused },
-  completed: { text: 'Completed', color: statusColors.completed },
-  suspended: { text: 'Suspended', color: statusColors.suspended },
-  appealed: { text: 'Appealed', color: statusColors.appealed },
-  withdrawn: { text: 'Withdrawn', color: statusColors.withdrawn },
-  offered: { text: 'Offered', color: statusColors.offered },
-  panelist_review_in_progress: { text: 'Panelist Review In Progress', color: statusColors.panelist_review_in_progress },
-} as const
-
-// Fetchers
-const fetchSchoolInfo = async (userId: string): Promise<string | null> => {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('admin_user_info')
-    .select('school_id')
-    .eq('id', userId)
-    .single()
-
-  if (error) throw error
-  return data?.school_id || null
-}
-
-const fetchApplicationsWithCount = async (
-  schoolId: string,
-  startIndex: number,
-  endIndex: number,
-  search: string,
-  status: string
-): Promise<ApplicationsResponse> => {
-  if (!schoolId) return { applications: [], total_count: 0 }
-
-  const supabase = createClient()
-  
-  const [applicationsResult, countResult] = await Promise.all([
-    supabase.rpc('get_applications_by_school', {
-      p_school_id: schoolId,
-      p_start_index: startIndex,
-      p_end_index: endIndex,
-      p_search: search,
-      p_status: status
-    }),
-    supabase.rpc('get_applications_count_by_school', {
-      p_school_id: schoolId,
-      p_search: search,
-      p_status: status
-    })
-  ])
-
-  if (applicationsResult.error) throw applicationsResult.error
-  if (countResult.error) throw countResult.error
-
-  // Ensure the returned data is serializable
-  const applications = applicationsResult.data || []
-  const total_count = countResult.data || 0
-  
-  return {
-    applications: JSON.parse(JSON.stringify(applications)),
-    total_count
-  }
-}
-
-// Custom debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-
-  return debouncedValue
-}
-
-
 
 export default function CandidatesPage() {
-  const { user } = useAuth()
-  const router = useRouter()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(0)
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
+  const router = useRouter();
+  const { user, session } = useAuth();
+  const { schoolId } = useAuthStore();
   
-  const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY)
-
-  useEffect(() => {
-    setCurrentPage(0)
-  }, [debouncedSearchTerm])
-
-  const { data: schoolId } = useSWR(
-    user?.id ? `school-${user.id}` : null,
-    () => fetchSchoolInfo(user!.id),
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: CACHE_TIME,
-    }
-  )
-
-  const startIndex = currentPage * PAGE_SIZE
-  const endIndex = startIndex + PAGE_SIZE
-
-  const { 
-    data, 
-    error,
-    isLoading,
-    isValidating,
-    mutate 
-  } = useSWR(
-    schoolId 
-      ? `apps-${schoolId}-${startIndex}-${endIndex}-${debouncedSearchTerm}`
-      : null,
-    () => fetchApplicationsWithCount(
-      schoolId!,
-      startIndex,
-      endIndex,
-      debouncedSearchTerm,
-      'ALL'
-    ),
-    {
-      revalidateOnFocus: true,
-      revalidateOnReconnect: true,
-      dedupingInterval: STALE_TIME,
-      refreshInterval: 30000,
-    }
-  )
-
-  useEffect(() => {
-    if (!schoolId) return
-
-    const supabase = createClient()
-    
-    const channel = supabase
-      .channel('job_applications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'job_applications',
-          filter: `job_id=in.(SELECT id FROM jobs WHERE school_id=eq.${schoolId})`
+  // State for filters and pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [sortColumn, setSortColumn] = useState('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  
+  // Fetch total application count (updates when filters change)
+  const { data: totalApplicationsCount = 0, isLoading: countLoading, refetch: refetchCount } = useQuery<number>({
+    queryKey: ['application-count', statusFilter, searchQuery, schoolId],
+    queryFn: async () => {
+      console.log('Fetching application count with filters:', { statusFilter, searchQuery, schoolId });
+      
+      const params = new URLSearchParams({
+        status: statusFilter,
+        search: searchQuery,
+      });
+      
+      const response = await fetch(`/api/get-applications-count?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
         },
-        () => mutate()
-      )
-      .subscribe()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch application count: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Application count:', data.count);
+      return data.count || 0;
+    },
+    enabled: !!user && !!session && !!schoolId,
+    retry: 2,
+  });
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [schoolId, mutate])
+  // Fetch applications data (updates when any parameter changes)
+  const { 
+    data: applicationsData, 
+    isLoading: loading, 
+    error, 
+    refetch: refetchApplications, 
+    isFetching: isFetchingApplications 
+  } = useQuery<Application[]>({
+    queryKey: ['applications', statusFilter, searchQuery, currentPage, pageSize, schoolId, sortColumn, sortDirection],
+    queryFn: async () => {
+      const startIndex = currentPage * pageSize;
+      const endIndex = startIndex + pageSize;
+      
+      console.log('Fetching applications with params:', {
+        status: statusFilter,
+        search: searchQuery,
+        startIndex,
+        endIndex,
+        schoolId,
+        sortColumn,
+        sortDirection
+      });
+      
+      const params = new URLSearchParams({
+        status: statusFilter,
+        search: searchQuery,
+        startIndex: startIndex.toString(),
+        endIndex: endIndex.toString(),
+        sort: sortColumn,
+        asc: (sortDirection === 'asc').toString()
+      });
+      
+      const response = await fetch(`/api/applications-sorted?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch applications');
+      }
+      
+      const data = await response.json();
+      console.log('Fetched applications:', data.applications?.length || 0);
+      return data.applications || [];
+    },
+    enabled: !!user && !!session && !!schoolId,
+    retry: 2,
+    placeholderData: (previousData) => previousData, // Prevent flicker while loading (React Query v5)
+  });
 
-  const applications = data?.applications || []
-  const totalCount = data?.total_count || 0
-  
-  const { totalPages, canGoNext, canGoPrevious } = useMemo(() => {
-    const pages = Math.ceil(totalCount / PAGE_SIZE)
-    return {
-      totalPages: pages,
-      canGoNext: currentPage < pages - 1 && totalCount > 0,
-      canGoPrevious: currentPage > 0
-    }
-  }, [totalCount, currentPage])
+  // Handle undefined case
+  const applications = applicationsData ?? [];
 
-  const getStatusBadge = useCallback((status: string) => {
-    return STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || 
-      { text: status, color: 'status-default' }
-  }, [])
+  // Handle search change
+  const handleSearchChange = useCallback((query: string) => {
+    console.log('Search changed:', query);
+    setSearchQuery(query);
+    setCurrentPage(0); // Reset to first page on search
+  }, []);
 
-  const handlePreviousPage = useCallback(() => {
-    if (canGoPrevious) setCurrentPage(prev => prev - 1)
-  }, [canGoPrevious])
+  // Handle status filter change
+  const handleStatusFilterChange = useCallback((status: string) => {
+    console.log('Status filter changed:', status);
+    setStatusFilter(status);
+    setCurrentPage(0); // Reset to first page on filter
+  }, []);
 
-  const handleNextPage = useCallback(() => {
-    if (canGoNext) setCurrentPage(prev => prev + 1)
-  }, [canGoNext])
+  // Handle page change
+  const handlePageChange = useCallback((page: number) => {
+    console.log('Page changed to:', page);
+    setCurrentPage(page);
+  }, []);
 
-  const handleViewApplication = useCallback((jobId: string, applicationId: string) => {
-    router.push(`/jobs/${jobId}/${applicationId}`)
-  }, [router])
+  // Handle page size change
+  const handlePageSizeChange = useCallback((size: number) => {
+    console.log('Page size changed to:', size);
+    setPageSize(size);
+    setCurrentPage(0); // Reset to first page when page size changes
+  }, []);
 
+  // Handle sort change
+  const handleSortChange = useCallback((column: string, direction: 'asc' | 'desc') => {
+    console.log('Sort changed:', { column, direction });
+    setSortColumn(column);
+    setSortDirection(direction);
+    setCurrentPage(0); // Reset to first page on sort
+  }, []);
+
+  // Handle refresh - refetch everything
+  const handleRefresh = useCallback(async () => {
+    console.log('Refresh requested');
+    // Reset all filters and fetch fresh data
+    setSearchQuery('');
+    setStatusFilter('ALL');
+    setCurrentPage(0);
+    
+    // Refetch both count and applications
+    await Promise.all([refetchCount(), refetchApplications()]);
+  }, [refetchCount, refetchApplications]);
+
+  // Calculate pagination flags
+  const hasNextPage = totalApplicationsCount > (currentPage + 1) * pageSize;
+  const hasPreviousPage = currentPage > 0;
+
+  // Determine loading states
+  const isInitialLoading = loading && currentPage === 0;
+
+  console.log('CandidatesPage render:', {
+    currentPage,
+    pageSize,
+    applicationsLength: applications.length,
+    totalApplicationsCount,
+    hasNextPage,
+    hasPreviousPage,
+    isInitialLoading,
+    isFetchingApplications,
+    searchQuery,
+    statusFilter,
+    schoolId,
+    sortColumn,
+    sortDirection,
+  });
+
+  // Invite candidates function
   const handleInviteCandidates = async (emails: string[], jobId: string) => {
     try {
       const response = await fetch("/api/job-invitations", {
@@ -285,12 +235,9 @@ export default function CandidatesPage() {
     }
   };
 
-  const showLoading = isLoading || !schoolId
-  const showValidating = isValidating && !isLoading
-
   return (
     <div className="candidates-container">
-      <div className="candidates-header"> 
+      <div className="candidates-header">
         <h1 className="candidates-title">Candidates</h1>
         <Button
           variant="outline"
@@ -301,97 +248,32 @@ export default function CandidatesPage() {
           Invite Candidate
         </Button>
       </div>
-
-      <div className="search-container">
-        <div className="search-wrapper">
-          <Search className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search candidates by name, job, or skill..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-            aria-label="Search candidates"
+      <main className="flex-1 min-h-0 h-full overflow-hidden">
+        <ErrorBoundary>
+          <CandidatesTable 
+            applications={applications} 
+            originalApplications={applications}
+            totalApplicationsCount={totalApplicationsCount}
+            loading={isInitialLoading} 
+            onRefresh={handleRefresh}
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+            isFetchingNextPage={isFetchingApplications && !isInitialLoading}
+            serverSidePagination={true}
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSearchChange={handleSearchChange}
+            onStatusFilterChange={handleStatusFilterChange}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSortChange={handleSortChange}
           />
-        </div>
-      </div>
-
-      <div className="table-container">
-        {showValidating && (
-          <div className="loading-indicator">
-            <div className="loading-pulse" />
-          </div>
-        )}
-        
-        <div className="table-scroll">
-          <Table>
-            <TableHeader className="table-header">
-              <TableRow>
-                <TableHead className="table-head table-head-border">
-                  <div className="table-head-content">Candidate</div>
-                </TableHead>
-                <TableHead className="table-head table-head-border">
-                  <div className="table-head-content">Job Applied</div>
-                </TableHead>
-                <TableHead className="table-head table-head-border">
-                  <div className="table-head-content">Status</div>
-                </TableHead>
-                <TableHead className="table-head table-head-border table-head-assessment">
-                  <div className="assessment-header">
-                    <span>Assessment</span>
-                  </div>
-                  <div className="assessment-subheader">
-                    <span className="assessment-col">M</span>
-                    <span className="assessment-col">V</span>
-                    <span className="assessment-col-last">I</span>
-                  </div>
-                </TableHead>
-                <TableHead className="table-head table-head-border">
-                  <div className="table-head-content">Date Applied</div>
-                </TableHead>
-                <TableHead className="table-head table-head-actions">
-                  <div className="table-head-content">Actions</div>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="table-body">
-              {showLoading ? (
-                <LoadingSkeleton />
-              ) : error ? (
-                <ErrorRow error={error} />
-              ) : applications.length > 0 ? (
-                applications.map((app) => (
-                  <ApplicationRow
-                    key={`${app.application_id}-${app.job_id}`}
-                    application={app}
-                    getStatusBadge={getStatusBadge}
-                    onView={handleViewApplication}
-                  />
-                ))
-              ) : (
-                <EmptyRow />
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {!showLoading && totalCount > 0 && (
-        <Pagination
-          startIndex={startIndex}
-          endIndex={Math.min(endIndex, totalCount)}
-          total={totalCount}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          canGoPrevious={canGoPrevious}
-          canGoNext={canGoNext}
-          onPrevious={handlePreviousPage}
-          onNext={handleNextPage}
-          isLoading={isValidating}
-        />
-      )}
-
-      <AssessmentLegend />
+        </ErrorBoundary>
+      </main>
       
       <InviteCandidateDialog 
         open={isInviteDialogOpen}
@@ -399,242 +281,5 @@ export default function CandidatesPage() {
         onInvite={handleInviteCandidates}
       />
     </div>
-  )
+  );
 }
-
-// Memoized Sub-components
-
-const LoadingSkeleton = memo(function LoadingSkeleton() {
-  return (
-    <>
-      {Array.from({ length: 10 }).map((_, i) => (
-        <TableRow key={i}>
-          <TableCell className="table-cell-border">
-            <div className="cell-content">
-              <Skeleton className="skeleton-primary" />
-              <Skeleton className="skeleton-secondary" />
-            </div>
-          </TableCell>
-          <TableCell className="table-cell-border">
-            <div className="cell-content">
-              <Skeleton className="skeleton-primary" />
-            </div>
-          </TableCell>
-          <TableCell className="table-cell-border">
-            <div className="cell-content">
-              <Skeleton className="skeleton-badge" />
-            </div>
-          </TableCell>
-          <TableCell className="table-cell-border table-cell-assessment">
-            <div className="assessment-scores">
-              <div className="assessment-score-col">
-                <Skeleton className="skeleton-score" />
-              </div>
-              <div className="assessment-score-col">
-                <Skeleton className="skeleton-score" />
-              </div>
-              <div className="assessment-score-col-last">
-                <Skeleton className="skeleton-score" />
-              </div>
-            </div>
-            <div className="assessment-spacer">&nbsp;</div>
-          </TableCell>
-          <TableCell className="table-cell-border">
-            <div className="cell-content">
-              <Skeleton className="skeleton-date" />
-            </div>
-          </TableCell>
-          <TableCell>
-            <div className="cell-content">
-              <Skeleton className="skeleton-action" />
-            </div>
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
-  )
-})
-
-const ErrorRow = memo(function ErrorRow({ error }: { error: Error }) {
-  return (
-    <TableRow>
-      <TableCell colSpan={6} className="error-cell">
-        Error loading candidates: {error.message}
-      </TableCell>
-    </TableRow>
-  )
-})
-
-const EmptyRow = memo(function EmptyRow() {
-  return (
-    <TableRow>
-      <TableCell colSpan={6} className="empty-cell">
-        No candidates found matching your criteria.
-      </TableCell>
-    </TableRow>
-  )
-})
-
-interface ApplicationRowProps {
-  application: Application
-  getStatusBadge: (status: string) => { text: string; color: string }
-  onView: (jobId: string, applicationId: string) => void
-}
-
-const ApplicationRow = memo(function ApplicationRow({ 
-  application, 
-  getStatusBadge, 
-  onView 
-}: ApplicationRowProps) {
-  const statusBadge = getStatusBadge(application.application_status)
-  
-  return (
-    <TableRow className="table-row-hover">
-      <TableCell className="table-cell-border">
-        <div className="cell-content">
-          <p className="candidate-name">
-            {application.first_name} {application.last_name}
-          </p>
-          <p className="candidate-email">
-            {application.email || 'Email not specified'}
-          </p>
-        </div>
-      </TableCell>
-
-      <TableCell className="table-cell-border candidate-job">
-        <div className="cell-content">
-          {application.job_title}
-        </div>
-      </TableCell>
-
-      <TableCell className="table-cell-border">
-        <div className="cell-content">
-          <Badge className={statusBadge.color}>
-            <div className="badge-text">{statusBadge.text}</div>
-          </Badge>
-        </div>
-      </TableCell>
-
-      <TableCell className="table-cell-border table-cell-assessment">
-        <div className="assessment-scores">
-          <span className="assessment-value">
-            {application.score}
-          </span>
-          <span className="assessment-value">
-            {application.demo_score || "-"}
-          </span>
-          <span className="assessment-value-disabled">
-            -
-          </span>
-        </div>
-        <div className="assessment-spacer">&nbsp;</div>
-      </TableCell>
-
-      <TableCell className="table-cell-border candidate-date">
-        <div className="cell-content">
-          {application.created_at
-            ? new Date(application.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })
-            : '-'}
-        </div>
-      </TableCell>
-
-      <TableCell className="table-cell-actions">
-        <div className="cell-content">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="action-btn"
-            onClick={() => onView(application.job_id, application.application_id)}
-            aria-label={`View application for ${application.first_name} ${application.last_name}`}
-          >
-            <ChevronRight className="btn-icon" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  )
-})
-
-interface PaginationProps {
-  startIndex: number
-  endIndex: number
-  total: number
-  currentPage: number
-  totalPages: number
-  canGoPrevious: boolean
-  canGoNext: boolean
-  onPrevious: () => void
-  onNext: () => void
-  isLoading: boolean
-}
-
-const Pagination = memo(function Pagination({
-  startIndex,
-  endIndex,
-  total,
-  currentPage,
-  totalPages,
-  canGoPrevious,
-  canGoNext,
-  onPrevious,
-  onNext,
-  isLoading
-}: PaginationProps) {
-  return (
-    <div className="pagination-container">
-      <div className="pagination-info">
-        Showing <span className="pagination-value">{startIndex + 1}</span> to{' '}
-        <span className="pagination-value">{endIndex}</span> of{' '}
-        <span className="pagination-value">{total}</span> candidates
-      </div>
-      <div className="pagination-controls">
-        <span className="pagination-page">
-          Page {currentPage + 1} of {totalPages}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onPrevious}
-          disabled={!canGoPrevious || isLoading}
-          className="pagination-btn"
-        >
-          <ChevronLeft className="btn-icon" />
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onNext}
-          disabled={!canGoNext || isLoading}
-          className="pagination-btn"
-        >
-          Next
-          <ChevronRight className="btn-icon" />
-        </Button>
-      </div>
-    </div>
-  )
-})
-
-const AssessmentLegend = memo(function AssessmentLegend() {
-  return (
-    <div className="legend-container">
-      <div className="legend-item">
-        <span className="legend-key">M</span>
-        <span>- Multiple Choice Questions</span>
-      </div>
-      <div className="legend-item">
-        <span className="legend-key">V</span>
-        <span>- AI Video Assessment</span>
-      </div>
-      <div className="legend-item">
-        <span className="legend-key">I</span>
-        <span>- Interview Score</span>
-      </div>
-    </div>
-  )
-})

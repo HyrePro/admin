@@ -199,11 +199,17 @@
 
 .candidate-name {
   font-weight: 500;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
 }
 
 .candidate-email {
   font-size: 0.875rem;
   color: rgb(107 114 128);
+  margin: 0.125rem 0 0 0;
+  padding: 0;
+  line-height: 1.4;
 }
 
 .candidate-job {

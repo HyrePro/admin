@@ -240,9 +240,10 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
         </header>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+  {children}
+</div>
+
       </SidebarInset>
     </SidebarProvider>
   );
