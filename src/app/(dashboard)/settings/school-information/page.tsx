@@ -9,35 +9,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { ItemDescription, ItemTitle } from '@/components/ui/item'
 import { useAuth } from '@/context/auth-context'
 import { useAuthStore } from '@/store/auth-store'
-import { createClient } from '@/lib/supabase/api/client'
-import useSWR from 'swr'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Upload, X } from 'lucide-react'
-
-// Fetcher function for school data
-const fetchSchoolInfo = async (schoolId: string) => {
-  if (!schoolId) {
-    return null;
-  }
-
-  const supabase = createClient();
-  
-  // TODO: Consider caching and error handling for this API call
-  // Get the school information directly using the schoolId from auth store
-  const { data: schoolData, error: schoolError } = await supabase
-    .from('school_info')
-    .select('*')
-    .eq('id', schoolId)
-    .single();
-
-  if (schoolError) {
-    console.error('Error fetching school info:', schoolError);
-    throw schoolError;
-  }
-  
-  // Ensure the returned data is serializable
-  return schoolData ? JSON.parse(JSON.stringify(schoolData)) : null;
-}
 
 interface SchoolFormData {
   name: string
@@ -51,12 +25,34 @@ interface SchoolFormData {
   logo_url: string
 }
 
+// Fetcher function for school data
+const fetchSchoolInfo = async (): Promise<SchoolFormData> => {
+  const response = await fetch('/api/settings/school-information');
+  if (!response.ok) {
+    throw new Error('Failed to fetch school information');
+  }
+  return response.json();
+};
 
+const updateSchoolInfo = async (schoolData: SchoolFormData): Promise<any> => {
+  const response = await fetch('/api/settings/school-information', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(schoolData),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update school information');
+  }
+  return response.json();
+};
 
 export default function SchoolInformationPage() {
   const { user } = useAuth();
   const { schoolId } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   
   // Log user authentication state changes
   useEffect(() => {
@@ -65,12 +61,23 @@ export default function SchoolInformationPage() {
     }
   }, [user]);
   
-  const { data: schoolInfo, error, isLoading, mutate } = useSWR(
-    schoolId ? ['school-info', schoolId] : null,
-    ([_, schoolId]) => {
-      return fetchSchoolInfo(schoolId);
+  const { data: schoolInfo, error, isLoading, isError } = useQuery({
+    queryKey: ['settings', 'school-information', schoolId],
+    queryFn: fetchSchoolInfo,
+    enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateSchoolInfo,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'school-information', schoolId] });
+      toast.success('School information updated successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error saving school information: ${error.message}`);
     }
-  );
+  });
 
   const [formData, setFormData] = useState<SchoolFormData>({
     name: '',
@@ -183,74 +190,57 @@ export default function SchoolInformationPage() {
     }
 
     setIsSaving(true);
-    const toastId = toast.loading('Saving school information...');
 
     try {
-      const supabase = createClient();
-
       let logoUrl = formData.logo_url;
 
-      // Upload logo if a new file was selected
+      // Handle logo upload if a new file was selected
       if (logoFile) {
-        toast.loading('Uploading logo...', { id: toastId });
+        toast.loading('Uploading logo...');
 
-        // Create file name with timestamp
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${user.id}/school_logo_${Date.now()}.${fileExt}`;
+        // Create form data for file upload
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', logoFile);
+        formDataUpload.append('bucket', 'school');
+        formDataUpload.append('fileName', `${user.id}/school_logo_${Date.now()}.${logoFile.name.split('.').pop()}`);
 
-        // TODO: Consider caching and error handling for this API call
-        // Upload file to Supabase Storage in 'school' bucket
-        const { error: uploadError } = await supabase.storage
-          .from('school')
-          .upload(fileName, logoFile, {
-            upsert: true
-          });
+        // Upload logo file to storage
+        const uploadResponse = await fetch('/api/storage/upload', {
+          method: 'POST',
+          body: formDataUpload
+        });
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw uploadError;
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Logo upload failed');
         }
 
-        // Get public URL for the uploaded file
-        const { data: { publicUrl } } = supabase.storage
-          .from('school')
-          .getPublicUrl(fileName);
-
+        const { publicUrl } = await uploadResponse.json();
         logoUrl = publicUrl;
       }
 
-      // TODO: Consider caching and error handling for this API call
-      // Update school info in database
-      const response = await fetch('/api/school', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          logo_url: logoUrl
-        })
+      // Update school info with the new data
+      await updateMutation.mutateAsync({
+        ...formData,
+        logo_url: logoUrl
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API error response:', errorData);
-        throw new Error(errorData.error || 'Failed to update school information');
-      }
 
       // Reset logo state after successful save
       setLogoFile(null);
-
-      // Revalidate the data
-      await mutate();
-
-      toast.success('School information updated successfully!', { id: toastId });
     } catch (error: unknown) {
       console.error('Error saving school information:', error);
-      toast.error(`Error saving school information: ${(error as Error).message || 'Please try again.'}`, { id: toastId });
+      toast.error(`Error saving school information: ${(error as Error).message || 'Please try again.'}`);
     } finally {
       setIsSaving(false);
     }
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-700">Error loading school information: {error.message}</p>
+      </div>
+    );
   }
 
   if (isLoading) {
@@ -259,87 +249,102 @@ export default function SchoolInformationPage() {
         <div className="bg-white rounded-lg border p-4">
           <div className="space-y-4">
             <div>
-              <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3 mb-6 animate-pulse"></div>
+              <ItemTitle>School Information</ItemTitle>
+              <ItemDescription>
+                Update your school logo, name, and other details.
+              </ItemDescription>
               
-              {/* Logo and School Name Skeleton */}
+              {/* Logo and School Name Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mt-6">
+                {/* Circular Logo Picker */}
                 <div className="flex flex-col items-center justify-center space-y-2 mx-auto sm:mx-0">
                   <div className="space-y-2">
-                    <div className="block w-16 h-16 rounded-full border-2 border-gray-200 overflow-hidden bg-gray-100">
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-full h-full bg-gray-200 rounded-full animate-pulse"></div>
-                      </div>
+                    {/* Clickable Circular Logo */}
+                    <div className="relative flex justify-center">
+                      <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
                     </div>
-                    <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
+                    <p className="text-xs text-gray-500 text-center">
+                      Loading...
+                    </p>
                   </div>
                 </div>
-                
+
+                {/* School Name */}
                 <div className="flex-1 w-full space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <Label className="text-sm font-medium">
+                    School Name *
+                  </Label>
+                  <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
                 </div>
               </div>
 
-              {/* Board and School Type Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-
-              {/* Address Skeleton */}
-              <div className="space-y-2 mt-4">
-                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-
-              {/* Location Skeleton */}
-              <div className="space-y-2 mt-4">
-                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-
-              {/* Statistics Skeleton */}
+              {/* Board and School Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <Label className="text-sm font-medium">
+                    Board/Curriculum *
+                  </Label>
+                  <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
                 </div>
+
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <Label className="text-sm font-medium">
+                    School Type *
+                  </Label>
+                  <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
                 </div>
               </div>
 
-              {/* Website Skeleton */}
+              {/* Address */}
               <div className="space-y-2 mt-4">
-                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
-                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                <Label className="text-sm font-medium">
+                  Complete Address *
+                </Label>
+                <div className="h-20 bg-gray-200 rounded-md animate-pulse" />
               </div>
 
-              {/* Submit Button Skeleton */}
+              {/* Location */}
+              <div className="space-y-2 mt-4">
+                <Label className="text-sm font-medium">
+                  Location *
+                </Label>
+                <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+              </div>
+
+              {/* Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Number of Students
+                  </Label>
+                  <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Number of Teachers
+                  </Label>
+                  <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+                </div>
+              </div>
+
+              {/* Website */}
+              <div className="space-y-2 mt-4">
+                <Label className="text-sm font-medium">
+                  Website URL
+                </Label>
+                <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+              </div>
+
+              {/* Submit Button */}
               <div className="pt-6 border-t mt-6">
                 <div className="flex justify-end">
-                  <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse" />
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-700">Error loading school information: {error.message}</p>
       </div>
     );
   }
@@ -393,7 +398,7 @@ export default function SchoolInformationPage() {
                         )}
                       </div>
                     </label>
-                    {(logoPreview || schoolInfo.logo_url) && (
+                    {(logoPreview || (schoolInfo && schoolInfo.logo_url)) && (
                       <button
                         type="button"
                         onClick={removeLogo}
@@ -573,10 +578,10 @@ export default function SchoolInformationPage() {
               <div className="flex justify-end">
                 <Button
                   onClick={handleSaveChanges}
-                  disabled={isSaving}
+                  disabled={isSaving || updateMutation.isPending}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-6 font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
                 >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
+                  {(isSaving || updateMutation.isPending) ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </div>

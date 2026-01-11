@@ -4,7 +4,9 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 1rem;
+  padding-top: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   gap: 1rem;
   overflow: hidden;
 }

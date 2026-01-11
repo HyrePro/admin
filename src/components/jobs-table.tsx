@@ -197,7 +197,7 @@ function JobsTableComponent({
         <div className="table-container">
           <div className="table-scroll">
             <Table>
-              <TableHeader className="table-header">
+              <TableHeader className="table-header sticky top-0 z-20 bg-white border-b">
                 <TableRow>
                   <TableHead className={cn("table-head table-head-border table-head-first")}>Job Title</TableHead>
                   <TableHead className={cn("table-head table-head-border")}>Applications</TableHead>
@@ -358,9 +358,9 @@ function JobsTableComponent({
       {/* Table Container - fills remaining space */}
       <div className="table-container h-full overflow-hidden">
         <div className="h-full overflow-auto">
-          <Table role="table" aria-label="Jobs table" aria-describedby="table-description">
+          <table role="table" aria-label="Jobs table" aria-describedby="table-description">
             <caption id="table-description" className="sr-only">Job listings with title, applications, status, creation date, grade levels, hiring manager, and actions</caption>
-            <TableHeader className="table-header sticky top-0 z-10 bg-white">
+            <TableHeader className="table-header sticky top-0 z-20 bg-white border-b">
               <TableRow role="row" className="border-l border-l-gray-200">
                 <TableHead className={cn("table-head table-head-border table-head-first")} role="columnheader" scope="col" aria-sort={jobsSortConfig?.column === 'title' ? (jobsSortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
@@ -523,7 +523,7 @@ function JobsTableComponent({
                 })
               )}
             </TableBody>
-          </Table>
+          </table>
         </div>
           
         {/* Loading overlay - positioned within table container */}

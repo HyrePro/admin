@@ -69,8 +69,8 @@ export function DashboardContent({
   // Error state
   if (error) {
     return (
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col h-full max-h-[calc(100vh-100px)] overflow-y-auto">
+        <div className="@container/main flex flex-col gap-2">
           <div className="flex items-center justify-center py-16">
             <div className="text-red-500">Error loading dashboard data</div>
           </div>
@@ -82,8 +82,8 @@ export function DashboardContent({
   // Empty state - no schoolId or no jobs
   if (!schoolId || !jobs || jobs.length === 0) {
     return (
-      <div className="flex flex-1 flex-col pb-8">
-        <div className="@container/main flex flex-1 flex-col gap-2">
+      <div className="flex flex-1 flex-col pb-8 h-full max-h-[calc(100vh-100px)] overflow-y-auto">
+        <div className="@container/main flex flex-col gap-2">
           <Empty className="border border-dashed m-8">
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -112,8 +112,8 @@ export function DashboardContent({
 
   // Dashboard with job count
   return (
-    <div className="flex flex-1 flex-col px-4 pb-8 pt-4">
-      <div className="@container/main flex flex-1 flex-col gap-6">
+    <div className="flex flex-1 flex-col px-4 pb-8 pt-4 h-full max-h-[calc(100vh-100px)] overflow-y-auto">
+      <div className="@container/main flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <DashboardCard
             title="Active Jobs"

@@ -12,7 +12,7 @@ import { Job } from '@/types/jobs-table';
 export default function JobsPage() {
   const router = useRouter();
   const { user, session } = useAuth();
-  
+
   // State for filters and pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -20,7 +20,7 @@ export default function JobsPage() {
   const [pageSize, setPageSize] = useState(20);
   const [sortColumn, setSortColumn] = useState('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  
+
   // Fetch total job count (updates when filters change)
   const { data: totalJobsCount = 0, isLoading: countLoading, refetch: refetchCount } = useQuery<number>({
     queryKey: ['job-count', statusFilter, searchQuery],
@@ -31,11 +31,11 @@ export default function JobsPage() {
           'Authorization': `Bearer ${session?.access_token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch job count: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Job count:', data.count);
       return data.count || 0;
@@ -45,18 +45,18 @@ export default function JobsPage() {
   });
 
   // Fetch jobs data (updates when any parameter changes)
-  const { 
-    data: jobsData, 
-    isLoading: loading, 
-    error, 
-    refetch: refetchJobs, 
-    isFetching: isFetchingJobs 
+  const {
+    data: jobsData,
+    isLoading: loading,
+    error,
+    refetch: refetchJobs,
+    isFetching: isFetchingJobs
   } = useQuery<Job[]>({
     queryKey: ['jobs', statusFilter, searchQuery, currentPage, pageSize, sortColumn, sortDirection],
     queryFn: async () => {
       const startIndex = currentPage * pageSize;
       const endIndex = startIndex + pageSize;
-      
+
       console.log('Fetching jobs with params:', {
         status: statusFilter,
         search: searchQuery,
@@ -65,7 +65,7 @@ export default function JobsPage() {
         sort: sortColumn,
         asc: sortDirection === 'asc'
       });
-      
+
       const params = new URLSearchParams({
         status: statusFilter,
         search: searchQuery,
@@ -74,17 +74,17 @@ export default function JobsPage() {
         sort: sortColumn,
         asc: (sortDirection === 'asc').toString()
       });
-      
+
       const response = await fetch(`/api/jobs?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
       }
-      
+
       const data = await response.json();
       console.log('Fetched jobs:', data.jobs?.length || 0);
       return data.jobs || [];
@@ -141,7 +141,7 @@ export default function JobsPage() {
     setCurrentPage(0);
     setSortColumn('created_at');
     setSortDirection('desc');
-    
+
     // Refetch both count and jobs
     await Promise.all([refetchCount(), refetchJobs()]);
   }, [refetchCount, refetchJobs]);
@@ -169,46 +169,46 @@ export default function JobsPage() {
   });
 
   return (
-  <div className="jobs-container">
-    <div className="jobs-header">
-      <h1 className="jobs-title">Jobs</h1>
-      <Button
-        variant="outline"
-        onClick={() => router.push('/jobs/create-job-post')}
-        className='btn-create'
-      >
-        <Plus className="btn-icon" />
-        Create New Job Post
-      </Button>
-    </div>
-    <main className="flex-1 min-h-0 h-full overflow-hidden">
-  <ErrorBoundary>
-        <JobsTable 
-          jobs={jobs} 
-          originalJobs={jobs}
-          totalJobsCount={totalJobsCount}
-          loading={isInitialLoading} 
-          onRefresh={handleRefresh}
-          hasNextPage={hasNextPage}
-          hasPreviousPage={hasPreviousPage}
-          isFetchingNextPage={isFetchingJobs && !isInitialLoading}
-          serverSidePagination={true}
-          searchQuery={searchQuery}
-          statusFilter={statusFilter}
-          currentPage={currentPage}
-          pageSize={pageSize}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSearchChange={handleSearchChange}
-          onStatusFilterChange={handleStatusFilterChange}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          onSortChange={handleSortChange}
-        />
-    </ErrorBoundary>
-</main>
+    <div className="jobs-container">
+      <div className="jobs-header">
+        <h1 className="jobs-title">Jobs</h1>
+        <Button
+          variant="outline"
+          onClick={() => router.push('/jobs/create-job-post')}
+          className='btn-create'
+        >
+          <Plus className="btn-icon" />
+          Create New Job Post
+        </Button>
+      </div>
+      <main className="flex-1 min-h-0 h-full overflow-hidden bg-red w-full">
+        <ErrorBoundary>
+          <JobsTable
+            jobs={jobs}
+            originalJobs={jobs}
+            totalJobsCount={totalJobsCount}
+            loading={isInitialLoading}
+            onRefresh={handleRefresh}
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+            isFetchingNextPage={isFetchingJobs && !isInitialLoading}
+            serverSidePagination={true}
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSearchChange={handleSearchChange}
+            onStatusFilterChange={handleStatusFilterChange}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSortChange={handleSortChange}
+          />
+        </ErrorBoundary>
+      </main>
 
-    
-  </div>
-);
+
+    </div>
+  );
 }

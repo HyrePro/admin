@@ -116,7 +116,7 @@
 }
 
 .table-head {
-  font-weight: 400;
+  font-weight: 500;
   font-size: 0.875rem;
   padding: 0.5rem;
 }
@@ -132,6 +132,7 @@
 }
 
 .table-head-content {
+  font-weight: 500;
   padding: 0 0.5rem;
 }
 
@@ -143,6 +144,7 @@
   display: flex;
   align-items: center;
   padding: 0.5rem;
+  font-weight: 500;
 }
 
 .assessment-subheader {
@@ -154,7 +156,7 @@
 
 .assessment-col {
   flex: 1;
-  font-weight: 400;
+  font-weight: 500;
   font-size: 0.875rem;
   border-right: 1px solid rgb(229 231 235);
   text-align: center;
@@ -163,7 +165,7 @@
 
 .assessment-col-last {
   flex: 1;
-  font-weight: 400;
+  font-weight: 500;
   font-size: 0.875rem;
   text-align: center;
   padding: 0.25rem;

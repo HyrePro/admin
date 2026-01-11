@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/api/client';
+import { createClient } from '@/lib/supabase/api/server';
 
 /**
  * Server-side utility to get user info with school_id
@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/api/client';
  */
 export async function getUserWithSchoolId() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Get the authenticated user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -45,7 +45,7 @@ export async function getUserWithSchoolId() {
  */
 export async function validateUserAuthAndSchool() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Get the authenticated user
     const { data: { user }, error: userError } = await supabase.auth.getUser();

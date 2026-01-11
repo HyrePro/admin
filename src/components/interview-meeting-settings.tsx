@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { SlotPreviewDialog } from "@/components/slot-preview-dialog";
 import { X } from "lucide-react";
 import { UnsavedChangesDialog } from "@/components/unsaved-changes-dialog";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface InterviewSettingsData {
   default_interview_type: 'in-person' | 'online' | 'phone';
@@ -88,8 +88,52 @@ const DAYS_OF_WEEK = [
   { value: 'sunday', label: 'Sun' },
 ];
 
+// Fetcher function for interview settings
+const fetchInterviewSettings = async (schoolId: string): Promise<ExtendedInterviewSettings> => {
+  const response = await fetch(`/api/settings/interviews`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch interview settings');
+  }
+  return response.json();
+};
+
+const updateInterviewSettings = async ({ schoolId, settings }: { schoolId: string; settings: ExtendedInterviewSettings }): Promise<any> => {
+  const response = await fetch('/api/settings/interviews', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update interview settings');
+  }
+  return response.json();
+};
+
 export function InterviewMeetingSettings({ schoolId, onNavigateAway }: InterviewMeetingSettingsProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  
+  // Use TanStack Query to fetch interview settings
+  const { data: fetchedSettings, isLoading, error, refetch } = useQuery({
+    queryKey: ['settings', 'interviews', schoolId],
+    queryFn: () => fetchInterviewSettings(schoolId),
+    enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  const updateMutation = useMutation({
+    mutationFn: updateInterviewSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'interviews', schoolId] });
+      toast.success('Interview settings updated successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error saving interview settings: ${error.message}`);
+    }
+  });
+
   const [saving, setSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -127,51 +171,16 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
   
   const [settingsErrors, setSettingsErrors] = useState<SettingsErrors>({});
 
-  // Fetch interview settings from Supabase
+  // Set form values when settings are loaded
   useEffect(() => {
-    const fetchInterviewSettings = async () => {
-      if (!schoolId) return;
-      
-      try {
-        const supabase = createClient();
-        // Use the new RPC function to get interview settings
-        const { data, error } = await supabase
-          .rpc('get_interview_meeting_settings', { p_school_id: schoolId });
-        
-        if (error) throw error;
-        
-        // Transform the returned data to match our state structure
-        if (data && data.length > 0) {
-          // If we get an array back (which is what RPC functions typically return)
-          const settingsData = Array.isArray(data) ? data[0] : data;
-          
-          const updatedSettings = {
-            ...interviewSettings,
-            default_interview_type: settingsData.default_interview_type || interviewSettings.default_interview_type,
-            working_hours_start: settingsData.working_hours_start || interviewSettings.working_hours_start,
-            working_hours_end: settingsData.working_hours_end || interviewSettings.working_hours_end,
-            working_days: settingsData.working_days || interviewSettings.working_days,
-            breaks: settingsData.breaks || interviewSettings.breaks,
-            slots: settingsData.slots || [] // Initialize slots from database
-          };
-          
-          setInterviewSettings(updatedSettings);
-          
-          // Initialize individual slots from database
-          const slotsToSet = settingsData.slots && Array.isArray(settingsData.slots) ? settingsData.slots : [];
-          setIndividualSlots(slotsToSet);
-        }
-      } catch (error) {
-        console.error('Error fetching interview settings:', error);
-        // Not showing error to user as this is optional
-      }
-    };
-    
-    if (schoolId) {
-      fetchInterviewSettings();
+    if (fetchedSettings) {
+      setInterviewSettings(fetchedSettings);
+      // Initialize individual slots from database
+      const slotsToSet = fetchedSettings.slots && Array.isArray(fetchedSettings.slots) ? fetchedSettings.slots : [];
+      setIndividualSlots(slotsToSet);
     }
-  }, [schoolId]);
-  
+  }, [fetchedSettings]);
+
   // Track when settings have been modified
   useEffect(() => {
     // This effect will run whenever individualSlots change
@@ -182,7 +191,7 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
       setHasUnsavedChanges(true);
     }
   }, [individualSlots]);
-  
+
   // Handle beforeunload event to warn about unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -198,7 +207,7 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges]);
-  
+
   // Handle navigation attempts
   const handleNavigationAttempt = (callback: () => void) => {
     if (hasUnsavedChanges) {
@@ -498,54 +507,14 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
     const toastId = toast.loading('Saving interview settings...');
     
     try {
-      const supabase = createClient();
-      
       // Prepare data to save, including individual slots as JSON
       const settingsToSave = {
-        school_id: schoolId,
-        default_interview_type: interviewSettings.default_interview_type,
-        default_duration: interviewSettings.default_duration,
-        buffer_time: interviewSettings.buffer_time,
-        working_hours_start: interviewSettings.working_hours_start,
-        working_hours_end: interviewSettings.working_hours_end,
-        candidate_reminder_hours: interviewSettings.candidate_reminder_hours,
-        interviewer_reminder_hours: interviewSettings.interviewer_reminder_hours,
-        custom_instructions: interviewSettings.custom_instructions,
-        working_days: interviewSettings.working_days,
-        breaks: interviewSettings.breaks,
+        ...interviewSettings,
         slots: individualSlots // Save individual slots as JSON
       };
       
-      // First, try to find existing settings for this school
-      const { data: existingData, error: fetchError } = await supabase
-        .from('interview_meeting_settings')
-        .select('id')
-        .eq('school_id', schoolId)
-        .limit(1);
-      
-      if (fetchError) throw fetchError;
-      
-      let saveError;
-      
-      // If existing settings found, update them
-      if (existingData && existingData.length > 0) {
-        const { error: updateError } = await supabase
-          .from('interview_meeting_settings')
-          .update(settingsToSave)
-          .eq('id', existingData[0].id);
-        
-        saveError = updateError;
-      } 
-      // Otherwise, insert new settings
-      else {
-        const { error: insertError } = await supabase
-          .from('interview_meeting_settings')
-          .insert(settingsToSave);
-        
-        saveError = insertError;
-      }
-      
-      if (saveError) throw saveError;
+      // Call the mutation to save settings
+      await updateMutation.mutateAsync({ schoolId, settings: settingsToSave });
       
       // Reset unsaved changes flag
       setHasUnsavedChanges(false);
@@ -558,6 +527,126 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
       setSaving(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="space-y-6 p-4 w-full">
+        <div className="pb-4">
+          <h3 className="text-lg font-medium">Meeting Settings</h3>
+          <p className="text-sm text-muted-foreground">
+            Control the default interview workflow for new job posts
+          </p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700">Error loading interview settings: {error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-4 w-full">
+        <div className="pb-4">
+          <h3 className="text-lg font-medium">Meeting Settings</h3>
+          <p className="text-sm text-muted-foreground">
+            Control the default interview workflow for new job posts
+          </p>
+        </div>
+        
+        {/* Interview Type & Duration Section - Loading */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Interview Type & Duration</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 w-full">
+            <div className="space-y-2 w-full">
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+            </div>
+            
+            <div className="space-y-2 w-full">
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Scheduling Window Section - Loading */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-base">Scheduling Window</h4>
+          </div>
+          <div className="border-b  px-4 -mx-4"></div>
+          <div className="space-y-6 pt-2 w-full">
+            <div className="space-y-4">
+              {/* Add New Slot Form - Loading */}
+              <div className="border rounded-lg p-4">
+                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="h-4 w-64 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                    {[...Array(7)].map((_, i) => (
+                      <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Existing Slot Configurations - Loading */}
+              <div className="space-y-3">
+                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Reminders & Instructions Section - Loading */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-base border-b pb-2 px-4 -mx-4">Reminders & Instructions</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 w-full">
+            <div className="space-y-2 w-full">
+              <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+            </div>
+            
+            <div className="space-y-2 w-full">
+              <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-10 bg-gray-200 rounded-md animate-pulse" />
+            </div>
+          </div>
+          
+          <div className="space-y-2 pt-4 w-full">
+            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-20 bg-gray-200 rounded-md animate-pulse" />
+          </div>
+        </div>
+        
+        {/* Save Button - Loading */}
+        <div className="flex justify-end pt-4 w-full">
+          <div className="h-10 w-32 bg-gray-200 rounded-md animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 w-full">
@@ -907,7 +996,6 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
               </div>
             </div>
             
-            
           </div>
         </div>
         
@@ -964,8 +1052,8 @@ export function InterviewMeetingSettings({ schoolId, onNavigateAway }: Interview
         
         {/* Save Button */}
         <div className="flex justify-end pt-4 w-full">
-          <Button onClick={handleSaveSettings} disabled={saving} className="w-full md:w-auto">
-            {saving ? 'Saving...' : 'Save Settings'}
+          <Button onClick={handleSaveSettings} disabled={saving || updateMutation.isPending} className="w-full md:w-auto">
+            {saving || updateMutation.isPending ? 'Saving...' : 'Save Settings'}
           </Button>
       </div>
       <UnsavedChangesDialog 

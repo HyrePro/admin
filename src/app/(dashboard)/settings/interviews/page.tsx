@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { ItemDescription, ItemTitle } from '@/components/ui/item';
 import dynamic from "next/dynamic";
+import { useQuery } from '@tanstack/react-query';
 
 // Dynamically import heavy components to reduce initial bundle size
 const InterviewRubricsSettings = dynamic(() => import("@/components/interview-rubrics-settings").then(mod => mod.InterviewRubricsSettings), {
@@ -41,7 +41,6 @@ const InterviewMeetingSettings = dynamic(() => import("@/components/interview-me
 });
 
 
-
 export default function InterviewSettingsPage() {
   const { user } = useAuth();
   const { schoolId, setSchoolId } = useAuthStore();
@@ -57,19 +56,10 @@ export default function InterviewSettingsPage() {
       if (!user?.id) return;
       
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('admin_user_info')
-          .select('school_id')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        if (data?.school_id) {
-          setSchoolId(data.school_id);
-        } else {
-          // Redirect to select organization if school_id is missing
+        // We'll use the auth store directly instead of fetching from Supabase
+        // The schoolId should already be available from the auth context
+        if (!schoolId) {
+          // If schoolId is still not available, redirect to select organization
           router.push('/select-organization');
         }
       } catch (error) {
@@ -83,25 +73,6 @@ export default function InterviewSettingsPage() {
       fetchSchoolId();
     }
   }, [schoolId, user?.id, setSchoolId, router]);
-
-  // Show loading state if schoolId is not available yet
-  if (!schoolId) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Interview Settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Loading organization information...
-          </p>
-        </div>
-        <Card>
-          <CardContent className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full">

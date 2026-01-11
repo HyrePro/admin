@@ -2,9 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,12 +22,12 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import { useAuth } from '@/context/auth-context';
-import { createClient } from '@/lib/supabase/api/client';
 import { toast } from "sonner";
 import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 import { ItemDescription, ItemTitle } from '@/components/ui/item';
 import dynamic from 'next/dynamic';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Dynamically import dialog components with lazy loading
 const InviteDialog = dynamic(() => import('@/components/user-management/invite-dialog').then(mod => mod.InviteDialog), {
@@ -137,14 +134,18 @@ const Pagination = memo(function Pagination({
   );
 });
 
-
+// Fetcher function for users
+const fetchUsers = async (): Promise<UserInfo[]> => {
+  const response = await fetch('/api/settings/users');
+  if (!response.ok) {
+    throw new Error('Failed to fetch users');
+  }
+  return response.json();
+};
 
 export default function UsersPage() {
   const { user } = useAuth();
   const { schoolId, setSchoolId } = useAuthStore();
-  const [users, setUsers] = useState<UserInfo[]>([]);
-  const [panelists, setPanelists] = useState<Panelist[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isInviteManagementOpen, setIsInviteManagementOpen] = useState(false);
@@ -154,6 +155,15 @@ export default function UsersPage() {
   const [showInviteCodeResult, setShowInviteCodeResult] = useState(false);
   const [generatedInviteCode, setGeneratedInviteCode] = useState('');
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // Use TanStack Query to fetch users
+  const { data: users = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['settings', 'users', schoolId],
+    queryFn: fetchUsers,
+    enabled: !!schoolId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Reset to first page when schoolId changes
   useEffect(() => {
@@ -176,20 +186,10 @@ export default function UsersPage() {
       if (!user?.id) return;
 
       try {
-        const supabase = createClient();
-        // TODO: Consider caching and error handling for this API call
-        const { data, error } = await supabase
-          .from('admin_user_info')
-          .select('school_id')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-
-        if (data?.school_id) {
-          setSchoolId(data.school_id);
-        } else {
-          // Redirect to select organization if school_id is missing
+        // We'll use the auth store directly instead of fetching from Supabase
+        // The schoolId should already be available from the auth context
+        if (!schoolId) {
+          // If schoolId is still not available, redirect to select organization
           router.push('/select-organization');
         }
       } catch (error) {
@@ -203,66 +203,6 @@ export default function UsersPage() {
       fetchSchoolId();
     }
   }, [schoolId, user?.id, setSchoolId, router]);
-
-  // Fetch users and panelists from Supabase
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!schoolId) return;
-
-      try {
-        const supabase = createClient();
-
-        // TODO: Consider caching and error handling for this API call
-        // Fetch admin users with avatar information
-        const { data: userData, error: userError } = await supabase
-          .from('admin_user_info')
-          .select('id, first_name, last_name, email, role, avatar')
-          .eq('school_id', schoolId);
-
-        if (userError) throw userError;
-
-        // Transform user data to include status
-        const usersWithStatus = (userData || []).map(user => ({
-          ...user,
-          status: 'active' as const,
-          role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
-        }));
-
-        // TODO: Consider caching and error handling for this API call
-        // Fetch panelists (no avatar support for panelists in this implementation)
-        const { data: panelistData, error: panelistError } = await supabase
-          .from('interview_panelists')
-          .select('id, name, email')
-          .eq('school_id', schoolId);
-
-        if (panelistError) throw panelistError;
-
-        // Transform panelist data to match UserInfo structure
-        const panelistsAsUsers = (panelistData || []).map(panelist => ({
-          id: panelist.id,
-          first_name: panelist.name.split(' ')[0] || '',
-          last_name: panelist.name.split(' ').slice(1).join(' ') || '',
-          email: panelist.email,
-          role: 'interviewer' as const,
-          status: 'active' as const
-        }));
-
-        // Combine users and panelists
-        const allUsers = [...usersWithStatus, ...panelistsAsUsers];
-        setUsers(allUsers);
-        setPanelists(panelistData || []);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load user data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (schoolId) {
-      fetchData();
-    }
-  }, [schoolId]);
 
   // Pagination calculations
   const { paginatedUsers, totalPages, totalItems, canGoNext, canGoPrevious, startIndex, endIndex } = useMemo(() => {
@@ -302,21 +242,83 @@ export default function UsersPage() {
     }
   };
 
-  // Show loading state if schoolId is not available yet
-  if (!schoolId) {
+  if (error) {
     return (
-      <div className="space-y-6 p-4">
-        <div>
-          <h3 className="text-lg font-medium">Users</h3>
-          <p className="text-sm text-muted-foreground">
-            Loading organization information...
-          </p>
+      <div className="space-y-4 h-full flex flex-col p-4">
+        <div className="bg-white rounded-lg border flex flex-col flex-grow">
+          <div className="p-4 space-y-4 flex-shrink-0">
+            <div>
+              <ItemTitle>User List</ItemTitle>
+              <ItemDescription>
+                Manage users in your organization
+              </ItemDescription>
+            </div>
+          </div>
+          <div className="flex-grow flex items-center justify-center">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-700">Error loading users: {error.message}</p>
+            </div>
+          </div>
         </div>
-        <Card>
-          <CardContent className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </CardContent>
-        </Card>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 h-full flex flex-col p-4">
+        <div className="bg-white rounded-lg border flex flex-col flex-grow">
+          <div className="p-4 space-y-4 flex-shrink-0">
+            <div className="flex justify-between items-center">
+              <div>
+                <ItemTitle>User List</ItemTitle>
+                <ItemDescription>
+                  Manage users in your organization
+                </ItemDescription>
+              </div>
+              <div className="flex space-x-2">
+                <div className="h-9 w-32 bg-gray-200 rounded-md animate-pulse" />
+                <div className="h-9 w-32 bg-gray-200 rounded-md animate-pulse" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Loading state for user table */}
+          <div className="flex-grow overflow-hidden flex flex-col">
+            <div className="overflow-y-auto flex-grow p-4">
+              <div className="space-y-4">
+                {[...Array(5)].map((_, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-gray-200" />
+                      <div>
+                        <div className="h-4 w-32 bg-gray-200 rounded" />
+                      </div>
+                    </div>
+                    <div className="h-6 w-16 bg-gray-200 rounded" />
+                    <div className="h-4 w-32 bg-gray-200 rounded" />
+                    <div className="h-6 w-16 bg-gray-200 rounded" />
+                    <div className="flex gap-2">
+                      <div className="h-8 w-8 bg-gray-200 rounded" />
+                      <div className="h-8 w-8 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0 p-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                <div className="flex items-center space-x-2">
+                  <div className="text-sm text-gray-600 h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -360,11 +362,7 @@ export default function UsersPage() {
           </div>
         </div>
         
-        {loading ? (
-          <div className="flex justify-center items-center flex-grow">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : paginatedUsers.length === 0 ? (
+        {paginatedUsers.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -497,29 +495,8 @@ export default function UsersPage() {
         schoolId={schoolId} 
         user={user} 
         onInviteSuccess={() => {
-          // Refresh user list
-          const fetchData = async () => {
-            if (!schoolId) return;
-            try {
-              const supabase = createClient();
-              const { data: userData, error: userError } = await supabase
-                .from('admin_user_info')
-                .select('id, first_name, last_name, email, role, avatar')
-                .eq('school_id', schoolId);
-
-              if (!userError) {
-                const usersWithStatus = (userData || []).map(user => ({
-                  ...user,
-                  status: 'active' as const,
-                  role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
-                }));
-                setUsers(usersWithStatus);
-              }
-            } catch (error) {
-              console.error('Error refreshing user data:', error);
-            }
-          };
-          fetchData();
+          // Invalidate the query to refetch users
+          queryClient.invalidateQueries({ queryKey: ['settings', 'users', schoolId] });
         }}
         onCodeGenerated={(code) => {
           setGeneratedInviteCode(code);
@@ -534,29 +511,8 @@ export default function UsersPage() {
           onOpenChange={setIsInviteManagementOpen} 
           schoolId={schoolId} 
           onFetchInviteData={() => {
-            // Refresh user list
-            const fetchData = async () => {
-              if (!schoolId) return;
-              try {
-                const supabase = createClient();
-                const { data: userData, error: userError } = await supabase
-                  .from('admin_user_info')
-                  .select('id, first_name, last_name, email, role, avatar')
-                  .eq('school_id', schoolId);
-
-                if (!userError) {
-                  const usersWithStatus = (userData || []).map(user => ({
-                    ...user,
-                    status: 'active' as const,
-                    role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
-                  }));
-                  setUsers(usersWithStatus);
-                }
-              } catch (error) {
-                console.error('Error refreshing user data:', error);
-              }
-            };
-            fetchData();
+            // Invalidate the query to refetch users
+            queryClient.invalidateQueries({ queryKey: ['settings', 'users', schoolId] });
           }} 
         />
       )}
@@ -568,10 +524,8 @@ export default function UsersPage() {
           onOpenChange={setIsDeleteDialogOpen} 
           userToDelete={userToDelete} 
           onDeleteSuccess={() => {
-            // Update users list
-            if (userToDelete) {
-              setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
-            }
+            // Invalidate the query to refetch users
+            queryClient.invalidateQueries({ queryKey: ['settings', 'users', schoolId] });
             // Close dialog and reset state
             setIsDeleteDialogOpen(false);
             setUserToDelete(null);

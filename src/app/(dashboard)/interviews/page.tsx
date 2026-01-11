@@ -23,9 +23,9 @@ export default function Page() {
         {/* <div className="flex flex-col min-h-0 overflow-hidden"> */}
           <InterviewCalendar />
         {/* </div> */}
-        {/* <div className="md:w-1/3 flex flex-col min-h-0 overflow-hidden">
-          <CandidatesList />
-        </div> */}
+       {/* <div className="md:w-1/3 flex flex-col min-h-0 overflow-hidden">  */}
+           {/* <CandidatesList /> */}
+        {/* </div>  */}
       {/* </div> */}
     </div>
   );

@@ -238,6 +238,11 @@ function CandidatesTableComponent({
   // Refs
   const candidateSearchInputRef = useRef<HTMLInputElement>(null);
 
+  // State for tracking operations
+  const [isSorting, setIsSorting] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [jobsFilterLoading, setJobsFilterLoading] = useState(false);
+
   // Use controlled state if provided, otherwise use local state
   const searchQuery = controlledSearchQuery !== undefined ? controlledSearchQuery : localSearchQuery;
   const statusFilter = controlledStatusFilter !== undefined ? controlledStatusFilter : localStatusFilter;
@@ -250,7 +255,14 @@ function CandidatesTableComponent({
   // Apply controlled state updates
   const handleSearchChange = useCallback((query: string) => {
     if (onSearchChange) {
+      setIsFiltering(true);
+      setJobsFilterLoading(true);
       onSearchChange(query);
+      // Reset filtering state after a short delay
+      setTimeout(() => {
+        setIsFiltering(false);
+        setJobsFilterLoading(false);
+      }, 300);
     } else {
       setLocalSearchQuery(query);
     }
@@ -258,7 +270,14 @@ function CandidatesTableComponent({
 
   const handleStatusFilterChange = useCallback((status: string) => {
     if (onStatusFilterChange) {
+      setIsFiltering(true);
+      setJobsFilterLoading(true);
       onStatusFilterChange(status);
+      // Reset filtering state after a short delay
+      setTimeout(() => {
+        setIsFiltering(false);
+        setJobsFilterLoading(false);
+      }, 300);
     } else {
       setLocalStatusFilter(status);
     }
@@ -282,7 +301,15 @@ function CandidatesTableComponent({
 
   const handleSortChange = useCallback((column: string, direction: 'asc' | 'desc') => {
     if (onSortChange) {
+      // Track sorting operation
+      setIsSorting(true);
+      setJobsFilterLoading(true);
       onSortChange(column, direction);
+      // Reset sorting state after a short delay to allow UI update
+      setTimeout(() => {
+        setIsSorting(false);
+        setJobsFilterLoading(false);
+      }, 300);
     } else {
       setLocalSortColumn(column);
       setLocalSortDirection(direction);
@@ -423,17 +450,17 @@ function CandidatesTableComponent({
               <TableHeader className="sticky top-0 z-20 bg-white border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className={cn("table-head table-head-border table-head-first bg-white")}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 cell-content">
                       Candidate
                     </div>
                   </TableHead>
                   <TableHead className={cn("table-head table-head-border bg-white")}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 cell-content">
                       Job Applied
                     </div>
                   </TableHead>
                   <TableHead className={cn("table-head table-head-border bg-white")}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 cell-content">
                       Status
                     </div>
                   </TableHead>
@@ -448,12 +475,12 @@ function CandidatesTableComponent({
                     </div>
                   </TableHead>
                   <TableHead className={cn("table-head table-head-border bg-white")}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 cell-content">
                       Date Applied
                     </div>
                   </TableHead>
                   <TableHead className={cn("table-head table-head-actions bg-white")}>
-                    <div className="table-head-content">Actions</div>
+                    <div className="table-head-content cell-content">Actions</div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -555,6 +582,11 @@ function CandidatesTableComponent({
         onChange={(e) => handleSearchChange(e.target.value)}
         ref={candidateSearchInputRef}
       />
+      {jobsFilterLoading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2" aria-label="Loading">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        </div>
+      )}
     </div>
     <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
       <SelectTrigger className="w-full sm:w-[180px]">
@@ -590,10 +622,10 @@ function CandidatesTableComponent({
         <TableHeader className="sticky top-0 z-20 bg-white border-b">
           <TableRow className="hover:bg-transparent">
             <TableHead 
-              className={cn("table-head table-head-border table-head-first bg-white", "cursor-pointer hover:bg-gray-50")}
+              className={cn("table-head table-head-border table-head-first bg-white border-l", "cursor-pointer hover:bg-gray-50")}
               onClick={() => handleSort('candidate')}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 cell-content">
                 Candidate
                 {getSortIndicator('candidate')}
               </div>
@@ -602,7 +634,7 @@ function CandidatesTableComponent({
               className={cn("table-head table-head-border bg-white", "cursor-pointer hover:bg-gray-50")}
               onClick={() => handleSort('job_title')}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 cell-content">
                 Job Applied
                 {getSortIndicator('job_title')}
               </div>
@@ -611,7 +643,7 @@ function CandidatesTableComponent({
               className={cn("table-head table-head-border bg-white", "cursor-pointer hover:bg-gray-50")}
               onClick={() => handleSort('application_status')}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 cell-content">
                 Status
                 {getSortIndicator('application_status')}
               </div>
@@ -621,27 +653,28 @@ function CandidatesTableComponent({
                 <span>Assessment</span>
               </div>
               <div className="assessment-subheader">
-                <span className="assessment-col">M</span>
-                <span className="assessment-col">V</span>
-                <span className="assessment-col-last">I</span>
+                <span className="assessment-col cell-content">M</span>
+                <span className="assessment-col cell-content">V</span>
+                <span className="assessment-col-last cell-content">I</span>
               </div>
             </TableHead>
             <TableHead 
               className={cn("table-head table-head-border bg-white", "cursor-pointer hover:bg-gray-50")}
               onClick={() => handleSort('created_at')}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 cell-content">
                 Date Applied
                 {getSortIndicator('created_at')}
               </div>
             </TableHead>
             <TableHead className={cn("table-head table-head-actions bg-white")}>
-              <div className="table-head-content">Actions</div>
+              <div className="table-head-content cell-content">Actions</div>
             </TableHead>
           </TableRow>
         </TableHeader>
        
         <TableBody role="rowgroup" aria-label="Candidates data">
+  
           {paginatedApplications.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8" role="cell">
@@ -703,6 +736,21 @@ function CandidatesTableComponent({
           )}
         </TableBody>
       </table>
+      
+      {/* Loading overlay - positioned within table container */}
+      {(isFetchingNextPage || jobsFilterLoading) && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 pointer-events-none">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-current border-t-transparent" />
+            <span className="text-sm text-gray-600">
+              {isFetchingNextPage ? 'Loading more candidates...' : 
+               isSorting ? 'Refreshing candidates...' : 
+               isFiltering ? 'Updating candidates...' : 
+               'Loading candidates...'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 
@@ -790,13 +838,15 @@ const ApplicationRow = React.memo(({
   return (
     <TableRow className="table-row-hover">
       <TableCell className="table-cell-border">
-        <div className="cell-content">
-          <p className="candidate-name">
-            {sanitizeInput(application.first_name)} {sanitizeInput(application.last_name)}
-          </p>
-          <p className="candidate-email">
-            {application.email || 'Email not specified'}
-          </p>
+        <div className="cell-content flex items-center gap-2">
+          <div className="flex flex-col">
+            <span className="candidate-name">
+              {sanitizeInput(application.first_name)} {sanitizeInput(application.last_name)}
+            </span>
+            <span className="candidate-email">
+              {(application.email || 'Email not specified').substring(0, 42)}{(application.email && application.email.length > 42) ? '...' : ''}
+            </span>
+          </div>
         </div>
       </TableCell>
 
