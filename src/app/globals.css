@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =========================================================
+   THEME TOKENS (UNCHANGED — SAFE)
+   ========================================================= */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -43,8 +47,16 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* =========================================================
+   ROOT SCALE — CRITICAL FIX
+   ========================================================= */
+
 :root {
+  /* 🔴 THIS IS WHAT FIXES MAC SCALE */
+  font-size: 14.5px;
+
   --radius: 0.625rem;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -52,22 +64,24 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: #4343ff;
-  --primary-foreground: #faf5ff; /* Tailwind purple-50 */
+  --primary-foreground: #faf5ff;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: #ffffffd6; /* Tailwind purple-300 */
-  --accent-foreground: #581c87; /* Tailwind purple-900 */
+  --accent: #ffffffd6;
+  --accent-foreground: #581c87;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: #4343ff; /* Tailwind purple-300 */
+  --ring: #4343ff;
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: #9b51e0;
@@ -78,6 +92,10 @@
   --sidebar-ring: #a78bfa;
 }
 
+/* =========================================================
+   DARK MODE (UNCHANGED LOGIC)
+   ========================================================= */
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -86,22 +104,17 @@
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: #4343ff;
-  --primary-foreground: ##4343ff; /* Tailwind purple-900 */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: #a78bfa; /* Tailwind purple-300 */
-  --accent-foreground: #faf5ff; /* Tailwind purple-50 */
+  --accent: #a78bfa;
+  --accent-foreground: #faf5ff;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #4343ff;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: #4343ff;
@@ -112,77 +125,77 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Custom Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* =========================================================
+   SaaS TYPOGRAPHY NORMALIZATION
+   ========================================================= */
+
+html, body {
+  height: 100%;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+body {
+  font-family: var(--font-sans);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Headings (NOT marketing-sized) */
+h1 { font-size: 16px; font-weight: 600; }
+h2 { font-size: 15px; font-weight: 600; }
+h3 { font-size: 14px; font-weight: 600; }
+
+/* =========================================================
+   TABLE SYSTEM — DESKTOP SAFE
+   ========================================================= */
+
+table {
+  font-size: 13px;
 }
 
-@keyframes spinSlow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  height: 40px;
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+tbody td {
+  padding: 10px 12px;
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out forwards;
+/* =========================================================
+   INPUTS / BUTTONS
+   ========================================================= */
+
+input,
+select,
+textarea {
+  font-size: 13px;
+  height: 36px;
 }
 
-.animate-scale-in {
-  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+button {
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.animate-spin-slow {
-  animation: spinSlow 2s linear infinite;
-}
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { scrollbar-width: none; }
+
+/* =========================================================
+   BASE LAYER
+   ========================================================= */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
   }
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }

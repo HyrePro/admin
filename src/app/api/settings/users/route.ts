@@ -1,65 +1,66 @@
+// /api/settings/users/route.ts
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/api/server';
 import { getUserWithSchoolId } from '@/lib/supabase/api/server-auth';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { user, schoolId, error } = await getUserWithSchoolId();
-    
-    if (!user) {
-      return Response.json({ error: error || 'Unauthorized' }, { status: 401 });
+    const { user, schoolId, error: authError } = await getUserWithSchoolId();
+    if (!user) return Response.json({ error: authError || 'Unauthorized' }, { status: 401 });
+    if (!schoolId) return Response.json({ error: 'No school associated with user' }, { status: 404 });
+
+    const body = await request.json();
+    const {
+      page = 0,
+      sort = 'joined_at',
+      asc = true,
+      search = null,
+      page_size = 20,
+    } = body;
+
+    const start_index = page * page_size;
+    const end_index = start_index + page_size - 1;
+
+    // Fetch paginated users via SQL function
+    const { data: usersData, error: usersError } = await supabase.rpc('get_admin_users', {
+      p_asc: asc,
+      p_end_index: end_index,
+      p_school_id: schoolId,
+      p_search: search,
+      p_sort: sort,
+      p_start_index: start_index,
+    });
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      return Response.json({ error: usersError.message }, { status: 500 });
     }
 
-    if (!schoolId) {
-      return Response.json({ error: 'No school associated with user' }, { status: 404 });
+    // Fetch total count via SQL function
+    const { data: totalData, error: totalError } = await supabase.rpc('get_admin_users_count', {
+      p_school_id: schoolId,
+      p_search: search,
+    });
+
+    if (totalError) {
+      console.error('Error fetching users count:', totalError);
+      return Response.json({ error: totalError.message }, { status: 500 });
     }
 
-    // Fetch admin users with avatar information
-    const { data: userData, error: userError } = await supabase
-      .from('admin_user_info')
-      .select('id, first_name, last_name, email, role, avatar')
-      .eq('school_id', schoolId);
-
-    if (userError) {
-      console.error('Error fetching admin users:', userError);
-      return Response.json({ error: userError.message }, { status: 500 });
-    }
-
-    // Transform user data to include status
-    const usersWithStatus = (userData || []).map(user => ({
-      ...user,
+    // Add default status 'active' to all users
+    const usersWithStatus = (usersData || []).map((u: any) => ({
+      ...u,
       status: 'active' as const,
-      role: (user.role || 'admin') as 'admin' | 'hr' | 'viewer'
+      role: String(u.role || 'admin') as 'admin' | 'hr' | 'interviewer' | 'viewer',
     }));
 
-    // Fetch panelists
-    const { data: panelistData, error: panelistError } = await supabase
-      .from('interview_panelists')
-      .select('id, name, email')
-      .eq('school_id', schoolId);
-
-    if (panelistError) {
-      console.error('Error fetching panelists:', panelistError);
-      return Response.json({ error: panelistError.message }, { status: 500 });
-    }
-
-    // Transform panelist data to match UserInfo structure
-    const panelistsAsUsers = (panelistData || []).map(panelist => ({
-      id: panelist.id,
-      first_name: panelist.name.split(' ')[0] || '',
-      last_name: panelist.name.split(' ').slice(1).join(' ') || '',
-      email: panelist.email,
-      role: 'interviewer' as const,
-      status: 'active' as const
-    }));
-
-    // Combine users and panelists
-    const allUsers = [...usersWithStatus, ...panelistsAsUsers];
-
-    return Response.json(allUsers);
-  } catch (error) {
-    console.error('Server error in users GET:', error);
+    return Response.json({
+      users: usersWithStatus,
+      total: totalData || 0,
+    });
+  } catch (err) {
+    console.error('Server error in users POST:', err);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

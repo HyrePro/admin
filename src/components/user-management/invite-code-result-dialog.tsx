@@ -1,15 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
+} from '@/components/ui/dialog';
+import { Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface InviteCodeResultDialogProps {
   open: boolean;
@@ -17,37 +18,50 @@ interface InviteCodeResultDialogProps {
   inviteCode: string;
 }
 
-export function InviteCodeResultDialog({ open, onOpenChange, inviteCode }: InviteCodeResultDialogProps) {
+export function InviteCodeResultDialog({
+  open,
+  onOpenChange,
+  inviteCode,
+}: InviteCodeResultDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Invite Code Generated</DialogTitle>
+          <DialogTitle>Invite code created</DialogTitle>
           <DialogDescription>
-            Share this code with the person you want to invite. They can use it to join your organization.
+            Share this code to allow a user to join your organization.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col items-center space-y-6 py-4">
-          <div className="flex justify-center space-x-2">
-            {inviteCode.split('').map((char, index) => (
-              <div key={index} className="w-12 h-12 flex items-center justify-center text-2xl font-bold border-2 border-gray-300 rounded-lg bg-gray-50">
-                {char}
-              </div>
-            ))}
+
+        <div className="mt-2 space-y-4">
+          {/* CODE DISPLAY */}
+          <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+            <span className="font-mono text-lg tracking-wider">
+              {inviteCode}
+            </span>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(inviteCode);
+                  toast.success('Invite code copied');
+                } catch {
+                  toast.error('Copy failed');
+                }
+              }}
+              aria-label="Copy invite code"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
-          <Button 
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(inviteCode);
-                toast.success('Code copied to clipboard');
-              } catch (err) {
-                console.error('Failed to copy: ', err);
-                toast.error('Failed to copy code');
-              }
-            }}
-          >
-            Copy Code
-          </Button>
+
+          {/* CONTEXT */}
+          <p className="text-sm text-muted-foreground">
+            Anyone with this code can join until it expires. You can revoke it at any time from user settings.
+          </p>
         </div>
       </DialogContent>
     </Dialog>

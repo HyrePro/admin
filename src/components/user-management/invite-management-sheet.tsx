@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Trash2, Copy, Users, KeyRound } from "lucide-react";
 import {
   Empty,
@@ -56,50 +56,167 @@ interface InviteManagementSheetProps {
 
 export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInviteData }: InviteManagementSheetProps) {
   const [activeTab, setActiveTab] = useState<'users' | 'codes'>('users');
-  const [inviteData, setInviteData] = useState<InviteData[]>([]);
-  const [isLoadingInviteData, setIsLoadingInviteData] = useState(false);
-
-  // Fetch invite data for the management sheet
-  const fetchInviteData = async () => {
-    if (!schoolId) return;
-    
-    setIsLoadingInviteData(true);
-    try {
+  
+  const queryClient = useQueryClient();
+  
+  // Query for fetching invite data
+  const { data: inviteData = [], isLoading: isLoadingInviteData, refetch } = useQuery<InviteData[]>({
+    queryKey: ['inviteData', schoolId],
+    queryFn: async () => {
+      if (!schoolId) {
+        return [];
+      }
+      
       const supabase = createClient();
-      const { data, error } = await supabase.rpc('get_invite_data', { p_school_id: schoolId });
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (error) throw error;
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
       
-      setInviteData(data || []);
-    } catch (error) {
-      console.error('Error fetching invite data:', error);
-      toast.error('Failed to load invite data');
-    } finally {
-      setIsLoadingInviteData(false);
-    }
-  };
+      // Fetch both invite codes and email invitations
+      const [codesResponse, emailsResponse] = await Promise.all([
+        fetch(`/api/invites/data?schoolId=${encodeURIComponent(schoolId)}`, {
+          headers: {
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(`/api/invites/email?schoolId=${encodeURIComponent(schoolId)}`, {
+          headers: {
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
+      
+      // Process invite codes response
+      let codesData = [];
+      if (codesResponse.ok) {
+        const codesResult = await codesResponse.json();
+        codesData = codesResult.data || [];
+      } else {
+        const errorData = await codesResponse.json();
+        console.error('Error fetching invite codes:', errorData.error);
+      }
+      
+      // Process email invitations response
+      let emailsData = [];
+      if (emailsResponse.ok) {
+        const emailsResult = await emailsResponse.json();
+        emailsData = emailsResult.data || [];
+      } else {
+        const errorData = await emailsResponse.json();
+        console.error('Error fetching email invitations:', errorData.error);
+      }
+      
+      // Define the email invitation type
+      interface EmailInvitation {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        status: string;
+        created_at: string;
+        expires_at: string;
+        invited_by: string;
+      }
+      
+      // Transform email invitations to match the existing InviteData format
+      const transformedEmailInvites = emailsData.map((emailInvite: EmailInvitation) => ({
+        code_id: null,
+        invite_code: null,
+        code_role: null,
+        code_expires_at: null,
+        code_created_by: emailInvite.invited_by || 'Unknown',
+        code_status: null,
+        associated_user_id: null,
+        associated_user_name: null,
+        associated_user_email: null,
+        user_id: emailInvite.id,
+        user_name: emailInvite.name,
+        user_email: emailInvite.email,
+        user_role: emailInvite.role,
+        user_invited_at: emailInvite.created_at,
+        user_status: emailInvite.status
+      }));
+      
+      // Combine both sets of data
+      return [...codesData, ...transformedEmailInvites];
+    },
+    enabled: !!schoolId && open, // Only fetch when schoolId is present and sheet is open
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  // Delete invite data (code or user)
-  const deleteInviteData = async (itemId: string, itemType: 'code' | 'user') => {
-    if (!schoolId) return;
-    
-    try {
+  // Mutation for deleting invite data
+  const deleteMutation = useMutation({
+    mutationFn: async ({ itemId, itemType }: { itemId: string; itemType: 'code' | 'user' | 'email' }) => {
+      if (!schoolId) {
+        throw new Error('School ID is required');
+      }
+      
       const supabase = createClient();
-      const { error } = await supabase.rpc('delete_invite_data', {
-        p_school_id: schoolId,
-        p_item_id: itemId,
-        p_item_type: itemType
-      });
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (error) throw error;
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
       
-      // Refresh the data
-      fetchInviteData();
-      toast.success(itemType === 'code' ? 'Invite code deleted' : 'User removed');
-    } catch (error) {
+      // Different API routes based on item type
+      let response;
+      if (itemType === 'email') {
+        // For email invitations, call the email-specific delete API
+        response = await fetch('/api/invites/email/delete', {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            schoolId,
+            invitationId: itemId,
+          }),
+        });
+      } else {
+        // For invite codes and legacy users, use the existing API
+        response = await fetch('/api/invites/data/delete', {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            schoolId,
+            itemId,
+            itemType,
+          }),
+        });
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete invite data');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['inviteData', schoolId] });
+      const message = variables.itemType === 'code' 
+        ? 'Invite code deleted' 
+        : variables.itemType === 'email'
+          ? 'Email invitation deleted'
+          : 'User removed';
+      toast.success(message);
+    },
+    onError: (error) => {
       console.error('Error deleting invite data:', error);
       toast.error('Failed to delete item');
-    }
+    },
+  });
+  
+  const deleteInviteData = (itemId: string, itemType: 'code' | 'user' | 'email') => {
+    deleteMutation.mutate({ itemId, itemType });
   };
 
   // Get role badge variant
@@ -113,20 +230,19 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
     }
   };
 
-  // Fetch data when sheet opens
+  // The data is automatically fetched when the sheet opens due to the query configuration
   useEffect(() => {
-    if (open) {
+    if (open && schoolId) {
       setActiveTab('users');
-      fetchInviteData();
     }
-  }, [open]);
+  }, [open, schoolId]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
+      <SheetContent
         side="right"
         className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl flex flex-col"
-        style={{ 
+        style={{
           maxWidth: '95vw',
           minWidth: '500px',
           width: 'auto'
@@ -138,7 +254,7 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
             View and manage invited users and invite codes
           </SheetDescription>
         </SheetHeader>
-        
+
         <div className="flex-1 flex flex-col">
           {/* Tab navigation */}
           <div className="flex border-b mb-6">
@@ -155,7 +271,7 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
               Invite Codes
             </button>
           </div>
-          
+
           {/* Tab content */}
           {isLoadingInviteData ? (
             <div className="flex justify-center items-center h-32">
@@ -179,7 +295,14 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => item.user_id && deleteInviteData(item.user_id, 'user')}
+                                onClick={() => {
+                                  if (!item.user_id) return;
+                                  // Determine if this is an email invitation or a legacy user
+                                  // Email invitations will have null code_id but non-null user_id
+                                  const isEmailInvitation = item.code_id === null && item.user_id !== null;
+                                  const itemType = isEmailInvitation ? 'email' : 'user';
+                                  deleteInviteData(item.user_id, itemType);
+                                }}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -215,16 +338,7 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
                         When users are invited, they will appear here.
                       </EmptyDescription>
                     </EmptyHeader>
-                    <EmptyContent>
-                      <Button 
-                        size="lg"
-                        variant="outline"
-                        onClick={() => setActiveTab('codes')}
-                      >
-                        <KeyRound className="mr-2 h-4 w-4" />
-                        Manage Invite Codes
-                      </Button>
-                    </EmptyContent>
+
                   </Empty>
                 )
               ) : (
@@ -233,74 +347,100 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
                     {inviteData
                       .filter(item => item.code_id !== null)
                       .map((item) => (
-                        <Card key={item.code_id || ''} className="mx-2">
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <CardTitle className="text-lg font-mono bg-muted/30 border border-dashed rounded-md px-2 py-1 flex-1">
-                                    {item.invite_code}
-                                  </CardTitle>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(item.invite_code);
-                                      toast.success('Invite code copied to clipboard!');
-                                    }}
-                                    aria-label="Copy invite code"
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </Button>
+                        <Card key={item.code_id || ''} className="mx-2 border shadow-none">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between gap-3">
+                              {/* code block */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-1.5 font-mono text-sm tracking-wide border">
+                                  {item.invite_code}
                                 </div>
+
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(item.invite_code)
+                                    toast.success('Invite code copied')
+                                  }}
+                                  aria-label="Copy invite code"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
                               </div>
+
+                              {/* delete */}
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => item.code_id && deleteInviteData(item.code_id, 'code')}
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  if (!item.code_id) return;
+                                  deleteInviteData(item.code_id, 'code');
+                                }}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge variant={getRoleBadgeVariant(item.code_role)}>
+
+                          <CardContent className="pt-0 space-y-4">
+                            {/* badges */}
+                            <div className="flex flex-wrap gap-2">
+                              <Badge
+                                className="bg-blue-100 text-blue-900 border border-blue-200 capitalize"
+                              >
                                 {item.code_role}
                               </Badge>
-                              <Badge variant={
-                                item.code_status === 'Active' ? 'default' : 
-                                item.code_status === 'Expired' ? 'destructive' : 'secondary'
-                              }>
+
+                              <Badge
+                                className={
+                                  item.code_status === 'Active'
+                                    ? 'bg-green-100 text-green-900 border border-green-200'
+                                    : item.code_status === 'Expired'
+                                      ? 'bg-red-100 text-red-900 border border-red-200'
+                                      : 'bg-muted text-foreground'
+                                }
+                              >
                                 {item.code_status}
                               </Badge>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Created: </span>
-                                <span>{item.code_created_by}</span>
+
+                            {/* metadata */}
+                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                              <div className="flex gap-1">
+                                <span className="text-muted-foreground">Created by</span>
+                                <span className="truncate">{item.code_created_by}</span>
                               </div>
-                              <div>
-                                <span className="text-muted-foreground">Expiry: </span>
+
+                              <div className="flex gap-1">
+                                <span className="text-muted-foreground">Expires</span>
                                 <span>{new Date(item.code_expires_at).toLocaleDateString()}</span>
                               </div>
-                              <div className="col-span-2">
-                                <span className="text-muted-foreground">User: </span>
+
+                              <div className="col-span-2 flex gap-1">
+                                <span className="text-muted-foreground">Used by</span>
                                 <span>
                                   {item.associated_user_name ? (
-                                    <span>
-                                      {item.associated_user_name} ({item.associated_user_email})
-                                    </span>
+                                    <>
+                                      {item.associated_user_name}
+                                      <span className="text-muted-foreground">
+                                        {' '}
+                                        ({item.associated_user_email})
+                                      </span>
+                                    </>
                                   ) : (
-                                    'Not used'
+                                    <span className="italic text-muted-foreground">Not used</span>
                                   )}
                                 </span>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
+
                       ))}
-                    
+
                   </div>
                 ) : (
                   <Empty>
@@ -314,16 +454,6 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
                         Create invite codes to allow users to join your organization.
                       </EmptyDescription>
                     </EmptyHeader>
-                    <EmptyContent>
-                      <Button 
-                        size="lg"
-                        variant="outline"
-                        onClick={() => setActiveTab('users')}
-                      >
-                        <Users className="mr-2 h-4 w-4" />
-                        Manage Users
-                      </Button>
-                    </EmptyContent>
                   </Empty>
                 )
               )}
