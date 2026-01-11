@@ -50,5 +50,6 @@ export {
   Users as UsersIcon,
   MoreVertical,
   Edit3,
-  FileText
+  FileText,
+  Phone
 } from 'lucide-react'

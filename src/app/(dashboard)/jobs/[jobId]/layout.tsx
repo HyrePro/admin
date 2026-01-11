@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
@@ -16,7 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit } from "@/components/icons";
+import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit, ChevronDown } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/api/client";
 import dynamic from "next/dynamic";
@@ -100,6 +100,7 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                                  pathSegments.length >= 3 &&
                                  pathSegments[1] === jobId &&  // Second segment matches the jobId
                                  pathSegments[2] !== 'candidates' && 
+                                 pathSegments[2] !== 'assessment' && 
                                  pathSegments[2] !== 'analytics';
 
   const handleGoBack = () => {
@@ -340,7 +341,7 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
 
   return (
     <JobContext.Provider value={{ job }}>
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-white">
         {/* Confirmation Dialog */}
         <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
           <DialogContent>
@@ -376,10 +377,9 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
         />
 
         {!isApplicationDetailsPage && (
-          <div className="flex-shrink-0 mt-4">
-            {/* Header with job title and action buttons */}
-            {/* add breadcrumb here */}
-            <Breadcrumb className="px-4">
+          <div className="flex-shrink-0 border-b border-gray-200">
+            {/* Breadcrumb */}
+            <Breadcrumb className="px-6 pt-4">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <Link href="/jobs" scroll={false}>
@@ -392,123 +392,199 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <div className="mt-2">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4">
-                <div className="flex flex-row gap-2">
-                  <h2 className="text-2xl font-bold leading-tight">
-                    {job?.title}
-                  </h2>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "capitalize font-medium text-sm",
-                      statusColors[job?.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
-                    )}
-                  >
-                    {job?.status === "ALL" ? "All" : job?.status?.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                  </Badge>
+
+            {/* Header with job title and action buttons */}
+            <div className="px-6 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  <div className="flex flex-row items-center gap-2 flex-wrap">
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {job?.title}
+                    </h1>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "capitalize font-medium text-xs px-2 py-0.5 cursor-pointer flex items-center gap-1",
+                            statusColors[job?.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
+                          )}
+                        >
+                          {job?.status === "ALL" ? "All" : job?.status?.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                          <ChevronDown className="h-3 w-3" />
+                        </Badge>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-2">
+                        <div className="space-y-1">
+                          {['OPEN', 'COMPLETED', 'PAUSED'].map((status) => (
+                            <Button
+                              key={status}
+                              variant="ghost"
+                              className={`w-full justify-between text-sm ${selectedStatus === status ? 'bg-blue-50 text-blue-700' : ''}`}
+                              onClick={() => handleStatusChange(status)}
+                              disabled={selectedStatus === status}
+                            >
+                              {status.toLowerCase().replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                              {selectedStatus === status && (
+                                <span className="ml-2">•</span>
+                              )}
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  {/* Job metadata */}
+                  <div className="flex items-center gap-3 text-sm flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      <span className="font-medium text-gray-900">#{job?.id.slice(0, 6)}</span>
+                    </div>
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="font-medium text-gray-900">{job?.job_type || 'Full Time'}</span>
+                    </div>
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="font-medium text-gray-900">{job?.location || 'Riyadh, Saudi Arabia'}</span>
+                    </div>
+                    <span className="text-gray-300 hidden lg:inline">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-gray-600">Job Available:</span>
+                      <span className="font-medium text-gray-900">{job?.openings || 3}/10</span>
+                    </div>
+                    <span className="text-gray-300 hidden lg:inline">|</span>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-gray-600">Added at:</span>
+                      <span className="font-medium text-gray-900">{job?.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '14 Apr, 2025'}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-xs"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={() => setIsEditDialogOpen(true)}
                   >
-                    <Edit className="h-3.5 w-3.5 mr-1.5" />
-                    Edit Details
+                    <Edit className="h-4 w-4 text-gray-600" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Share className="h-4 w-4 text-gray-600" />
+                    )}
                   </Button>
 
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 text-xs"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                       >
-                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                        Change Status
+                        <svg className="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-48 p-2">
+                    <PopoverContent className="w-48 p-1" align="end">
                       <div className="space-y-1">
-                        {["OPEN", "COMPLETED", "PAUSED"].map((status) => (
-                          <Button
-                            key={status}
-                            variant="ghost"
-                            className={`w-full justify-between ${selectedStatus === status ? 'bg-blue-50 text-blue-700' : ''}`}
-                            onClick={() => handleStatusChange(status)}
-                            disabled={selectedStatus === status}
-                          >
-                            {status.toLowerCase().replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                            {selectedStatus === status && (
-                              <span className="ml-2">•</span>
-                            )}
-                          </Button>
-                        ))}
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-sm font-normal"
+                          onClick={handleCopyLink}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Job Link
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-sm font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Job
+                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-xs"
-                    onClick={handleCopyLink}
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 mr-1.5" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5 mr-1.5" />
-                        Share Job Link
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
+            </div>
 
-              {/* Tab navigation */}
-              <div className="w-full mt-4">
-                <div className="flex border-b border-gray-200 px-4">
-                  <button
-                    onClick={() => nextRouter.push(`/jobs/${jobId}`)}
-                    className={cn(
-                      "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                      pathname === `/jobs/${jobId}` || pathname === `/jobs/${jobId}/`
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-                    )}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => nextRouter.push(`/jobs/${jobId}/candidates`)}
-                    className={cn(
-                      "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                      pathname.endsWith("/candidates")
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-                    )}
-                  >
-                    Candidates
-                  </button>
-                  <button
-                    onClick={() => nextRouter.push(`/jobs/${jobId}/analytics`)}
-                    className={cn(
-                      "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                      pathname.endsWith("/analytics")
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-                    )}
-                  >
-                    Analytics
-                  </button>
-                </div>
+            {/* Tab navigation */}
+            <div className="w-full">
+              <div className="flex border-b border-gray-200 px-6">
+                <button
+                  onClick={() => nextRouter.push(`/jobs/${jobId}`)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                    pathname === `/jobs/${jobId}` || pathname === `/jobs/${jobId}/`
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                  )}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => nextRouter.push(`/jobs/${jobId}/assessment`)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                    pathname.endsWith("/assessment")
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                  )}
+                >
+                  Assessment
+                </button>
+                <button
+                  onClick={() => nextRouter.push(`/jobs/${jobId}/candidates`)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                    pathname.endsWith("/candidates")
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                  )}
+                >
+                  Candidates
+                </button>
+                <button
+                  onClick={() => nextRouter.push(`/jobs/${jobId}/analytics`)}
+                  className={cn(
+                    "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                    pathname.endsWith("/analytics")
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                  )}
+                >
+                  Analytics
+                </button>
               </div>
             </div>
           </div>

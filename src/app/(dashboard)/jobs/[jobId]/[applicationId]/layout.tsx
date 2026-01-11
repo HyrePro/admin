@@ -14,16 +14,20 @@ import {
   FileText,
   AlertCircle,
   RefreshCw,
-  MoreVertical
+  MoreVertical,
+  Mail,
+  MapPin,
+  Phone
 } from "@/components/icons";
 import { createClient } from "@/lib/supabase/api/client";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
-import { statusColors } from "../../../../../../utils/statusColor";
+
 import { MakeOfferDialog } from "@/components/make-offer-dialog";
 import { RejectCandidateDialog } from "@/components/reject-candidate-dialog";
 import { toast } from "sonner";
 import { usePathname, useRouter as useNextRouter } from "next/navigation";
+import { getStatusBadgeClasses, getStatusDotColor } from "../../../../../../utils/statusColor";
 
 // Types
 type CandidateInfo = {
@@ -126,7 +130,6 @@ async function getJobApplication(applicationId: string) {
   try {
     const supabase = createClient();
     
-    // Fetch job application data using the RPC function
     const { data, error } = await supabase.rpc("get_job_application", {
       p_application_id: applicationId,
     });
@@ -141,7 +144,6 @@ async function getJobApplication(applicationId: string) {
       throw new Error("Application not found");
     }
 
-    // Split data into candidate info and application stage
     const candidateInfo = {
       application_id: applicationData.application_id,
       first_name: applicationData.first_name,
@@ -301,7 +303,6 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
       setCandidateInfo(result.candidateInfo ? JSON.parse(JSON.stringify(result.candidateInfo)) : null);
       setApplicationStage(result.applicationStage ? JSON.parse(JSON.stringify(result.applicationStage)) : null);
       
-      // Fetch AI evaluation if status is ai_recommendation_completed
       if (result.applicationStage?.status === "ai_recommendation_completed") {
         const aiResult = await getAIEvaluation(applicationId);
         if (!aiResult.error) {
@@ -327,42 +328,10 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
   // Loading state
   if (loading) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-4 px-4 pt-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGoBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="border rounded-lg p-4 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              </div>
-              <div className="border rounded-lg p-4 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="h-full flex flex-col bg-white">
+        <div className="px-6 pt-4">
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-1/3 mb-4"></div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-1/2"></div>
         </div>
       </div>
     );
@@ -371,19 +340,21 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
   // Error state
   if (error) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-4 px-4 pt-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGoBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
-          </div>
+      <div className="h-full flex flex-col bg-white">
+        <div className="px-6 pt-4">
+          <Breadcrumb className="mb-4">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <Link href="/jobs" scroll={false}>
+                  <BreadcrumbLink>Jobs</BreadcrumbLink>
+                </Link>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Error</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
           <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -407,22 +378,8 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
   // Not found state
   if (!candidateInfo || !applicationStage) {
     return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center gap-4 px-4 pt-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGoBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-gray-500" />
-            <h1 className="text-2xl font-bold tracking-tight">Application Details</h1>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6">
+      <div className="h-full flex flex-col bg-white">
+        <div className="px-6 pt-4">
           <div className="text-center py-12">
             <p className="text-gray-600">Application not found</p>
           </div>
@@ -442,10 +399,11 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
       error,
       refreshData
     }}>
-      <div className="flex flex-col h-full">
-        {/* Header with Back Button */}
-        <div className="flex pt-4 flex-shrink-0">
-          <Breadcrumb className="px-4 mb-4">
+      <div className="flex flex-col h-full bg-white">
+        {/* Header Section */}
+        <div className="flex-shrink-0 border-b border-gray-200">
+          {/* Breadcrumb */}
+          <Breadcrumb className="px-6 pt-4">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <Link href="/jobs" scroll={false}>
@@ -453,144 +411,155 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                 </Link>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-
               <BreadcrumbItem>
                 <Link href={`/jobs/${jobId}`} scroll={false}>
                   <BreadcrumbLink>{loadingJobTitle ? "Loading..." : (jobTitle || "Job Details")}</BreadcrumbLink>
                 </Link>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
-
               <BreadcrumbItem>
                 <BreadcrumbPage>{candidateInfo?.first_name} {candidateInfo?.last_name}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-        </div>
 
-        {/* Application Title and Basic Info */}
-        <div className="space-y-4 px-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold">
-                {(candidateInfo?.first_name?.[0] || '').toUpperCase()}
-                {(candidateInfo?.last_name?.[0] || '').toUpperCase() || 'U'}
-              </div>
+          {/* Candidate Header */}
+          <div className="px-6 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-4 flex-1 min-w-0">
+                {/* Avatar */}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-base font-semibold flex-shrink-0">
+                  {(candidateInfo?.first_name?.[0] || '').toUpperCase()}
+                  {(candidateInfo?.last_name?.[0] || '').toUpperCase() || 'U'}
+                </div>
 
-              {/* Candidate Info */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {candidateInfo?.first_name} {candidateInfo?.last_name}
-                  </h2>
+                {/* Candidate Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {candidateInfo?.first_name} {candidateInfo?.last_name}
+                    </h1>
+                    
+                    {/* Status Badge */}
+                    <Badge className={getStatusBadgeClasses(applicationStage?.status)}>
+                      <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
+                        style={{ backgroundColor: getStatusDotColor(applicationStage?.status) }}
+                      />
+                      {applicationStage?.status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                  </div>
                   
-                  {/* Status Badge - Show AI recommendation if available, otherwise show regular status */}
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "capitalize font-medium text-sm",
-                      aiEvaluation?.final_recommendation
-                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white border-transparent"
-                        : statusColors[applicationStage?.status as keyof typeof statusColors] 
-                          ? `${statusColors[applicationStage?.status as keyof typeof statusColors]} text-white` 
-                          : "bg-gray-50 text-gray-700 border-gray-200"
+                  {/* Contact Info */}
+                  <div className="flex items-center gap-3 text-sm flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">{candidateInfo?.email}</span>
+                    </div>
+                    {candidateInfo?.phone && (
+                      <>
+                        <span className="text-gray-300 hidden sm:inline">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">{candidateInfo.phone}</span>
+                        </div>
+                      </>
                     )}
-                  >
-                    {aiEvaluation?.final_recommendation 
-                      ? aiEvaluation.final_recommendation.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-                      : applicationStage?.status?.replaceAll("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </Badge>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-base text-gray-600 mt-1">
-                  <span>{candidateInfo?.email}</span>
-                  {(candidateInfo?.city && candidateInfo?.state) && (
-                    <>
-                      <span className="hidden sm:inline">|</span>
-                      <span>{candidateInfo.city}, {candidateInfo.state}</span>
-                    </>
-                  )}
+                    {(candidateInfo?.city && candidateInfo?.state) && (
+                      <>
+                        <span className="text-gray-300 hidden sm:inline">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">{candidateInfo.city}, {candidateInfo.state}</span>
+                        </div>
+                      </>
+                    )}
+                    {candidateInfo?.created_at && (
+                      <>
+                        <span className="text-gray-300 hidden lg:inline">|</span>
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-gray-600">Applied:</span>
+                          <span className="font-medium text-gray-900">
+                            {new Date(candidateInfo.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action Buttons and Popover */}
-            <div className="flex items-center gap-2">
-              {/* Desktop Action Buttons */}
-              <div className="hidden md:flex gap-2">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Offer/Reject Buttons - Desktop */}
                 {applicationStage?.status === "ai_recommendation_completed" && (
-                  <>
+                  <div className="hidden md:flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="border-red-600 text-red-600 hover:bg-red-50 h-8"
+                      className="border-red-600 text-red-600 hover:bg-red-50 h-8 text-xs px-3"
                       onClick={handleReject}
                     >
                       Reject
                     </Button>
                     <Button 
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white h-8"
+                      className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs px-3"
                       onClick={handleOffer}
                     >
-                      Offer
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {/* Quick Actions Popover */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 hover:bg-gray-100"
-                    aria-label="Quick actions"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-48 p-0">
-                  <div className="space-y-1 p-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleMessageCandidate}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Message Candidate
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleChangeStatus}
-                    >
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Change Status
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-9 px-3 text-sm"
-                      onClick={handleAddNote}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Add Note
+                      Make Offer
                     </Button>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+                )}
 
-          {/* Mobile Action Buttons - Moved above tabs for mobile */}
-          <div className="md:hidden flex gap-2 mt-4">
+                {/* More Options */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                    >
+                      <MoreVertical className="h-4 w-4 text-gray-600" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1" align="end">
+                    <div className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-sm font-normal h-9 px-3"
+                        onClick={handleMessageCandidate}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Message Candidate
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-sm font-normal h-9 px-3"
+                        onClick={handleChangeStatus}
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Change Status
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-sm font-normal h-9 px-3"
+                        onClick={handleAddNote}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Add Note
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Mobile Action Buttons */}
             {applicationStage?.status === "ai_recommendation_completed" && (
-              <>
+              <div className="md:hidden flex gap-2 mt-4">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -604,71 +573,71 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                   className="bg-green-600 hover:bg-green-700 text-white h-8 flex-1"
                   onClick={handleOffer}
                 >
-                  Offer
+                  Make Offer
                 </Button>
-              </>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Tab navigation */}
-        <div className="w-full px-4 mt-4 flex-shrink-0">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}`)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                pathname === `/jobs/${jobId}/${applicationId}` || pathname === `/jobs/${jobId}/${applicationId}/`
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Info
-            </button>
-            <button
-              onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/assessment`)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                pathname.endsWith("/assessment")
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              MCQ Assessment
-            </button>
-            <button
-              onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/video-assessment`)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                pathname.endsWith("/video-assessment")
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Video Assessment
-            </button>
-            <button
-              onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/panelist-review`)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                pathname.endsWith("/panelist-review")
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              Panelist Review
-            </button>
-            <button
-              onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/ai-recommendation`)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
-                pathname.endsWith("/ai-recommendation")
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
-              )}
-            >
-              AI Recommendation
-            </button>
+          {/* Tab navigation */}
+          <div className="w-full">
+            <div className="flex border-b border-gray-200 px-6">
+              <button
+                onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}`)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                  pathname === `/jobs/${jobId}/${applicationId}` || pathname === `/jobs/${jobId}/${applicationId}/`
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Info
+              </button>
+              <button
+                onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/assessment`)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                  pathname.endsWith("/assessment")
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                MCQ Assessment
+              </button>
+              <button
+                onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/video-assessment`)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                  pathname.endsWith("/video-assessment")
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Video Assessment
+              </button>
+              <button
+                onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/panelist-review`)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                  pathname.endsWith("/panelist-review")
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                Panelist Review
+              </button>
+              <button
+                onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}/ai-recommendation`)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
+                  pathname.endsWith("/ai-recommendation")
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
+                )}
+              >
+                AI Recommendation
+              </button>
+            </div>
           </div>
         </div>
 
