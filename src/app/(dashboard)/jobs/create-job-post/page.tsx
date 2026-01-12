@@ -71,23 +71,8 @@ const validationSchema = Yup.object({
   gradeLevel: Yup.array().min(1, 'At least one grade level is required'),
   employmentType: Yup.string().required('Employment type is required'),
   experience: Yup.string(),
-  salaryMin: Yup.number()
-    .transform((value, originalValue) => 
-      originalValue === '' ? undefined : value
-    )
-    .min(0, 'Minimum salary must be 0 or greater')
-    .optional(),
-  salaryMax: Yup.number()
-    .transform((value, originalValue) => 
-      originalValue === '' ? undefined : value
-    )
-    .min(0, 'Maximum salary must be 0 or greater')
-    .when('salaryMin', ([salaryMin], schema) => {
-      return salaryMin !== undefined
-        ? schema.min(salaryMin, 'Maximum salary must be greater than or equal to minimum salary')
-        : schema;
-    })
-    .optional(),
+  salaryRange: Yup.string().required('Salary range is required'),
+  hiringUrgency: Yup.string().required('Hiring urgency is required'),
   numberOfOpenings: Yup.number()
     .min(1, 'Number of openings must be at least 1')
     .required('Number of openings is required')
@@ -101,8 +86,8 @@ type FormValues = {
   gradeLevel: string[]
   employmentType: string
   experience: string
-  salaryMin?: number
-  salaryMax?: number
+  salaryRange?: string
+  hiringUrgency?: string
   numberOfOpenings?: number
 }
 
@@ -113,8 +98,8 @@ const initialValues: FormValues = {
   gradeLevel: [],
   employmentType: 'full-time',
   experience: 'any',
-  salaryMin: 0,
-  salaryMax: 0,
+  salaryRange: 'not-disclosed',
+  hiringUrgency: 'within-2-weeks',
   numberOfOpenings: 1,
 }
 
@@ -252,8 +237,8 @@ export default function CreateJobApplicationPage() {
     employmentType: jobInfo.employmentType,
     subjects: jobInfo.subjects,
     gradeLevel: jobInfo.gradeLevel,
-    salaryMin: jobInfo.salaryMin?.toString() ?? "",
-    salaryMax: jobInfo.salaryMax?.toString() ?? "",
+    salaryRange: jobInfo.salaryRange ?? "not-disclosed",
+    hiringUrgency: jobInfo.hiringUrgency ?? "within-2-weeks",
     numberOfOpenings: jobInfo.numberOfOpenings,
     schoolName: "Dayanand Public School",
     location: "Mumbai",
@@ -304,8 +289,8 @@ export default function CreateJobApplicationPage() {
             subjects: true,
             gradeLevel: true,
             employmentType: true,
-            salaryMin: true,
-            salaryMax: true,
+            salaryRange: true,
+            hiringUrgency: true,
           })
           return
         }
@@ -557,8 +542,8 @@ export default function CreateJobApplicationPage() {
     employmentType: jobInfo.employmentType,
     subjects: jobInfo.subjects,
     gradeLevel: jobInfo.gradeLevel,
-    salaryMin: jobInfo.salaryMin?.toString() ?? "",
-    salaryMax: jobInfo.salaryMax?.toString() ?? "",
+    salaryRange: jobInfo.salaryRange ?? "not-disclosed",
+    hiringUrgency: jobInfo.hiringUrgency ?? "within-2-weeks",
     numberOfOpenings: jobInfo.numberOfOpenings,
     schoolName: "Dayanand Public School",
     location: "Mumbai",

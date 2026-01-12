@@ -110,8 +110,8 @@ type FormValues = {
   gradeLevel: string[]
   employmentType: string
   experience: string
-  salaryMin?: number
-  salaryMax?: number
+  salaryRange?: string
+  hiringUrgency?: string
   numberOfOpenings?: number
 }
 
@@ -213,12 +213,32 @@ export function BasicJobInformation(props: BasicJobInformationProps) {
       const { schoolName, board, schoolType } = schoolInfoData
       // Prepare salary range string
       let salaryRange = ""
-      if (values.salaryMin && values.salaryMax) {
-        salaryRange = `₹${values.salaryMin} - ₹${values.salaryMax}`
-      } else if (values.salaryMin) {
-        salaryRange = `₹${values.salaryMin}+`
-      } else if (values.salaryMax) {
-        salaryRange = `Up to ₹${values.salaryMax}`
+      if (values.salaryRange) {
+        switch(values.salaryRange) {
+          case "not-disclosed":
+            salaryRange = "Not disclosed"
+            break
+          case "2-3-lakhs":
+            salaryRange = "₹2-3 lakhs"
+            break
+          case "3-4-lakhs":
+            salaryRange = "₹3-4 lakhs"
+            break
+          case "4-5-lakhs":
+            salaryRange = "₹4-5 lakhs"
+            break
+          case "5-7-lakhs":
+            salaryRange = "₹5-7 lakhs"
+            break
+          case "7-10-lakhs":
+            salaryRange = "₹7-10 lakhs"
+            break
+          case "above-10-lakhs":
+            salaryRange = "Above ₹10 lakhs"
+            break
+          default:
+            salaryRange = "Not disclosed"
+        }
       }
 
       // Validate required fields before proceeding
@@ -551,36 +571,59 @@ ${result.application_notes ? `Application Notes:\n${result.application_notes}` :
           )}
         </div>
       </div>
-      {/* Salary Range */}
-      <div>
-        <Label>Salary Range (Annual)</Label>
-        <div className="grid grid-cols-2 gap-4 mt-2">
-          <div>
-            <Field
-              as={Input}
-              name="salaryMin"
-              placeholder="Min (₹)"
-              type="number"
-              className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
-            />
-            {errors.salaryMin && (
-              <div className="text-xs text-red-500 mt-1">{errors.salaryMin}</div>
-            )}
-          </div>
-          <div>
-            <Field
-              as={Input}
-              name="salaryMax"
-              placeholder="Max (₹)"
-              type="number"
-              className="focus-visible:ring-blue-500 focus-visible:border-blue-500 focus-visible:ring-1"
-            />
-            {errors.salaryMax && (
-              <div className="text-xs text-red-500 mt-1">{errors.salaryMax}</div>
-            )}
+      {/* Salary Range and Hiring Urgency */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Salary Range (Annual)</Label>
+          <div className="mt-2">
+            <Field name="salaryRange">
+              {({ field }: { field: { value: string } }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(val) => setFieldValue("salaryRange", val)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select salary range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not-disclosed">Not disclosed</SelectItem>
+                    <SelectItem value="2-3-lakhs">Between 2-3 lakhs</SelectItem>
+                    <SelectItem value="3-4-lakhs">Between 3-4 lakhs</SelectItem>
+                    <SelectItem value="4-5-lakhs">Between 4-5 lakhs</SelectItem>
+                    <SelectItem value="5-7-lakhs">Between 5-7 lakhs</SelectItem>
+                    <SelectItem value="7-10-lakhs">Between 7-10 lakhs</SelectItem>
+                    <SelectItem value="above-10-lakhs">Above 10 lakhs</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1">Leave blank if you prefer not to disclose.</p>
+        
+        <div>
+          <Label>Hiring Urgency</Label>
+          <div className="mt-2">
+            <Field name="hiringUrgency">
+              {({ field }: { field: { value: string } }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(val) => setFieldValue("hiringUrgency", val)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select hiring urgency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="immediately">Immediately</SelectItem>
+                    <SelectItem value="within-1-week">Within 1 week</SelectItem>
+                    <SelectItem value="within-2-weeks">Within 2 weeks</SelectItem>
+                    <SelectItem value="next-month">Next month</SelectItem>
+                    <SelectItem value="next-academic-year">Next academic year</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </Field>
+          </div>
+        </div>
       </div>
     </div>
   )

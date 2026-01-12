@@ -581,7 +581,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
 
           {/* Tab navigation */}
           <div className="w-full">
-            <div className="flex border-b border-gray-200 px-6">
+            <div className="flex border-b border-gray-200">
               <button
                 onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}`)}
                 className={cn(
