@@ -735,7 +735,11 @@ const JobRow = React.memo(({ job, statusColors: jobStatusColors, handleCopyLink,
                 <AvatarImage src={job.hiring.avatar || ''} alt="Hiring Manager" />
                 <AvatarFallback>{sanitizeInput(job.hiring.first_name)[0]}{sanitizeInput(job.hiring.last_name)[0]}</AvatarFallback>
               </Avatar>
-              <span className="job-manager">{sanitizeInput(job.hiring.first_name)} {sanitizeInput(job.hiring.last_name)}</span>
+              <GenericHoverCard entity="admin" entityId={job.hiring.id}>
+                <span className="job-manager cursor-pointer">
+                  {sanitizeInput(job.hiring.first_name)} {sanitizeInput(job.hiring.last_name)}
+                </span>
+              </GenericHoverCard>
             </div>
           ) : <span className="job-manager">-</span>}
         </div>

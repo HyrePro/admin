@@ -855,7 +855,11 @@ const ApplicationRow = React.memo(({
 
       <TableCell className="table-cell-border candidate-job">
         <div className="cell-content">
-          {sanitizeInput(application.job_title)}
+          <GenericHoverCard entity="job" entityId={application.job_id}>
+            <span className="cursor-pointer decoration-dotted underline-offset-2">
+              {sanitizeInput(application.job_title)}
+            </span>
+          </GenericHoverCard>
         </div>
       </TableCell>
 
