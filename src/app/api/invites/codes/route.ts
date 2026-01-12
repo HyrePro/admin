@@ -55,42 +55,50 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Call the existing get_invite_data function and filter for email invitations
+    // Call the existing get_invite_data function and filter for invite codes
     const { data: allInviteData, error } = await supabaseService
-      .rpc('get_email_invitations_by_school', { p_school_id: schoolId });
+      .rpc('get_invite_data', { p_school_id: schoolId });
 
     if (error) {
-      console.error('Error fetching email invitations:', error);
+      console.error('Error fetching invite data:', error);
       return NextResponse.json(
-        { error: error.message || 'Failed to fetch email invitations' },
+        { error: error.message || 'Failed to fetch invite codes' },
         { status: 500 }
       );
     }
-    console.log('Email invitations:', allInviteData);
-    // Map the data from get_email_invitations_by_school function to the expected format
-    const emailInvitations = allInviteData.map((item: any) => ({
-        id: item.invitation_id,
-        email: item.invited_email,
-        name: item.invited_name,
-        role: item.invited_role,
-        status: item.invite_status,
-        created_at: item.invite_created_at,
-        expires_at: item.invite_expires_at,
-        invited_by: item.invited_by_name || 'Unknown'
+    
+    // Filter to get only invite codes (where code_id is not null)
+    const inviteCodes = allInviteData
+      .filter((item: any) => item.code_id !== null)
+      .map((item: any) => ({
+        code_id: item.code_id,
+        invite_code: item.invite_code,
+        code_role: item.code_role,
+        code_expires_at: item.code_expires_at,
+        code_created_by: item.code_created_by,
+        code_status: item.code_status,
+        associated_user_id: item.associated_user_id,
+        associated_user_name: item.associated_user_name,
+        associated_user_email: item.associated_user_email,
+        user_id: item.user_id,
+        user_name: item.user_name,
+        user_email: item.user_email,
+        user_role: item.user_role,
+        user_invited_at: item.user_invited_at,
+        user_status: item.user_status
       }));
     
     // Return success response
     return NextResponse.json(
       {
         success: true,
-        data: emailInvitations
+        data: inviteCodes
       },
       { status: 200 }
     );
-
   } catch (error: unknown) {
-    console.error('Error fetching email invitations:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch email invitations';
+    console.error('Error fetching invite codes:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch invite codes';
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

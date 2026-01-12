@@ -57,11 +57,14 @@ interface InviteManagementSheetProps {
 export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInviteData }: InviteManagementSheetProps) {
   const [activeTab, setActiveTab] = useState<'users' | 'codes'>('users');
   
+  // Track which tabs have been loaded to enable proper prefetching
+  const [loadedTabs, setLoadedTabs] = useState<Set<'users' | 'codes'>>(new Set());
+  
   const queryClient = useQueryClient();
   
-  // Query for fetching invite data
-  const { data: inviteData = [], isLoading: isLoadingInviteData, refetch } = useQuery<InviteData[]>({
-    queryKey: ['inviteData', schoolId],
+  // Query for fetching email invitations
+  const { data: emailInvitations = [], isLoading: isLoadingEmails, refetch: refetchEmails } = useQuery<InviteData[]>({
+    queryKey: ['emailInvitations', schoolId],
     queryFn: async () => {
       if (!schoolId) {
         return [];
@@ -74,41 +77,20 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
         throw new Error('No active session');
       }
       
-      // Fetch both invite codes and email invitations
-      const [codesResponse, emailsResponse] = await Promise.all([
-        fetch(`/api/invites/data?schoolId=${encodeURIComponent(schoolId)}`, {
-          headers: {
-            'Authorization': `Bearer ${sessionData.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`/api/invites/email?schoolId=${encodeURIComponent(schoolId)}`, {
-          headers: {
-            'Authorization': `Bearer ${sessionData.session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
+      const response = await fetch(`/api/invites/email?schoolId=${encodeURIComponent(schoolId)}`, {
+        headers: {
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      // Process invite codes response
-      let codesData = [];
-      if (codesResponse.ok) {
-        const codesResult = await codesResponse.json();
-        codesData = codesResult.data || [];
-      } else {
-        const errorData = await codesResponse.json();
-        console.error('Error fetching invite codes:', errorData.error);
-      }
-      
-      // Process email invitations response
-      let emailsData = [];
-      if (emailsResponse.ok) {
-        const emailsResult = await emailsResponse.json();
-        emailsData = emailsResult.data || [];
-      } else {
-        const errorData = await emailsResponse.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         console.error('Error fetching email invitations:', errorData.error);
+        throw new Error(errorData.error || 'Failed to fetch email invitations');
       }
+      
+      const result = await response.json();
       
       // Define the email invitation type
       interface EmailInvitation {
@@ -123,7 +105,7 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
       }
       
       // Transform email invitations to match the existing InviteData format
-      const transformedEmailInvites = emailsData.map((emailInvite: EmailInvitation) => ({
+      return result.data.map((emailInvite: EmailInvitation) => ({
         code_id: null,
         invite_code: null,
         code_role: null,
@@ -140,11 +122,45 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
         user_invited_at: emailInvite.created_at,
         user_status: emailInvite.status
       }));
-      
-      // Combine both sets of data
-      return [...codesData, ...transformedEmailInvites];
     },
-    enabled: !!schoolId && open, // Only fetch when schoolId is present and sheet is open
+    enabled: !!schoolId && open && (activeTab === 'users' || loadedTabs.has('users')), // Fetch when schoolId is present, sheet is open, and either current tab is users or users tab has been loaded
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Query for fetching invite codes
+  const { data: inviteCodes = [], isLoading: isLoadingCodes, refetch: refetchCodes } = useQuery<InviteData[]>({
+    queryKey: ['inviteCodes', schoolId],
+    queryFn: async () => {
+      if (!schoolId) {
+        return [];
+      }
+      
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData.session) {
+        throw new Error('No active session');
+      }
+      
+      const response = await fetch(`/api/invites/codes?schoolId=${encodeURIComponent(schoolId)}`, {
+        headers: {
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error fetching invite codes:', errorData.error);
+        throw new Error(errorData.error || 'Failed to fetch invite codes');
+      }
+      
+      const result = await response.json();
+      
+      // Return the invite codes data as-is since it already matches the InviteData format
+      return result.data || [];
+    },
+    enabled: !!schoolId && open && (activeTab === 'codes' || loadedTabs.has('codes')), // Fetch when schoolId is present, sheet is open, and either current tab is codes or codes tab has been loaded
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -201,7 +217,8 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
       return await response.json();
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['inviteData', schoolId] });
+      queryClient.invalidateQueries({ queryKey: ['emailInvitations', schoolId] });
+      queryClient.invalidateQueries({ queryKey: ['inviteCodes', schoolId] });
       const message = variables.itemType === 'code' 
         ? 'Invite code deleted' 
         : variables.itemType === 'email'
@@ -234,9 +251,209 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
   useEffect(() => {
     if (open && schoolId) {
       setActiveTab('users');
+      // Reset loaded tabs when sheet opens
+      setLoadedTabs(new Set(['users'])); // Preload users tab since it's the default
     }
   }, [open, schoolId]);
+  
+  // Handle tab change and mark as loaded
+  const handleTabChange = (tab: 'users' | 'codes') => {
+    setActiveTab(tab);
+    setLoadedTabs(prev => new Set(prev).add(tab));
+  };
+  
+  // Determine which loading state to show
+  const isLoading = activeTab === 'users' ? isLoadingEmails : isLoadingCodes;
+  
+  // Determine which data to display
+  const displayData = activeTab === 'users' ? emailInvitations : inviteCodes;
+  
+  // Render content based on active tab
+  const renderTabContent = () => {
+    if (activeTab === 'users') {
+      if (emailInvitations.length > 0) {
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+            {emailInvitations
+              .map((item: InviteData) => (
+                <Card key={item.user_id || ''} className="mx-2">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{item.user_name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{item.user_email}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (!item.user_id) return;
+                          // Determine if this is an email invitation or a legacy user
+                          // Email invitations will have null code_id but non-null user_id
+                          const isEmailInvitation = item.code_id === null && item.user_id !== null;
+                          const itemType = isEmailInvitation ? 'email' : 'user';
+                          deleteInviteData(item.user_id, itemType);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Badge variant={getRoleBadgeVariant(item.user_role)}>
+                        {item.user_role}
+                      </Badge>
+                      <Badge variant={item.user_status === 'Accepted' ? 'default' : 'secondary'}>
+                        {item.user_status}
+                      </Badge>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Invited: </span>
+                      <span>{new Date(item.user_invited_at).toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            }
+          </div>
+        );
+      } else {
+        return (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Users className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No invited users</EmptyTitle>
+              <EmptyDescription>
+                There are currently no users invited to your organization.
+                When users are invited, they will appear here.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        );
+      }
+    } else {
+      if (inviteCodes.length > 0) {
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+            {inviteCodes
+              .map((item: InviteData) => (
+                <Card key={item.code_id || ''} className="mx-2 border shadow-none">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      {/* code block */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-1.5 font-mono text-sm tracking-wide border">
+                          {item.invite_code}
+                        </div>
 
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            navigator.clipboard.writeText(item.invite_code)
+                            toast.success('Invite code copied')
+                          }}
+                          aria-label="Copy invite code"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* delete */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          if (!item.code_id) return;
+                          deleteInviteData(item.code_id, 'code');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="pt-0 space-y-4">
+                    {/* badges */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge
+                        className="bg-blue-100 text-blue-900 border border-blue-200 capitalize"
+                      >
+                        {item.code_role}
+                      </Badge>
+
+                      <Badge
+                        className={
+                          item.code_status === 'Active'
+                            ? 'bg-green-100 text-green-900 border border-green-200'
+                            : item.code_status === 'Expired'
+                              ? 'bg-red-100 text-red-900 border border-red-200'
+                              : 'bg-muted text-foreground'
+                        }
+                      >
+                        {item.code_status}
+                      </Badge>
+                    </div>
+
+                    {/* metadata */}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      <div className="flex gap-1">
+                        <span className="text-muted-foreground">Created by</span>
+                        <span className="truncate">{item.code_created_by}</span>
+                      </div>
+
+                      <div className="flex gap-1">
+                        <span className="text-muted-foreground">Expires</span>
+                        <span>{new Date(item.code_expires_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <div className="col-span-2 flex gap-1">
+                        <span className="text-muted-foreground">Used by</span>
+                        <span>
+                          {item.associated_user_name ? (
+                            <>
+                              {item.associated_user_name}
+                              <span className="text-muted-foreground">
+                                {' '}
+                                ({item.associated_user_email})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="italic text-muted-foreground">Not used</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            }
+          </div>
+        );
+      } else {
+        return (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <KeyRound className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No invite codes</EmptyTitle>
+              <EmptyDescription>
+                There are currently no invite codes created for your organization.
+                Create invite codes to allow users to join your organization.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        );
+      }
+    }
+  };
+  
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -254,209 +471,31 @@ export function InviteManagementSheet({ open, onOpenChange, schoolId, onFetchInv
             View and manage invited users and invite codes
           </SheetDescription>
         </SheetHeader>
-
+  
         <div className="flex-1 flex flex-col">
           {/* Tab navigation */}
           <div className="flex border-b mb-6">
             <button
               className={`pb-2 px-4 ${activeTab === 'users' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground'}`}
-              onClick={() => setActiveTab('users')}
+              onClick={() => handleTabChange('users')}
             >
               Invited Users
             </button>
             <button
               className={`pb-2 px-4 ${activeTab === 'codes' ? 'border-b-2 border-primary text-primary font-medium' : 'text-muted-foreground'}`}
-              onClick={() => setActiveTab('codes')}
+              onClick={() => handleTabChange('codes')}
             >
               Invite Codes
             </button>
           </div>
-
-          {/* Tab content */}
-          {isLoadingInviteData ? (
+  
+          {isLoading ? (
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           ) : (
             <div className="flex-1 overflow-x-auto">
-              {activeTab === 'users' ? (
-                inviteData.filter(item => item.user_id !== null).length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-                    {inviteData
-                      .filter(item => item.user_id !== null)
-                      .map((item) => (
-                        <Card key={item.user_id || ''} className="mx-2">
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-lg">{item.user_name}</CardTitle>
-                                <p className="text-sm text-muted-foreground">{item.user_email}</p>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  if (!item.user_id) return;
-                                  // Determine if this is an email invitation or a legacy user
-                                  // Email invitations will have null code_id but non-null user_id
-                                  const isEmailInvitation = item.code_id === null && item.user_id !== null;
-                                  const itemType = isEmailInvitation ? 'email' : 'user';
-                                  deleteInviteData(item.user_id, itemType);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              <Badge variant={getRoleBadgeVariant(item.user_role)}>
-                                {item.user_role}
-                              </Badge>
-                              <Badge variant={item.user_status === 'Accepted' ? 'default' : 'secondary'}>
-                                {item.user_status}
-                              </Badge>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Invited: </span>
-                              <span>{new Date(item.user_invited_at).toLocaleDateString()}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    }
-                  </div>
-                ) : (
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <Users className="h-6 w-6" />
-                      </EmptyMedia>
-                      <EmptyTitle>No invited users</EmptyTitle>
-                      <EmptyDescription>
-                        There are currently no users invited to your organization.
-                        When users are invited, they will appear here.
-                      </EmptyDescription>
-                    </EmptyHeader>
-
-                  </Empty>
-                )
-              ) : (
-                inviteData.filter(item => item.code_id !== null).length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-                    {inviteData
-                      .filter(item => item.code_id !== null)
-                      .map((item) => (
-                        <Card key={item.code_id || ''} className="mx-2 border shadow-none">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between gap-3">
-                              {/* code block */}
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-1.5 font-mono text-sm tracking-wide border">
-                                  {item.invite_code}
-                                </div>
-
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(item.invite_code)
-                                    toast.success('Invite code copied')
-                                  }}
-                                  aria-label="Copy invite code"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-
-                              {/* delete */}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                onClick={() => {
-                                  if (!item.code_id) return;
-                                  deleteInviteData(item.code_id, 'code');
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-
-                          <CardContent className="pt-0 space-y-4">
-                            {/* badges */}
-                            <div className="flex flex-wrap gap-2">
-                              <Badge
-                                className="bg-blue-100 text-blue-900 border border-blue-200 capitalize"
-                              >
-                                {item.code_role}
-                              </Badge>
-
-                              <Badge
-                                className={
-                                  item.code_status === 'Active'
-                                    ? 'bg-green-100 text-green-900 border border-green-200'
-                                    : item.code_status === 'Expired'
-                                      ? 'bg-red-100 text-red-900 border border-red-200'
-                                      : 'bg-muted text-foreground'
-                                }
-                              >
-                                {item.code_status}
-                              </Badge>
-                            </div>
-
-                            {/* metadata */}
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                              <div className="flex gap-1">
-                                <span className="text-muted-foreground">Created by</span>
-                                <span className="truncate">{item.code_created_by}</span>
-                              </div>
-
-                              <div className="flex gap-1">
-                                <span className="text-muted-foreground">Expires</span>
-                                <span>{new Date(item.code_expires_at).toLocaleDateString()}</span>
-                              </div>
-
-                              <div className="col-span-2 flex gap-1">
-                                <span className="text-muted-foreground">Used by</span>
-                                <span>
-                                  {item.associated_user_name ? (
-                                    <>
-                                      {item.associated_user_name}
-                                      <span className="text-muted-foreground">
-                                        {' '}
-                                        ({item.associated_user_email})
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="italic text-muted-foreground">Not used</span>
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                      ))}
-
-                  </div>
-                ) : (
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <KeyRound className="h-6 w-6" />
-                      </EmptyMedia>
-                      <EmptyTitle>No invite codes</EmptyTitle>
-                      <EmptyDescription>
-                        There are currently no invite codes created for your organization.
-                        Create invite codes to allow users to join your organization.
-                      </EmptyDescription>
-                    </EmptyHeader>
-                  </Empty>
-                )
-              )}
+              {renderTabContent()}
             </div>
           )}
         </div>
