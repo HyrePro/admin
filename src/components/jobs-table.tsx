@@ -28,6 +28,7 @@ import { formatNumber } from '@/lib/number-formatter';
 import { sanitizeInput } from '@/lib/sanitize';
 import { isValidStringLength, sanitizeAndValidateInput } from '@/lib/data-validation';
 import { JobsTableProps, JobRowPropsWithoutUndo } from '@/types/jobs-table';
+import { GenericHoverCard } from '@/components/ui/generic-hover-card';
 
 import { JobActionButtons } from '@/components/jobs-table/job-action-buttons';
 import { JobsPagination } from '@/components/jobs-table/jobs-pagination';
@@ -627,7 +628,11 @@ const JobRow = React.memo(({ job, statusColors: jobStatusColors, handleCopyLink,
         role="gridcell"
       >
         <div className="cell-content">
-          <span className="job-title truncate max-w-xs">{sanitizeInput(job.title)}</span>
+          <GenericHoverCard entity="job" entityId={job.id}>
+            <span className="job-title truncate max-w-xs cursor-pointer decoration-dotted underline-offset-2">
+              {sanitizeInput(job.title)}
+            </span>
+          </GenericHoverCard>
         </div>
       </TableCell>
       <TableCell 

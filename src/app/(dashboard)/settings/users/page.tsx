@@ -23,6 +23,7 @@ import { useAuth } from '@/context/auth-context';
 import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
+import { GenericHoverCard } from '@/components/ui/generic-hover-card';
 
 /* ---------------- dynamic dialogs ---------------- */
 const InviteDialog = dynamic(() => import('@/components/user-management/invite-dialog').then((m) => m.InviteDialog), { ssr: false });
@@ -341,7 +342,11 @@ export default function UsersPage() {
                             <AvatarImage src={u.avatar || ''} />
                             <AvatarFallback>{getInitials(u.first_name, u.last_name)}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{u.first_name} {u.last_name}</span>
+                          <GenericHoverCard entity="admin" entityId={u.id}>
+                            <span className="font-medium cursor-pointer decoration-dotted underline-offset-2">
+                              {u.first_name} {u.last_name}
+                            </span>
+                          </GenericHoverCard>
                         </div>
                       </TableCell>
                       <TableCell>

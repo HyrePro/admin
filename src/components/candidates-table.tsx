@@ -26,6 +26,7 @@ import { formatNumber } from '@/lib/number-formatter';
 import { sanitizeInput } from '@/lib/sanitize';
 import { isValidStringLength, sanitizeAndValidateInput } from '@/lib/data-validation';
 import { statusColors } from '../../utils/statusColor';
+import { GenericHoverCard } from '@/components/ui/generic-hover-card';
 
 // Define the Application interface
 interface Application {
@@ -840,9 +841,11 @@ const ApplicationRow = React.memo(({
       <TableCell className="table-cell-border">
         <div className="cell-content flex items-center gap-2">
           <div className="flex flex-col">
-            <span className="candidate-name">
-              {sanitizeInput(application.first_name)} {sanitizeInput(application.last_name)}
-            </span>
+            <GenericHoverCard entity="candidate" entityId={application.application_id}>
+              <span className="candidate-name cursor-pointer decoration-dotted underline-offset-2">
+                {sanitizeInput(application.first_name)} {sanitizeInput(application.last_name)}
+              </span>
+            </GenericHoverCard>
             <span className="candidate-email">
               {(application.email || 'Email not specified').substring(0, 42)}{(application.email && application.email.length > 42) ? '...' : ''}
             </span>
