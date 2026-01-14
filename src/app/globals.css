@@ -93,6 +93,21 @@
 }
 
 /* =========================================================
+   ANIMATION UTILITIES
+   ========================================================= */
+
+@keyframes scroll-marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: scroll-marquee 15s linear infinite;
+}
+
+/* =========================================================
    DARK MODE (UNCHANGED LOGIC)
    ========================================================= */
 
@@ -185,6 +200,9 @@ button {
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { scrollbar-width: none; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* =========================================================
    BASE LAYER

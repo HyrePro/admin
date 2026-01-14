@@ -30,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Empty, EmptyHeader, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useAuthStore } from '@/store/auth-store';
 import { createClient } from '@/lib/supabase/api/client';
 
@@ -59,7 +58,6 @@ export function InterviewRubricsSettings() {
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Load rubrics from Supabase RPC
   useEffect(() => {
     const fetchRubrics = async () => {
       if (!schoolId) return;
@@ -68,22 +66,18 @@ export function InterviewRubricsSettings() {
         setIsLoading(true);
         const supabase = createClient();
         
-        // Call the RPC function to get interview rubrics
         const { data, error } = await supabase.rpc('get_interview_rubrics', {
           p_school_id: schoolId
         });
         
-        if (error){
-          toast.info(error.message)
-          throw error;
-        };
+        if (error) {
+          toast.error('Failed to load rubrics');
+          console.error('Error:', error);
+          setRubricCriteria([]);
+          return;
+        }
         
-        // Log the actual data structure for debugging
-        console.log('RPC Response:', data);
-        
-        // If we have data, use it
         if (data && Array.isArray(data) && data.length > 0) {
-          // Transform the data to match our RubricCriteria interface
           const transformedData = data.map((item: RubricCriteria) => ({
             id: item.id ?? `rubric-${Date.now()}-${Math.random()}`,
             school_id: item.school_id ?? schoolId,
@@ -93,16 +87,15 @@ export function InterviewRubricsSettings() {
             out_of: item.out_of ?? 0,
             value: item.value ?? false,
             text: item.text ?? '',
-            criterion_id: item.criterion_id??''
+            criterion_id: item.criterion_id ?? ''
           }));
           setRubricCriteria(transformedData);
         } else {
-          // Use empty array if no data found
           setRubricCriteria([]);
         }
       } catch (error: unknown) {
         console.error('Error fetching rubrics:', error);
-        toast.error('Failed to load rubrics.');
+        toast.error('Failed to load rubrics');
         setRubricCriteria([]);
       } finally {
         setIsLoading(false);
@@ -114,7 +107,12 @@ export function InterviewRubricsSettings() {
 
   const handleSave = async () => {
     if (!schoolId) {
-      toast.error('Organization information not available.');
+      toast.error('Organization information not available');
+      return;
+    }
+
+    if (rubricCriteria.length === 0) {
+      toast.error('Please add at least one criteria before saving');
       return;
     }
     
@@ -122,7 +120,6 @@ export function InterviewRubricsSettings() {
     try {
       const supabase = createClient();
       
-      // First, delete existing rubrics for this school
       const { error: deleteError } = await supabase
         .from('interview_rubrics')
         .delete()
@@ -130,27 +127,24 @@ export function InterviewRubricsSettings() {
       
       if (deleteError) throw deleteError;
       
-      // Then insert new rubrics
-      if (rubricCriteria.length > 0) {
-        const rubricsToInsert = rubricCriteria.map(criteria => ({
-          school_id: criteria.school_id || schoolId,
-          name: criteria.name,
-          description: criteria.description,
-          type: criteria.type,
-          out_of: criteria.out_of
-        }));
-        
-        const { error: insertError } = await supabase
-          .from('interview_rubrics')
-          .insert(rubricsToInsert);
-        
-        if (insertError) throw insertError;
-      }
+      const rubricsToInsert = rubricCriteria.map(criteria => ({
+        school_id: criteria.school_id || schoolId,
+        name: criteria.name,
+        description: criteria.description,
+        type: criteria.type,
+        out_of: criteria.out_of
+      }));
       
-      toast.success('Rubric settings saved successfully!');
+      const { error: insertError } = await supabase
+        .from('interview_rubrics')
+        .insert(rubricsToInsert);
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Rubric settings saved successfully');
     } catch (error) {
       console.error('Error saving rubric settings:', error);
-      toast.error('Failed to save rubric settings. Please try again.');
+      toast.error('Failed to save rubric settings');
     } finally {
       setIsSaving(false);
     }
@@ -158,54 +152,15 @@ export function InterviewRubricsSettings() {
 
   const handleRemoveRubric = (id: string) => {
     setRubricCriteria(prev => prev.filter(criteria => criteria.id !== id));
-  };
-
-  const handleRemoveAllRubrics = async () => {
-    if (!confirm('Are you sure you want to remove all rubrics? This action cannot be undone.')) {
-      return;
-    }
-    
-    try {
-      if (!schoolId) {
-        throw new Error('School ID not available');
-      }
-      
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('interview_rubrics')
-        .delete()
-        .eq('school_id', schoolId);
-      
-      if (error) throw error;
-      
-      setRubricCriteria([]);
-      toast.success('All rubrics removed successfully!');
-    } catch (error) {
-      console.error('Error removing rubrics:', error);
-      toast.error('Failed to remove rubrics. Please try again.');
-    }
-  };
-
-  const handleTypeChange = (id: string, type: 'numeric' | 'boolean' | 'descriptive') => {
-    setRubricCriteria(prev => 
-      prev.map(criteria => 
-        criteria.id === id 
-          ? { 
-              ...criteria, 
-              type,
-              out_of: type === 'boolean' ? 1 : criteria.out_of
-            } 
-          : criteria
-      )
-    );
+    toast.success('Criteria removed');
   };
 
   const handleOutOfChange = (id: string, value: string) => {
-    const numericValue = parseInt(value) || 0;
+    const numericValue = parseInt(value) || 1;
     setRubricCriteria(prev => 
       prev.map(criteria => 
         criteria.id === id 
-          ? { ...criteria, out_of: Math.max(1, numericValue) } 
+          ? { ...criteria, out_of: Math.max(1, Math.min(100, numericValue)) } 
           : criteria
       )
     );
@@ -213,17 +168,17 @@ export function InterviewRubricsSettings() {
 
   const handleAddCriteria = () => {
     if (!newCriteria.name.trim()) {
-      toast.error('Please enter a name for the new criteria');
+      toast.error('Please enter a criteria name');
       return;
     }
 
     const newRubric: RubricCriteria = {
       id: `rubric-${Date.now()}-${Math.random()}`,
       school_id: schoolId || '',
-      name: newCriteria.name,
-      description: newCriteria.description,
+      name: newCriteria.name.trim(),
+      description: newCriteria.description.trim(),
       type: newCriteria.type,
-      out_of: newCriteria.type === 'boolean' ? 1 : newCriteria.outOf,
+      out_of: newCriteria.type === 'boolean' ? 1 : Math.max(1, newCriteria.outOf),
       value: false,
       text: '',
       criterion_id: `rubric-${Date.now()}-${Math.random()}`
@@ -236,7 +191,8 @@ export function InterviewRubricsSettings() {
       type: 'numeric',
       outOf: 10
     });
-    setIsDialogOpen(false); // Close the dialog after adding
+    setIsDialogOpen(false);
+    toast.success('Criteria added');
   };
 
   const maxScore = rubricCriteria
@@ -245,211 +201,224 @@ export function InterviewRubricsSettings() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex-shrink-0 ">
-          <CardHeader className="mb-4 mt-4 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Interview Rubrics Settings</CardTitle>
-              <CardDescription>
-                Configure the evaluation criteria for interview assessments
-              </CardDescription>
-            </div>
-          </CardHeader>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Interview Rubrics</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Configure evaluation criteria for interview assessments
+          </p>
         </div>
-        <div className="flex-grow flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-gray-900"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 sticky top-0 bg-background z-10 shadow-sm">
-        <CardHeader className="mb-4 mt-4 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Interview Rubrics Settings</CardTitle>
-            <CardDescription>
-              Configure the evaluation criteria for interview assessments
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            {rubricCriteria.length > 0 && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Criteria
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Add New Criteria</DialogTitle>
-                    <DialogDescription>
-                      Create a new evaluation criterion for interview assessments. 
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-name">Criteria Name</Label>
-                      <Input
-                        id="new-name"
-                        value={newCriteria.name}
-                        onChange={(e) => setNewCriteria(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Enter criteria name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-type">Type</Label>
-                      <div className="flex items-center gap-2">
-                        <Select 
-                          value={newCriteria.type} 
-                          onValueChange={(value: 'numeric' | 'boolean' | 'descriptive') => setNewCriteria(prev => ({ ...prev, type: value }))}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="numeric">Numeric (Out of)</SelectItem>
-                            <SelectItem value="boolean">Boolean (Yes/No)</SelectItem>
-                            <SelectItem value="descriptive">Descriptive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {newCriteria.type === 'numeric' && (
-                          <>
-                            <span className="text-sm">Out of</span>
-                            <Input
-                              id="new-outOf"
-                              type="number"
-                              min="1"
-                              className="w-20"
-                              value={newCriteria.outOf}
-                              onChange={(e) => setNewCriteria(prev => ({ ...prev, outOf: parseInt(e.target.value) || 1 }))}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-description">Description (Optional)</Label>
-                      <Input
-                        id="new-description"
-                        value={newCriteria.description}
-                        onChange={(e) => setNewCriteria(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Description"
-                        className="min-h-[60px] text-start"
-                      />
-                    </div>
+    <div className="space-y-6 p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Interview Rubrics</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Configure evaluation criteria for interview assessments
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Criteria
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Criteria</DialogTitle>
+                <DialogDescription>
+                  Create a new evaluation criterion for interview assessments
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-5 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-name">
+                    Criteria Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="new-name"
+                    value={newCriteria.name}
+                    onChange={(e) => setNewCriteria(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Communication Skills"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-description">Description</Label>
+                  <Input
+                    id="new-description"
+                    value={newCriteria.description}
+                    onChange={(e) => setNewCriteria(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Optional description"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-type">Type</Label>
+                  <Select 
+                    value={newCriteria.type} 
+                    onValueChange={(value: 'numeric' | 'boolean' | 'descriptive') => 
+                      setNewCriteria(prev => ({ ...prev, type: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="numeric">Numeric Score</SelectItem>
+                      <SelectItem value="boolean">Yes/No</SelectItem>
+                      <SelectItem value="descriptive">Text Description</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {newCriteria.type === 'numeric' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="new-outOf">Maximum Score</Label>
+                    <Input
+                      id="new-outOf"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={newCriteria.outOf}
+                      onChange={(e) => setNewCriteria(prev => ({ 
+                        ...prev, 
+                        outOf: Math.max(1, Math.min(100, parseInt(e.target.value) || 1))
+                      }))}
+                    />
                   </div>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleAddCriteria}>
-                      Add Criteria
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 mt-6">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddCriteria}>
+                  Add Criteria
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {rubricCriteria.length > 0 && (
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Rubric Settings'}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
-          </div>
-        </CardHeader>
+          )}
+        </div>
       </div>
-      <div className="flex-grow overflow-y-auto">
-        <CardContent>
-          <div className="space-y-6 mx-auto mt-6 mb-6">
-            <div className="border rounded-lg">
+
+      {/* Content */}
+      <Card>
+        <CardContent className="p-0">
+          {rubricCriteria.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <Plus className="w-6 h-6 text-gray-400" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-2">No Criteria Added</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Get started by adding your first evaluation criterion
+              </p>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Criteria
+              </Button>
+            </div>
+          ) : (
+            <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Criteria Name & Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[40%]">Criteria</TableHead>
+                    <TableHead className="w-[20%]">Type</TableHead>
+                    <TableHead className="w-[20%]">Scoring</TableHead>
+                    <TableHead className="w-[20%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rubricCriteria.length > 0 ? (
-                    rubricCriteria.map((criteria) => (
-                      <TableRow key={criteria.id}>
-                        <TableCell className="font-medium max-w-xs">
-                          <div className="font-medium">{criteria.name}</div>
-                          <div className="text-sm text-muted-foreground mt-1 whitespace-normal">
-                            {criteria.description || "No description provided"}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="capitalize">{criteria.type}</div>
-                        </TableCell>
-                        <TableCell>
-                          {criteria.type === 'numeric' ? (
-                            <div className="flex items-center gap-2">
-                              <span>Out of</span>
-                              <Input
-                                id={`outOf-${criteria.id}`}
-                                type="number"
-                                min="1"
-                                className="w-20"
-                                value={criteria.out_of}
-                                onChange={(e) => handleOutOfChange(criteria.id, e.target.value)}
-                              />
-                            </div>
-                          ) : criteria.type === 'boolean' ? (
-                            <span>Yes/No</span>
-                          ) : (
-                            <span>-</span>
+                  {rubricCriteria.map((criteria) => (
+                    <TableRow key={criteria.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-gray-900">{criteria.name}</p>
+                          {criteria.description && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              {criteria.description}
+                            </p>
                           )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleRemoveRubric(criteria.id)}
-                          >
-                            <Trash2 className="w-4 h-4 hover:text-red-500" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
-                        <Empty className="border-0">
-                          <EmptyHeader>
-                            <EmptyTitle>No Criteria Added</EmptyTitle>
-                            <EmptyDescription>
-                              Get started by adding a new evaluation criterion.
-                            </EmptyDescription>
-                          </EmptyHeader>
-                          <Button variant="outline" onClick={() => setIsDialogOpen(true)}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Criteria
-                          </Button>
-                        </Empty>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                          {criteria.type === 'numeric' ? 'Numeric Score' : 
+                           criteria.type === 'boolean' ? 'Yes/No' : 
+                           'Text Description'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {criteria.type === 'numeric' ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Out of</span>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="100"
+                              className="w-20"
+                              value={criteria.out_of}
+                              onChange={(e) => handleOutOfChange(criteria.id, e.target.value)}
+                            />
+                          </div>
+                        ) : criteria.type === 'boolean' ? (
+                          <span className="text-sm text-gray-600">Yes/No</span>
+                        ) : (
+                          <span className="text-sm text-gray-600">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveRubric(criteria.id)}
+                          className="text-gray-600 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
-            </div>
-            
-            {/* Total Score at the Bottom */}
-            {rubricCriteria.length > 0 && (
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium">Maximum Possible Score</p>
-                    <p className="text-2xl font-bold">{maxScore}</p>
+
+              {/* Total Score Summary */}
+              {maxScore > 0 && (
+                <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Maximum Possible Score</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Based on {rubricCriteria.filter(c => c.type === 'numeric').length} numeric criteria
+                      </p>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{maxScore}</p>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </CardContent>
-      </div>
+      </Card>
     </div>
   );
 }

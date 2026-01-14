@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/api/client';
 import { forceDownload } from "@/lib/utils";
 import { statusColors } from "../../utils/statusColor";
 import "react-toastify/dist/ReactToastify.css";
+import '@/styles/candidates.css';
 
 interface JobCandidatesProps {
   job_id: string;
@@ -41,12 +42,14 @@ const STATUS_CONFIG = {
   demo_failed: { text: 'Demo Failed', color: statusColors.demo_failed },
   interview_in_progress: { text: 'Interview In Progress', color: statusColors.interview_in_progress },
   interview_ready: { text: 'Interview Ready', color: statusColors.interview_ready },
+  interview_scheduled: { text: 'Interview Scheduled', color: statusColors.interview_scheduled },
   paused: { text: 'Paused', color: statusColors.paused },
   completed: { text: 'Completed', color: statusColors.completed },
   suspended: { text: 'Suspended', color: statusColors.suspended },
   appealed: { text: 'Appealed', color: statusColors.appealed },
   withdrawn: { text: 'Withdrawn', color: statusColors.withdrawn },
   offered: { text: 'Offered', color: statusColors.offered },
+  panelist_review_in_progress: { text: 'Panelist Review In Progress', color: statusColors.panelist_review_in_progress },
 } as const
 
 export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
@@ -162,6 +165,12 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
     const validScore = score ?? 0;
     
     return `${validScore}/${totalQuestions}`;
+  }, []);
+
+  // Get status badge
+  const getStatusBadge = useCallback((status: string) => {
+    return STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || 
+      { text: status, color: 'bg-gray-100 text-gray-800' };
   }, []);
 
   const handleResumeDownload = useCallback(async (resumeUrl: string, applicationId: string, fileName?: string) => {
@@ -322,16 +331,11 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
             </div>
           </TableCell>
           <TableCell>
-            <Badge
-              variant="outline"
-              className={`${statusColors[application.status] || "bg-gray-50 text-gray-700 border-gray-200"} text-xs text-white capitalize`}
-            >
-              {application.status ? 
-                STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG]?.text ||
-                application.status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()) :
-                "Unknown"
-              }
-            </Badge>
+            <div className="cell-content">
+              <Badge className={getStatusBadge(application.status).color}>
+                <div className="badge-text">{getStatusBadge(application.status).text}</div>
+              </Badge>
+            </div>
           </TableCell>
           <TableCell>
             {application.resume_url ? (

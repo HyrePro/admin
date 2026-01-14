@@ -12,8 +12,13 @@ import {
 import { createClient } from "@/lib/supabase/api/client";
 import { NavUser } from "@/components/nav-user";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import SchoolInfoDisplay from "@/components/school-info-display";
+import { CircleArrowUp } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
 import { I18nProvider } from "@/contexts/i18n-context";
+import PricingPlansSheet from "@/components/pricing-plans-sheet";
 
 // Interface for school information
 interface SchoolInfo {
@@ -48,6 +53,8 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   // State to track if initial auth check has been done
   const [initialAuthCheckDone, setInitialAuthCheckDone] = useState(false);
+  // State for pricing plans sheet
+  const [isPricingSheetOpen, setIsPricingSheetOpen] = useState(false);
 
   // Extract job ID and application ID from pathname
   const { jobId, applicationId } = useMemo(() => {
@@ -172,12 +179,7 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
             <SidebarTrigger className="ml-2" />
           </div>
           <div className="flex px-2 items-center ms-2 min-w-0">
-            <div className="font-medium text-gray-900 text-md truncate">
-              {schoolInfo ? `${schoolInfo.name}, ${schoolInfo.location}` : "Loading school info..."}
-            </div>
-            <Badge variant="outline" className="text-xs ms-2">
-              FREE PLAN
-            </Badge>
+            <SchoolInfoDisplay schoolInfo={schoolInfo} />
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
             {/* <Popover>
@@ -229,6 +231,38 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
                 </div>
               </PopoverContent>
             </Popover> */}
+                         <div className="hidden sm:block">
+              <Button 
+                variant="default" 
+                className="text-xs ms-2 bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 hover:from-yellow-400 hover:via-yellow-500 hover:to-yellow-600 text-white shadow-md font-semibold"
+                onClick={() => setIsPricingSheetOpen(true)}
+              >
+                Upgrade Plan
+              </Button>
+              <PricingPlansSheet 
+                isOpen={isPricingSheetOpen}
+                onClose={() => setIsPricingSheetOpen(false)}
+              />
+            </div>
+            <div className="sm:hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="default" 
+                      size="icon"
+                      className="h-8 w-8 bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 hover:from-yellow-400 hover:via-yellow-500 hover:to-yellow-600 text-white shadow-md"
+                      onClick={() => setIsPricingSheetOpen(true)}
+                    >
+                      <CircleArrowUp className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Upgrade Plan</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             {user && user.email ? (
               <NavUser user={{
                 name: user.user_metadata?.name || user.email.split('@')[0] || 'User',

@@ -22,6 +22,8 @@ import { createClient } from "@/lib/supabase/api/client";
 import dynamic from "next/dynamic";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { usePathname, useRouter as useNextRouter } from "next/navigation";
+import "@/styles/progress-bar.css";
+import { Share2 } from "lucide-react";
 
 const EditJobDetailsDialog = dynamic(() => import("@/components/edit-job-details-dialog").then(mod => mod.EditJobDetailsDialog), {
   ssr: false
@@ -433,38 +435,32 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    <Badge variant="secondary" className="text-xs px-2 py-1">
+                      Assigned to You
+                    </Badge>
                   </div>
                   
                   {/* Job metadata */}
                   <div className="flex items-center gap-3 text-sm flex-wrap">
                     <div className="flex items-center gap-1.5">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                      <span className="font-medium text-gray-900">#{job?.id.slice(0, 6)}</span>
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="font-medium text-gray-900">{job?.job_type || 'Full Time'}</span>
-                    </div>
-                    <span className="text-gray-300 hidden sm:inline">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="font-medium text-gray-900">{job?.location || 'Riyadh, Saudi Arabia'}</span>
+                      <span className="font-medium text-gray-900 capitalize">{job?.job_type || 'Full Time'}</span>
                     </div>
                     <span className="text-gray-300 hidden lg:inline">|</span>
                     <div className="flex items-center gap-1.5">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-gray-600">Job Available:</span>
-                      <span className="font-medium text-gray-900">{job?.openings || 3}/10</span>
+                      <span className="text-gray-600 mr-1">Applications:</span>
+                      <span className="font-medium text-gray-900 mr-2">{job?.application_analytics?.total_applications || 0} of 50</span>
+                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full relative overflow-hidden animate-shine"
+                          style={{ width: `${job?.application_analytics?.total_applications ? Math.min(100, (job.application_analytics.total_applications / 50) * 100) : 0}%` }}
+                        ></div>
+                      </div>
                     </div>
                     <span className="text-gray-300 hidden lg:inline">|</span>
                     <div className="flex items-center gap-1.5">
@@ -473,43 +469,90 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                       </svg>
                       <span className="text-gray-600">Added at:</span>
                       <span className="font-medium text-gray-900">{job?.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '14 Apr, 2025'}</span>
+                      
+                      {/* Urgency indicator */}
+                      {job?.created_at && (() => {
+                        const createdDate = new Date(job.created_at);
+                        const dueDate = new Date(createdDate);
+                        dueDate.setDate(dueDate.getDate() + 30); // 1 month from added date
+                        
+                        const today = new Date();
+                        const timeDiff = dueDate.getTime() - today.getTime();
+                        const daysUntilDue = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                        
+                        let urgencyLabel = '';
+                        let urgencyVariant = '';
+                        let urgencyColor = '';
+                        
+                        if (daysUntilDue <= 3) {
+                          urgencyLabel = 'CRITICAL';
+                          urgencyVariant = 'destructive';
+                          urgencyColor = 'bg-red-100 text-red-800 border-red-200';
+                        } else if (daysUntilDue <= 7) {
+                          urgencyLabel = 'URGENT';
+                          urgencyVariant = 'default';
+                          urgencyColor = 'bg-orange-100 text-orange-800 border-orange-200';
+                        } else if (daysUntilDue <= 15) {
+                          urgencyLabel = 'MODERATE';
+                          urgencyVariant = 'secondary';
+                          urgencyColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                        } else {
+                          urgencyLabel = 'NORMAL';
+                          urgencyVariant = 'outline';
+                          urgencyColor = 'bg-green-100 text-green-800 border-green-200';
+                        }
+                        
+                        return (
+                          <span className={`ml-2 px-2 py-1 rounded-md text-xs font-semibold border ${urgencyColor}`}>
+                            {urgencyLabel}: Due in {daysUntilDue} days
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
                     onClick={() => setIsEditDialogOpen(true)}
                   >
-                    <Edit className="h-4 w-4 text-gray-600" />
+                    <Edit className="h-4 w-4 mr-2 text-gray-600" />
+                    Edit
                   </Button>
 
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
                     onClick={handleCopyLink}
                   >
                     {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
+                      <>
+                        <Check className="h-4 w-4 mr-2 text-green-600" />
+                        Copied!
+                      </>
                     ) : (
-                      <Share className="h-4 w-4 text-gray-600" />
+                      <>
+                        <Share className="h-4 w-4 mr-2 text-gray-600" />
+                        Share
+                      </>
                     )}
                   </Button>
 
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
                       >
-                        <svg className="h-4 w-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="h-4 w-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                         </svg>
+                        
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-48 p-1" align="end">
