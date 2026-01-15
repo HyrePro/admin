@@ -138,84 +138,98 @@ const PricingPlansSheet: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose }
           <SheetTitle className="text-2xl font-bold">Choose Your Plan</SheetTitle>
         </SheetHeader>
         
-        <div className="py-6 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 px-1">
+       <div className="py-6 flex-1 overflow-y-auto">
+          <div className="flex gap-4 px-1 min-w-max">
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+                className={`relative rounded-2xl border transition-all duration-200 cursor-pointer w-[240px] flex-shrink-0 ${
                   plan.highlighted
-                    ? 'border-blue-400 dark:border-blue-500 bg-gradient-to-b from-white to-gray-50 dark:from-[#0D1117] dark:to-[#161B22] shadow-lg'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161B22] hover:bg-gray-50 dark:hover:bg-[#1C2128]'
-                } ${selectedPlan === plan.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                    ? 'border-purple-300 dark:border-purple-500 bg-white dark:bg-[#161B22] shadow-lg'
+                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161B22] hover:border-gray-300 dark:hover:border-gray-600'
+                } ${selectedPlan === plan.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
                 onClick={() => handlePlanSelect(plan.id)}
               >
                 {/* Badge */}
                 {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge variant="default" className="bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold whitespace-nowrap shadow-lg">
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <Badge variant="default" className="bg-purple-600 text-white px-3 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap shadow">
                       {plan.badge}
                     </Badge>
                   </div>
                 )}
 
-                <div className={`p-6 ${plan.highlighted ? 'pt-8' : ''}`}>
+                <div className={`p-6 ${plan.highlighted ? 'pt-7' : 'pt-6'}`}>
                   {/* Plan Name */}
-                  <div className="mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  <div className="mb-6">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
                       {plan.name}
                     </h3>
                     
-                    {/* Price */}
-                    <div className="mb-2">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
-                      {plan.period && (
-                        <span className="text-gray-600 dark:text-gray-400 ml-2">/{plan.period}</span>
-                      )}
-                    </div>
-
                     {/* Description */}
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-snug mb-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
                       {plan.description}
                     </p>
                   </div>
 
+                  {/* Features Header */}
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Unlock these features:
+                    </p>
+                  </div>
+
                   {/* Features */}
-                  <div className="space-y-3 mb-6">
-                    <ul className="space-y-2.5">
+                  <div className="space-y-2 mb-6">
+                    <ul className="space-y-2">
                       {plan.features.map((feature: string, idx: number) => (
-                        <li key={idx} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-                          <Check className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                        <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+                          <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
                           <span className="leading-relaxed">{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Selection indicator */}
-                  <div className="flex justify-center">
-                    {selectedPlan === plan.id ? (
-                      <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
-                        <Check className="w-4 h-4" />
-                        Selected
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full text-sm">
-                        Click to select
-                      </div>
-                    )}
+                  {/* Price and Button */}
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
+                      {plan.period && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">/{plan.period}</span>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      className={`w-full ${
+                        selectedPlan === plan.id 
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                          : plan.highlighted 
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                          : plan.id === 'platinum'
+                          ? 'bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold'
+                          : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlanSelect(plan.id);
+                      }}
+                    >
+                      {selectedPlan === plan.id ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" />
+                          Selected
+                        </>
+                      ) : (
+                        plan.cta
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-          
-          {feedbackMessage && (
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-blue-700 dark:text-blue-300 text-center font-medium">{feedbackMessage}</p>
             </div>
-          )}
-        </div>
+            </div>
         
         <div className="border-t p-6 bg-background sticky bottom-0 mt-auto">
           <SheetFooter className="flex flex-col sm:flex-row gap-3">

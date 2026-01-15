@@ -1,20 +1,10 @@
 'use client'
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Calendar, Briefcase, Clock, Users } from 'lucide-react';
+import { Calendar, Briefcase, Clock, Users, Search } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import useSWR from 'swr';
 import { createClient } from '@/lib/supabase/api/client';
-import { 
-  Empty, 
-  EmptyHeader, 
-  EmptyTitle, 
-  EmptyDescription, 
-  EmptyContent, 
-  EmptyMedia 
-} from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-// Import the new component with a relative path
 import { ScheduleInterviewDialog } from "@/components/schedule-interview-dialog";
 
 interface Candidate {
@@ -25,7 +15,6 @@ interface Candidate {
     job_title: string;
     created_at: string;
     job_id: string;
-    
 }
 
 // Fetcher functions
@@ -38,7 +27,6 @@ const fetchSchoolInfo = async (userId: string): Promise<string | null> => {
         .single();
 
     if (error) throw error;
-    // Ensure the returned data is serializable
     return data?.school_id || null;
 };
 
@@ -59,7 +47,6 @@ const fetchApplications = async (
     });
 
     if (error) throw error;
-    // Ensure the returned data is serializable
     const applications = data || [];
     return JSON.parse(JSON.stringify(applications));
 };
@@ -72,9 +59,7 @@ const CandidatesList: React.FC = () => {
     const [page, setPage] = useState(0);
     const observer = useRef<IntersectionObserver | null>(null);
     const lastCandidateRef = useRef<HTMLDivElement>(null);
-    // State for controlling the schedule dialog
     const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-    // State for tracking which candidate is being scheduled
     const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
     // Fetch user's school ID
@@ -123,7 +108,6 @@ const CandidatesList: React.FC = () => {
                     table: 'job_applications',
                 },
                 () => {
-                    // Refetch the candidates when there are changes
                     mutate();
                 }
             )
@@ -175,13 +159,11 @@ const CandidatesList: React.FC = () => {
         return `${firstName.charAt(0)}${lastName.charAt(0)}`;
     };
 
-    // Function to handle opening the schedule dialog
     const handleScheduleInterview = (candidate: Candidate) => {
         setSelectedCandidate(candidate);
         setIsScheduleDialogOpen(true);
     };
 
-    // Function to handle closing the dialog
     const handleCloseDialog = () => {
         setIsScheduleDialogOpen(false);
         setSelectedCandidate(null);
@@ -190,36 +172,23 @@ const CandidatesList: React.FC = () => {
     // Show empty state when no candidates and not loading
     if (!loading && candidates.length === 0 && !isValidating) {
         return (
-            <div className="h-full flex flex-col overflow-y-auto">
-                <div className="flex-shrink-0">
-                    <div className="mb-4">
-                        <h1 className="text-lg font-bold text-slate-800 mb-1">Candidates to Schedule</h1>
-                    </div>
+            <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-slate-400" />
                 </div>
-                <div className="flex-grow">
-                    <Empty className="border border-dashed">
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Users className="h-6 w-6" />
-                            </EmptyMedia>
-                            <EmptyTitle>No Candidates to Schedule</EmptyTitle>
-                            <EmptyDescription>
-                                There are currently no candidates pending interview scheduling. 
-                                When candidates apply to your jobs, they will appear here.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button 
-                                size="lg"
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                                onClick={() => window.location.href = '/jobs'}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                View All Jobs
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
-                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    No candidates ready for interview
+                </h3>
+                <p className="text-sm text-slate-500 max-w-sm mb-6">
+                    Candidates will appear here once applications reach interview-ready status.
+                </p>
+                <Button
+                    variant="outline"
+                    onClick={() => (window.location.href = '/jobs')}
+                    className="h-10"
+                >
+                    View Jobs
+                </Button>
             </div>
         );
     }
@@ -227,26 +196,30 @@ const CandidatesList: React.FC = () => {
     // Loading skeleton for initial load
     if (loading && candidates.length === 0) {
         return (
-            <div className="h-full flex flex-col overflow-y-auto">
-                <div className="flex-shrink-0">
-                    <div className="mb-4">
-                        <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 w-64 bg-gray-200 rounded"></div>
+            <div className="flex flex-col h-full">
+                {/* Search Skeleton */}
+                <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="relative">
+                        <div className="h-11 bg-slate-100 rounded-lg animate-pulse"></div>
                     </div>
                 </div>
-                <div className="flex-grow overflow-y-auto min-h-0">
+
+                {/* List Skeleton */}
+                <div className="flex-1 overflow-y-auto">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="bg-white rounded-xl p-4 border border-slate-200 mb-4">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                                <div className="flex-1">
-                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div key={i} className="px-6 py-4 flex items-center justify-between gap-4 border-b border-gray-100">
+                            <div className="flex gap-4 flex-1 min-w-0">
+                                <div className="w-12 h-12 bg-slate-200 rounded-full animate-pulse flex-shrink-0"></div>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                    <div className="h-4 bg-slate-200 rounded w-1/2 animate-pulse"></div>
+                                    <div className="h-3 bg-slate-100 rounded w-2/3 animate-pulse"></div>
+                                    <div className="flex gap-4">
+                                        <div className="h-3 bg-slate-100 rounded w-24 animate-pulse"></div>
+                                        <div className="h-3 bg-slate-100 rounded w-24 animate-pulse"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                            <div className="h-3 bg-gray-200 rounded w-1/3 mb-4"></div>
-                            <div className="h-10 bg-gray-200 rounded"></div>
+                            <div className="h-9 w-24 bg-slate-100 rounded-lg animate-pulse flex-shrink-0"></div>
                         </div>
                     ))}
                 </div>
@@ -255,78 +228,77 @@ const CandidatesList: React.FC = () => {
     }
 
     return (
-        <div className="h-full flex flex-col overflow-y-auto">
-            <div className="flex-shrink-0">
-                {/* Header */}
-                <div className="mb-4">
-                    <h1 className="text-lg font-bold text-slate-800 mb-1">Candidates to Schedule</h1>
-                    <p className="text-slate-600">
-                        {candidates.length} candidates pending interview scheduling
-                    </p>
+        <div className="flex flex-col h-full">
+            {/* Search Bar */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-white">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search candidates..."
+                        className="w-full h-11 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white"
+                    />
                 </div>
             </div>
 
-            {/* Scrollable Cards Grid */}
-            <div className="flex-grow overflow-y-auto min-h-0">
+            {/* Candidates List */}
+            <div className="flex-1 overflow-y-auto bg-white">
                 {candidates.map((candidate, index) => (
                     <div
                         key={candidate.application_id}
                         ref={index === candidates.length - 1 ? lastCandidateRef : null}
-                        className="bg-white rounded-xl p-4 border border-slate-200 mb-4"
+                        className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-b-0"
                     >
-                        {/* Avatar and Name */}
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {/* Candidate Info */}
+                        <div className="flex gap-4 min-w-0 flex-1">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                                 {getInitials(candidate.first_name, candidate.last_name)}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-lg font-bold text-slate-800 truncate">
+
+                            <div className="min-w-0 flex-1">
+                                <h4 className="text-base font-semibold text-slate-900 truncate">
                                     {candidate.first_name} {candidate.last_name}
-                                </h3>
-                                <p className="text-slate-600 truncate">
+                                </h4>
+                                <p className="text-sm text-slate-500 truncate mb-1">
                                     {candidate.email}
                                 </p>
+
+                                <div className="flex items-center gap-4 text-xs text-slate-600">
+                                    <span className="flex items-center gap-1.5">
+                                        <Briefcase className="w-3.5 h-3.5" />
+                                        <span className="truncate max-w-[150px]">{candidate.job_title}</span>
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {formatDate(candidate.created_at)}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Position */}
-                        <div className="flex items-center gap-2 text-slate-600 mb-2">
-                            <Briefcase className="w-4 h-4 flex-shrink-0" />
-                            <p className="text-slate-800 font-medium">
-                                {candidate.job_title}
-                            </p>
-                        </div>
-
-                        {/* Applied Date */}
-                        <div className="flex items-center gap-2 text-slate-600 mb-4">
-                            <Clock className="w-4 h-4 flex-shrink-0" />
-                            <p className="text-slate-800">
-                                {formatDate(candidate.created_at)}
-                            </p>
                         </div>
 
                         {/* Schedule Button */}
-                        <button 
-                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold transition-colors duration-200 flex items-center justify-center gap-2"
+                        <Button
                             onClick={() => handleScheduleInterview(candidate)}
+                            variant="outline"
+                            className="h-9 px-4 text-sm font-medium flex items-center gap-2 flex-shrink-0 hover:bg-slate-50 border-slate-300"
                         >
-                            <Calendar className="w-5 h-5" />
-                            Schedule Interview
-                        </button>
+                            <Calendar className="w-4 h-4" />
+                            Schedule
+                        </Button>
                     </div>
                 ))}
 
-                {/* Loading indicator for more items */}
+                {/* Loading Indicator */}
                 {loading && candidates.length > 0 && (
-                    <div className="flex justify-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <div className="py-8 flex justify-center">
+                        <div className="h-6 w-6 animate-spin border-2 border-slate-200 border-t-purple-600 rounded-full" />
                     </div>
                 )}
 
-                {/* End of list indicator */}
+                {/* End of List Message */}
                 {!hasMore && candidates.length > 0 && (
-                    <div className="text-center py-4 text-slate-500">
-                        No more candidates to load
+                    <div className="py-6 text-center">
+                        <p className="text-sm text-slate-500">No more candidates to load</p>
                     </div>
                 )}
             </div>

@@ -23,7 +23,7 @@ interface InterviewSchedule {
   notes?: string
 }
 
-const mockInterviews: InterviewSchedule[] = [
+export const mockInterviews: InterviewSchedule[] = [
   {
     id: '1',
     first_name: 'Sarah',
@@ -301,11 +301,10 @@ const InterviewCard = ({ interview, compact = false }: { interview: InterviewSch
   )
 }
 
-export default function InterviewSchedulePage() {
+export default function InterviewSchedulePage({ interviews = mockInterviews }: { interviews?: InterviewSchedule[] }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [showViewDropdown, setShowViewDropdown] = useState(false)
-  const [interviews] = useState<InterviewSchedule[]>(mockInterviews)
 
   const { days, firstDay } = getDaysInMonth(currentDate)
   const weekDays = getWeekDays(currentDate)
@@ -318,10 +317,7 @@ export default function InterviewSchedulePage() {
     return interviews.filter(i => i.interview_date === dateString)
   }
 
-  const upcomingInterviews = interviews
-    .filter(i => new Date(i.interview_date) >= new Date(new Date().setHours(0, 0, 0, 0)))
-    .sort((a, b) => new Date(a.interview_date).getTime() - new Date(b.interview_date).getTime())
-    .slice(0, 8)
+
 
   const previousPeriod = () => {
     const newDate = new Date(currentDate)
@@ -361,14 +357,11 @@ export default function InterviewSchedulePage() {
 
   return (
     <div className="h-full flex bg-gray-50">
-      <div className="flex-1 bg-white p-8 overflow-auto">
+      <div className="flex-1 bg-white px-4 py-2 overflow-auto">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-gray-900">{getHeaderText()}</h2>
           <div className="flex items-center gap-4">
-            <div className="flex gap-2 text-sm">
-              <button className="px-3 py-1.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">All</button>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg">Interview</button>
-            </div>
+           
             <div className="flex gap-2">
               <div className="relative">
                 <button
@@ -490,32 +483,7 @@ export default function InterviewSchedulePage() {
         )}
       </div>
 
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-        <div className="p-6 border-b">
-          <h3 className="text-base font-semibold text-gray-900">Upcoming Interviews</h3>
-        </div>
-        <div className="flex-1 overflow-auto p-4 space-y-3">
-          {upcomingInterviews.map(interview => {
-            const statusColors = {
-              scheduled: 'border-l-blue-500',
-              completed: 'border-l-green-500',
-              overdue: 'border-l-red-500'
-            }
-            return (
-              <div key={interview.id} className={`p-4 bg-white border border-gray-200 border-l-4 ${statusColors[interview.status]} rounded-lg hover:shadow-sm transition-shadow`}>
-                <div className="font-medium text-gray-900 text-sm mb-1">{interview.job_title}</div>
-                <div className="text-xs text-gray-600 mb-2">{interview.first_name} {interview.last_name}</div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{formatTimeRange(interview.start_time)}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+
     </div>
   )
 }
