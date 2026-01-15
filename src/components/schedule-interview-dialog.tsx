@@ -1,4 +1,5 @@
 "use client";
+import { createPortal } from "react-dom";
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -35,6 +36,7 @@ import { createClient } from '@/lib/supabase/api/client';
 import { useAuthStore } from '@/store/auth-store';
 import { useAuth } from '@/context/auth-context';
 import { toast } from "sonner";
+import PanelistAutocomplete from "./PanelistAutocomplete";
 
 interface Candidate {
     application_id: string;
@@ -46,12 +48,21 @@ interface Candidate {
     job_id: string;
 }
 
+interface Panelist {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  avatar?: string | null;
+}
+
 interface SavedPanelist {
   id: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  role?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
   avatar?: string | null;
 }
 
@@ -121,7 +132,7 @@ export function ScheduleInterviewDialog({
   };
 
   const [scheduleForm, setScheduleForm] = useState<ScheduleInterviewForm>({
-    date: '',
+    date: new Date().toISOString().split('T')[0],
     time: '09:00',
     duration: '60',
     meetingType: 'online',
@@ -134,26 +145,9 @@ export function ScheduleInterviewDialog({
   const [preferredSlots, setPreferredSlots] = useState<PreferredSlot[]>([]);
   const [selectedPreferredSlot, setSelectedPreferredSlot] = useState<PreferredSlot | null>(null);
   const [savedPanelists, setSavedPanelists] = useState<SavedPanelist[]>([]);
-  const [filteredPanelists, setFilteredPanelists] = useState<SavedPanelist[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSelectingPanelist, setIsSelectingPanelist] = useState(false);
+  const [selectedPanelists, setSelectedPanelists] = useState<Panelist[]>([]);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const panelistInputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [panelistDropdownPosition, setPanelistDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-
-  useEffect(() => {
-    console.log('Show suggestions changed to:', showSuggestions);
-    setIsSelectingPanelist(showSuggestions);
-  }, [showSuggestions]);
-  
-  useEffect(() => {
-    if (!open) {
-      setIsSelectingPanelist(false);
-    }
-  }, [open]);
 
   useEffect(() => {
     const fetchSchoolId = async () => {
@@ -245,12 +239,6 @@ export function ScheduleInterviewDialog({
         }));
         
         setSavedPanelists(validatedPanelists);
-        
-        const selectedEmails = parsePanelistEmails(true);
-        const availablePanelists = validatedPanelists.filter(
-          p => !selectedEmails.includes(p.email || '')
-        );
-        setFilteredPanelists(availablePanelists);
       } catch (error) {
         console.error('Error fetching saved panelists:', error);
         toast.error("Failed to fetch panelists");
@@ -258,7 +246,7 @@ export function ScheduleInterviewDialog({
     };
     
     fetchSavedPanelists();
-  }, [schoolId, open, scheduleForm.panelists]);
+  }, [schoolId, open]);
 
   useEffect(() => {
     const fetchPreferredSlots = async () => {
@@ -310,175 +298,35 @@ export function ScheduleInterviewDialog({
     fetchPreferredSlots();
   }, [candidate?.application_id]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      setTimeout(() => {
-        if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) {
-          return;
-        }
-        
-        if (panelistInputRef.current && panelistInputRef.current.contains(event.target as Node)) {
-          return;
-        }
-        
-        if (suggestionsRef.current && suggestionsRef.current.contains(event.target as Node)) {
-          return;
-        }
-        
-        setShowSuggestions(false);
-        setIsSelectingPanelist(false);
-      }, 10);
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (showSuggestions && panelistInputRef.current) {
-        updateDropdownPosition();
-      }
-    };
-
-    const handleResize = () => {
-      if (showSuggestions && panelistInputRef.current) {
-        updateDropdownPosition();
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [showSuggestions]);
-
-  const handlePanelistInputChange = (value: string) => {
-    if (value.trim() === '') {
+  const handlePanelistAdd = (p: Panelist): void => {
+    // Check if panelist is already selected
+    if (!selectedPanelists.some(selected => selected.id === p.id)) {
+      const newSelectedPanelists = [...selectedPanelists, p];
+      setSelectedPanelists(newSelectedPanelists);
+      
+      // Update the form's panelists field with comma-separated emails
+      const newEmails = newSelectedPanelists.map(panelist => panelist.email);
+      const newValue = newEmails.join(', ') + (newEmails.length > 0 ? ', ' : '');
+      
       setScheduleForm(prev => ({
         ...prev,
-        panelists: value
+        panelists: newValue
       }));
-      
-      setFilteredPanelists([]);
-      setShowSuggestions(false);
-      return;
-    }
-    
-    const parts = value.split(',');
-    const lastEmail = parts[parts.length - 1]?.trim() || '';
-    
-    const validParts = [];
-    let hasInvalidEmail = false;
-    
-    for (let i = 0; i < parts.length - 1; i++) {
-      const email = parts[i].trim();
-      if (email && !isValidEmail(email)) {
-        toast.error(`Invalid email format: ${email}`);
-        hasInvalidEmail = true;
-        validParts.push(parts[i]);
-      } else if (email) {
-        validParts.push(email);
-      }
-    }
-    
-    if (hasInvalidEmail) {
-      const reconstructedValue = [...validParts, parts[parts.length - 1]].join(', ');
-      setScheduleForm(prev => ({
-        ...prev,
-        panelists: reconstructedValue
-      }));
-      
-      return;
-    }
-    
-    setScheduleForm(prev => ({
-      ...prev,
-      panelists: value
-    }));
-    
-    if (lastEmail.length > 0) {
-      const selectedEmails = parsePanelistEmails(true);
-      const availablePanelists = savedPanelists.filter(
-        panelist => !selectedEmails.includes(panelist.email || '')
-      );
-      
-      const filtered = availablePanelists.filter(panelist => 
-        (panelist.email || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-        (panelist.first_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-        (panelist.last_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-        `${panelist.first_name || ''} ${panelist.last_name || ''}`.toLowerCase().includes(lastEmail.toLowerCase())
-      );
-      setFilteredPanelists(filtered);
-      setShowSuggestions(filtered.length > 0);
-    } else {
-      const selectedEmails = parsePanelistEmails(true);
-      const availablePanelists = savedPanelists.filter(
-        panelist => !selectedEmails.includes(panelist.email || '')
-      );
-      setFilteredPanelists(availablePanelists);
-      setShowSuggestions(availablePanelists.length > 0);
     }
   };
 
-  const updateDropdownPosition = () => {
-    if (panelistInputRef.current) {
-      const rect = panelistInputRef.current.getBoundingClientRect();
-      setPanelistDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
-    }
-  };
-
-  const selectPanelist = (panelist: SavedPanelist, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const removePanelist = (emailToRemove: string) => {
+    const updatedSelectedPanelists = selectedPanelists.filter(panelist => panelist.email !== emailToRemove);
+    setSelectedPanelists(updatedSelectedPanelists);
     
-    const panelistEmail = panelist.email || '';
-    if (!panelistEmail) return;
-    
-    if (!isValidEmail(panelistEmail)) {
-      toast.error(`Invalid email format: ${panelistEmail}`);
-      return;
-    }
-    
-    const currentEmails = parsePanelistEmails();
-    
-    if (currentEmails.includes(panelistEmail)) {
-      setShowSuggestions(false);
-      setIsSelectingPanelist(false);
-      setTimeout(() => {
-        panelistInputRef.current?.focus();
-      }, 0);
-      return;
-    }
-    
-    const newEmails = [...currentEmails, panelistEmail];
-    const newValue = newEmails.join(', ') + (newEmails.length > 0 ? ', ' : '');
+    // Update the form's panelists field with remaining emails
+    const remainingEmails = updatedSelectedPanelists.map(panelist => panelist.email);
+    const newValue = remainingEmails.join(', ') + (remainingEmails.length > 0 ? ', ' : '');
     
     setScheduleForm(prev => ({
       ...prev,
       panelists: newValue
     }));
-    
-    setShowSuggestions(false);
-    setIsSelectingPanelist(false);
-    
-    const availablePanelists = savedPanelists.filter(
-      p => !newEmails.includes(p.email || '')
-    );
-    setFilteredPanelists(availablePanelists);
-    
-    setTimeout(() => {
-      panelistInputRef.current?.focus();
-    }, 0);
   };
 
   const handleFormChange = (field: keyof ScheduleInterviewForm, value: string) => {
@@ -575,35 +423,6 @@ export function ScheduleInterviewDialog({
     return emailRegex.test(email);
   };
 
-  const parsePanelistEmails = (includeInvalid: boolean = false): string[] => {
-    const emails = scheduleForm.panelists
-      .split(',')
-      .map(email => email.trim())
-      .filter(email => email.length > 0);
-    
-    if (includeInvalid) {
-      return emails;
-    }
-    
-    return emails.filter(email => isValidEmail(email));
-  };
-
-  const removePanelist = (emailToRemove: string) => {
-    const currentEmails = parsePanelistEmails(true);
-    const updatedEmails = currentEmails.filter(email => email !== emailToRemove);
-    const newValue = updatedEmails.join(', ') + (updatedEmails.length > 0 ? ', ' : '');
-    
-    setScheduleForm(prev => ({
-      ...prev,
-      panelists: newValue
-    }));
-    
-    const availablePanelists = savedPanelists.filter(
-      p => !updatedEmails.includes(p.email || '')
-    );
-    setFilteredPanelists(availablePanelists);
-  };
-
   const handleSaveSchedule = async () => {
     if (!candidate || !schoolId) {
       toast.error("Missing required information. Please try again.");
@@ -648,7 +467,7 @@ export function ScheduleInterviewDialog({
       return;
     }
     
-    const currentPanelistEmails = parsePanelistEmails();
+    const currentPanelistEmails = selectedPanelists.map(panelist => panelist.email);
     
     for (const email of currentPanelistEmails) {
       if (!isValidEmail(email)) {
@@ -743,12 +562,7 @@ export function ScheduleInterviewDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen && isSelectingPanelist) {
-        return;
-      }
-      onOpenChange(isOpen);
-    }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
          <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[80vw]">
         <div className="grid md:grid-cols-2 gap-0 h-full">
           {/* Left Panel - Form */}
@@ -905,108 +719,47 @@ export function ScheduleInterviewDialog({
               )}
 
               {/* Interviewers */}
-              <div className="space-y-2" ref={suggestionsRef}>
+              <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">Interviewers</Label>
                 <div className="relative">
-                  <Input
-                    ref={panelistInputRef}
-                    value={scheduleForm.panelists}
-                    onChange={(e) => handlePanelistInputChange(e.target.value)}
-                    placeholder="Add interviewers..."
-                    className="h-10 text-sm"
-                    onFocus={(e) => {
-                      updateDropdownPosition();
-                      if (savedPanelists.length > 0) {
-                        const parts = scheduleForm.panelists.split(',');
-                        const lastEmail = parts[parts.length - 1]?.trim() || '';
-                        
-                        if (lastEmail.length > 0) {
-                          const selectedEmails = parsePanelistEmails(true);
-                          const availablePanelists = savedPanelists.filter(
-                            panelist => !selectedEmails.includes(panelist.email || '')
-                          );
-                          
-                          const filtered = availablePanelists.filter(panelist => 
-                            (panelist.email || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-                            (panelist.first_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-                            (panelist.last_name || '').toLowerCase().includes(lastEmail.toLowerCase()) ||
-                            `${panelist.first_name || ''} ${panelist.last_name || ''}`.toLowerCase().includes(lastEmail.toLowerCase())
-                          );
-                          setFilteredPanelists(filtered);
-                          setShowSuggestions(filtered.length > 0);
-                        } else {
-                          const selectedEmails = parsePanelistEmails(true);
-                          const availablePanelists = savedPanelists.filter(
-                            panelist => !selectedEmails.includes(panelist.email || '')
-                          );
-                          setFilteredPanelists(availablePanelists);
-                          setShowSuggestions(true);
-                        }
-                      }
-                    }}
-                    onClick={updateDropdownPosition}
+                  <PanelistAutocomplete 
+                    panelists={savedPanelists} 
+                    selected={selectedPanelists} 
+                    onAdd={handlePanelistAdd} 
                   />
-                  {savedPanelists.length > 0 && (
-                    <button
-                      type="button"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      onClick={() => {
-                        panelistInputRef.current?.focus();
-                        updateDropdownPosition();
-                        const selectedEmails = parsePanelistEmails(true);
-                        const availablePanelists = savedPanelists.filter(
-                          panelist => !selectedEmails.includes(panelist.email || '')
-                        );
-                        setFilteredPanelists(availablePanelists);
-                        setShowSuggestions(true);
-                      }}
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
                 
                 {/* Selected Interviewers */}
-                {(() => {
-                  const currentPanelistEmails = parsePanelistEmails();
-                  return currentPanelistEmails.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {currentPanelistEmails.map((email, index) => {
-                        const panelist = savedPanelists.find(p => p.email === email);
-                        
-                        return (
-                          <div 
-                            key={index} 
-                            className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs"
-                          >
-                            {panelist?.avatar ? (
-                              <img 
-                                src={panelist.avatar} 
-                                alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
-                                className="w-5 h-5 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
-                                {panelist ? 
-                                  `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}` :
-                                  email.charAt(0).toUpperCase()
-                                }
-                              </div>
-                            )}
-                            <span className="text-slate-700 font-medium">{email}</span>
-                            <button 
-                              type="button"
-                              onClick={() => removePanelist(email)}
-                              className="text-slate-400 hover:text-slate-600 transition-colors ml-1"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                {selectedPanelists.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedPanelists.map((panelist, index) => (
+                      <div 
+                        key={panelist.id} 
+                        className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs"
+                      >
+                        {panelist.avatar ? (
+                          <img 
+                            src={panelist.avatar} 
+                            alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
+                            {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
+                        )}
+                        <span className="text-slate-700 font-medium">{panelist.email}</span>
+                        <button 
+                          type="button"
+                          onClick={() => removePanelist(panelist.email)}
+                          className="text-slate-400 hover:text-slate-600 transition-colors ml-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Notes */}
@@ -1113,29 +866,23 @@ export function ScheduleInterviewDialog({
                       Interviewers
                     </h4>
                     <div className="space-y-2">
-                      {parsePanelistEmails().length > 0 ? (
-                        parsePanelistEmails().map((email, index) => {
-                          const panelist = savedPanelists.find(p => p.email === email);
-                          return (
-                            <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                              {panelist?.avatar ? (
-                                <img 
-                                  src={panelist.avatar} 
-                                  className="w-7 h-7 rounded-full object-cover"
-                                  alt=""
-                                />
-                              ) : (
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-white text-xs font-medium">
-                                  {panelist ? 
-                                    `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}` :
-                                    email.charAt(0).toUpperCase()
-                                  }
-                                </div>
-                              )}
-                              <span className="text-sm text-slate-700 truncate">{email}</span>
-                            </div>
-                          );
-                        })
+                      {selectedPanelists.length > 0 ? (
+                        selectedPanelists.map((panelist, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                            {panelist.avatar ? (
+                              <img 
+                                src={panelist.avatar} 
+                                className="w-7 h-7 rounded-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-white text-xs font-medium">
+                                {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
+                              </div>
+                            )}
+                            <span className="text-sm text-slate-700 truncate">{panelist.email}</span>
+                          </div>
+                        ))
                       ) : (
                         <p className="text-sm text-slate-400 italic p-2">No interviewers selected</p>
                       )}
@@ -1227,52 +974,6 @@ export function ScheduleInterviewDialog({
           </div>
         </div>
       </DialogContent>
-
-      {/* Panelist Suggestions Dropdown */}
-      {showSuggestions && filteredPanelists.length > 0 && (
-        <div 
-          ref={dropdownRef}
-          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto"
-          style={{
-            top: `${panelistDropdownPosition.top}px`,
-            left: `${panelistDropdownPosition.left}px`,
-            width: `${panelistDropdownPosition.width}px`,
-            pointerEvents: 'auto'
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          {filteredPanelists.map((panelist) => (
-            <div
-              key={panelist.id}
-              className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3 transition-colors"
-              onClick={(e) => {
-                selectPanelist(panelist, e);
-              }}
-            >
-              {panelist.avatar ? (
-                <img 
-                  src={panelist.avatar} 
-                  alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                  {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-slate-800 truncate">
-                  {panelist.first_name || ''} {panelist.last_name || ''}
-                </div>
-                <div className="text-sm text-slate-500 truncate">{panelist.email || ''}</div>
-                <div className="text-xs text-slate-400 capitalize">{panelist.role || ''}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </Dialog>
   );
 }

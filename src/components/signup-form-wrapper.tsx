@@ -12,7 +12,9 @@ export function SignupFormWrapper() {
 
   useEffect(() => {
     setEmail(searchParams.get('email'))
-    setRedirect(searchParams.get('redirect'))
+    const redirectParam = searchParams.get('redirect')
+    // Only set redirect if it's not an empty string
+    setRedirect(redirectParam && redirectParam.trim() !== '' ? redirectParam : null)
     setInvitation(searchParams.get('invitation'))
   }, [searchParams])
 
