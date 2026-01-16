@@ -2,8 +2,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Calendar, Briefcase, Clock, Users, Search } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import useSWR from 'swr';
-import { createClient } from '@/lib/supabase/api/client';
+import { useAuthStore } from '@/store/auth-store';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { ScheduleInterviewDialog } from "@/components/schedule-interview-dialog";
 
@@ -17,42 +17,39 @@ interface Candidate {
     job_id: string;
 }
 
-// Fetcher functions
-const fetchSchoolInfo = async (userId: string): Promise<string | null> => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('admin_user_info')
-        .select('school_id')
-        .eq('id', userId)
-        .single();
-
-    if (error) throw error;
-    return data?.school_id || null;
-};
-
+// API fetcher functions
 const fetchApplications = async (
     schoolId: string,
     startIndex: number,
-    endIndex: number
+    endIndex: number,
+    search: string = ''
 ): Promise<Candidate[]> => {
     if (!schoolId) return [];
 
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc('get_applications_by_school', {
-        p_school_id: schoolId,
-        p_start_index: startIndex,
-        p_end_index: endIndex,
-        p_search: '',
-        p_status: 'interview_ready'
+    const params = new URLSearchParams({
+        startIndex: startIndex.toString(),
+        endIndex: endIndex.toString(),
+        status: 'interview_ready'
     });
+    
+    if (search) {
+        params.append('search', search);
+    }
 
-    if (error) throw error;
-    const applications = data || [];
-    return JSON.parse(JSON.stringify(applications));
+    const response = await fetch(`/api/applications?${params.toString()}`);
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.applications || [];
 };
 
 const CandidatesList: React.FC = () => {
     const { user } = useAuth();
+    const { schoolId: authSchoolId } = useAuthStore();
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
@@ -61,62 +58,109 @@ const CandidatesList: React.FC = () => {
     const lastCandidateRef = useRef<HTMLDivElement>(null);
     const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
     const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [assignToYou, setAssignToYou] = useState<'all' | 'assigned'>('all');
+    const [hiringUrgency, setHiringUrgency] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-    // Fetch user's school ID
-    const { data: schoolId, error: schoolError } = useSWR(
-        user?.id ? ['school-info', user.id] : null,
-        ([_, userId]) => fetchSchoolInfo(userId)
-    );
+    const queryClient = useQueryClient();
+    
+    // Fetch candidates data using TanStack Query
+    const {
+        data: candidatesData,
+        error: candidatesError,
+        isLoading: isLoadingCandidates,
+        isFetching: isFetchingCandidates,
+        refetch: refetchCandidates
+    } = useQuery({
+        queryKey: ['interview-candidates', authSchoolId, page, searchTerm],
+        queryFn: async () => {
+            if (!authSchoolId) {
+                throw new Error('User school information not found');
+            }
+            
+            // Add filter parameters to the URL
+            const params = new URLSearchParams({
+                startIndex: (page * 10).toString(),
+                endIndex: ((page + 1) * 10).toString(),
+                status: 'interview_ready'
+            });
+            
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            
+            if (assignToYou !== 'all') {
+                params.append('assigned_to_user', user?.id || '');
+            }
+            
+            if (hiringUrgency !== 'all') {
+                params.append('urgency', hiringUrgency);
+            }
+            
+            params.append('sortBy', 'urgency');
+            params.append('sortOrder', sortOrder);
+            
+            const response = await fetch(`/api/applications?${params.toString()}`);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            return result.applications || [];
+        },
+        enabled: !!authSchoolId,
+        staleTime: 30000, // 30 seconds
+        gcTime: 300000, // 5 minutes
+    });
 
-    // Fetch candidates data
-    const { data: newCandidates, error: candidatesError, isValidating, mutate } = useSWR(
-        schoolId ? ['applications', schoolId, page] : null,
-        ([_, schoolId]) => fetchApplications(schoolId, page * 10, (page + 1) * 10)
-    );
+    // Type guard to ensure candidatesData is an array
+    const typedCandidatesData = (candidatesData || []) as Candidate[];
+
+    // Set up real-time listener for job applications
+    useEffect(() => {
+        if (!authSchoolId) return;
+
+        // Invalidate query when real-time changes occur
+        const handleRealTimeUpdate = () => {
+            queryClient.invalidateQueries({ queryKey: ['interview-candidates'] });
+        };
+
+        // We'll trigger refetch manually since we don't have direct Supabase access here
+        // In a production app, you might want to set up WebSocket or polling
+        const interval = setInterval(handleRealTimeUpdate, 30000); // Poll every 30 seconds
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [authSchoolId, queryClient]);
 
     // Handle loading state
     useEffect(() => {
-        if (newCandidates) {
-            if (newCandidates.length === 0) {
+        if (typedCandidatesData && Array.isArray(typedCandidatesData)) {
+            if (typedCandidatesData.length === 0) {
                 setHasMore(false);
                 setLoading(false);
             } else {
                 if (page === 0) {
-                    setCandidates(newCandidates);
+                    setCandidates(typedCandidatesData);
                 } else {
-                    setCandidates(prev => [...prev, ...newCandidates]);
+                    setCandidates(prev => [...prev, ...typedCandidatesData]);
                 }
-                setHasMore(newCandidates.length === 10);
+                setHasMore(typedCandidatesData.length === 10);
                 setLoading(false);
             }
         }
-    }, [newCandidates, page]);
+    }, [typedCandidatesData, page]);
 
-    // Set up real-time listener for job applications
+    // Update loading state based on TanStack Query
     useEffect(() => {
-        if (!schoolId) return;
+        setLoading(isLoadingCandidates || isFetchingCandidates);
+    }, [isLoadingCandidates, isFetchingCandidates]);
 
-        const supabase = createClient();
-        
-        const channel = supabase
-            .channel('interview_candidates_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'job_applications',
-                },
-                () => {
-                    mutate();
-                }
-            )
-            .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [schoolId, mutate]);
 
     // Infinite scrolling implementation
     const loadMore = useCallback(() => {
@@ -169,8 +213,25 @@ const CandidatesList: React.FC = () => {
         setSelectedCandidate(null);
     };
 
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPage(0); // Reset to first page when search changes
+    };
+
+    const handleFilterChange = () => {
+        // Reset to first page when filters change
+        setPage(0);
+        // Refetch with new filters
+        refetchCandidates();
+    };
+
+    // Effect to refetch when filters change
+    useEffect(() => {
+        handleFilterChange();
+    }, [assignToYou, hiringUrgency, sortOrder]);
+
     // Show empty state when no candidates and not loading
-    if (!loading && candidates.length === 0 && !isValidating) {
+    if (!loading && candidates.length === 0 && !isFetchingCandidates) {
         return (
             <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
@@ -236,8 +297,54 @@ const CandidatesList: React.FC = () => {
                     <input
                         type="text"
                         placeholder="Search candidates..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
                         className="w-full h-11 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white"
                     />
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="px-6 py-3 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4">
+                {/* Assign to You Filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-slate-700">Assign to:</label>
+                    <select 
+                        value={assignToYou}
+                        onChange={(e) => setAssignToYou(e.target.value as 'all' | 'assigned')}
+                        className="h-8 text-sm border border-gray-300 rounded-md px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white"
+                    >
+                        <option value="all">All</option>
+                        <option value="assigned">Assigned to me</option>
+                    </select>
+                </div>
+
+                {/* Hiring Urgency Filter */}
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-slate-700">Urgency:</label>
+                    <select 
+                        value={hiringUrgency}
+                        onChange={(e) => setHiringUrgency(e.target.value as 'all' | 'high' | 'medium' | 'low')}
+                        className="h-8 text-sm border border-gray-300 rounded-md px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white"
+                    >
+                        <option value="all">All Urgencies</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+
+                {/* Sort Order */}
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-slate-700">Sort:</label>
+                    <select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                        className="h-8 text-sm border border-gray-300 rounded-md px-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all bg-white"
+                    >
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
                 </div>
             </div>
 

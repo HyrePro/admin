@@ -293,6 +293,7 @@ export default function AnalyticsPage() {
                 description: 'Candidates eligible for interview.'
               }
             ]}
+            variant='dominant'
           />
           <MetricCard title="Offers" value={schoolAnalytics?.offered_kpi?.offered?.count || 0} delta={schoolAnalytics?.offered_kpi?.offered?.delta || 0}
             description='Offer statistics for hired candidates.'

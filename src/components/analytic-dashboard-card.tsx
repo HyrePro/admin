@@ -104,25 +104,25 @@ export function MetricCard({
   const isDominant = variant === "dominant"
   
   return (
-    <div className="rounded-xl border bg-white flex flex-col">
-      {/* Header - dominant variant has more emphasis */}
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      {/* Header - cleaner spacing and typography */}
       <div className={cn(
-        "px-6",
-        isDominant ? "pt-6 pb-4" : "pt-4 pb-1"
+        "px-5 bg-gradient-to-br from-white to-gray-50/30",
+        isDominant ? "pt-5 pb-4" : "pt-4 pb-3"
       )}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 mb-1">
           <h3 className={cn(
-            "font-medium text-muted-foreground",
-            isDominant ? "text-base" : "text-sm"
+            "font-semibold text-gray-700",
+            isDominant ? "text-sm tracking-wide uppercase" : "text-xs tracking-wide uppercase"
           )}>
             {title}
           </h3>
           <InfoTooltip description={description} />
         </div>
-        <div className="mt-2 flex items-center gap-3">
+        <div className="flex items-baseline gap-2.5">
           <span className={cn(
-            "font-bold text-black",
-            isDominant ? "text-5xl" : "text-4xl"
+            "font-bold text-gray-900 tracking-tight",
+            isDominant ? "text-4xl" : "text-3xl"
           )}>
             {formatNumber(value)}
           </span>
@@ -130,11 +130,10 @@ export function MetricCard({
         </div>
       </div>
 
-      {/* Desktop */}
+      {/* Desktop - grid layout */}
       <div
         className={cn(
-          "hidden md:grid border-t border-gray-200/40 flex-1 items-stretch",
-          "grid-auto-rows-fr",
+          "hidden md:grid border-t border-gray-100 bg-white",
           columnCount === 1 && "grid-cols-1",
           columnCount === 2 && "grid-cols-2",
           columnCount === 3 && "grid-cols-3",
@@ -150,8 +149,8 @@ export function MetricCard({
         ))}
       </div>
 
-      {/* Mobile */}
-      <div className="md:hidden border-t border-gray-200/40 divide-y divide-gray-200/40">
+      {/* Mobile - stacked layout with fixed heights */}
+      <div className="md:hidden border-t border-gray-100 bg-white">
         {items.map(item => (
           <MetricItemBlock
             key={item.key}

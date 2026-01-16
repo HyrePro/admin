@@ -1,7 +1,7 @@
 "use client";
 import { createPortal } from "react-dom";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,8 @@ import {
   Phone,
   Loader2,
   Copy,
-  Check
+  Check,
+  GlobeLock
 } from "lucide-react";
 import { createClient } from '@/lib/supabase/api/client';
 import { useAuthStore } from '@/store/auth-store';
@@ -104,6 +105,7 @@ export function ScheduleInterviewDialog({
   candidate,
   onClose
 }: ScheduleInterviewDialogProps) {
+
   const { user } = useAuth();
   const { schoolId: storeSchoolId } = useAuthStore();
   const [schoolId, setSchoolId] = useState<string | null>(storeSchoolId);
@@ -146,6 +148,9 @@ export function ScheduleInterviewDialog({
   const [selectedPreferredSlot, setSelectedPreferredSlot] = useState<PreferredSlot | null>(null);
   const [savedPanelists, setSavedPanelists] = useState<SavedPanelist[]>([]);
   const [selectedPanelists, setSelectedPanelists] = useState<Panelist[]>([]);
+  useEffect(() => {
+    console.log('Selected panelists changed:', selectedPanelists.length, selectedPanelists);
+  }, [selectedPanelists]);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -239,6 +244,7 @@ export function ScheduleInterviewDialog({
         }));
         
         setSavedPanelists(validatedPanelists);
+        console.log('Saved panelists updated:', validatedPanelists.length);
       } catch (error) {
         console.error('Error fetching saved panelists:', error);
         toast.error("Failed to fetch panelists");
@@ -298,38 +304,44 @@ export function ScheduleInterviewDialog({
     fetchPreferredSlots();
   }, [candidate?.application_id]);
 
-  const handlePanelistAdd = (p: Panelist): void => {
+  const handlePanelistAdd = useCallback((p: Panelist): void => {
+    console.log('handlePanelistAdd called with:', p);
     // Check if panelist is already selected
     if (!selectedPanelists.some(selected => selected.id === p.id)) {
-      const newSelectedPanelists = [...selectedPanelists, p];
-      setSelectedPanelists(newSelectedPanelists);
-      
+      console.log('Adding new panelist');
       // Update the form's panelists field with comma-separated emails
-      const newEmails = newSelectedPanelists.map(panelist => panelist.email);
+      const newEmails = [...selectedPanelists, p].map(panelist => panelist.email);
       const newValue = newEmails.join(', ') + (newEmails.length > 0 ? ', ' : '');
       
-      setScheduleForm(prev => ({
-        ...prev,
+      setScheduleForm(prevForm => ({
+        ...prevForm,
         panelists: newValue
       }));
+      
+      // Update selected panelists after schedule form is updated
+      setSelectedPanelists(prev => [...prev, p]);
+      console.log('State updated, selectedPanelists now:', [...selectedPanelists, p]);
+    } else {
+      console.log('Panelist already selected, skipping');
     }
-  };
+  }, [selectedPanelists, setScheduleForm]);
 
-  const removePanelist = (emailToRemove: string) => {
-    const updatedSelectedPanelists = selectedPanelists.filter(panelist => panelist.email !== emailToRemove);
-    setSelectedPanelists(updatedSelectedPanelists);
-    
+  const removePanelist = useCallback((emailToRemove: string) => {
     // Update the form's panelists field with remaining emails
+    const updatedSelectedPanelists = selectedPanelists.filter(panelist => panelist.email !== emailToRemove);
     const remainingEmails = updatedSelectedPanelists.map(panelist => panelist.email);
     const newValue = remainingEmails.join(', ') + (remainingEmails.length > 0 ? ', ' : '');
     
-    setScheduleForm(prev => ({
-      ...prev,
+    setScheduleForm(prevForm => ({
+      ...prevForm,
       panelists: newValue
     }));
-  };
+    
+    // Update selected panelists after schedule form is updated
+    setSelectedPanelists(updatedSelectedPanelists);
+  }, [selectedPanelists, setScheduleForm]);
 
-  const handleFormChange = (field: keyof ScheduleInterviewForm, value: string) => {
+  const handleFormChange = useCallback((field: keyof ScheduleInterviewForm, value: string) => {
     if (field === 'time' || field === 'duration') {
       setSelectedPreferredSlot(null);
     }
@@ -342,7 +354,7 @@ export function ScheduleInterviewDialog({
         ...prev,
         [field]: value
     }));
-  };
+  }, [setSelectedPreferredSlot, setScheduleForm]);
 
   useEffect(() => {
     if (preferredSlots.length > 0 && scheduleForm.date) {
@@ -370,7 +382,7 @@ export function ScheduleInterviewDialog({
     }
   }, [scheduleForm.date, scheduleForm.time, scheduleForm.duration, preferredSlots, selectedPreferredSlot]);
 
-  const handleMeetingTypeChange = (value: "offline" | "online") => {
+  const handleMeetingTypeChange = useCallback((value: "offline" | "online") => {
     setScheduleForm(prev => {
       const updatedForm: ScheduleInterviewForm = {
         ...prev,
@@ -380,9 +392,9 @@ export function ScheduleInterviewDialog({
       };
       return updatedForm;
     });
-  };
+  }, [schoolInfo]);
 
-  const handlePreferredSlotSelect = (slot: PreferredSlot) => {
+  const handlePreferredSlotSelect = useCallback((slot: PreferredSlot) => {
     setSelectedPreferredSlot(slot);
     
     setScheduleForm(prev => ({
@@ -416,14 +428,14 @@ export function ScheduleInterviewDialog({
     }
     
     toast.info(`Selected preferred slot: ${slot.day} at ${slot.start_time} for ${slot.duration} minutes`);
-  };
+  }, [setSelectedPreferredSlot, setScheduleForm]);
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleSaveSchedule = async () => {
+  const handleSaveSchedule = useCallback(async () => {
     if (!candidate || !schoolId) {
       toast.error("Missing required information. Please try again.");
       return;
@@ -522,7 +534,7 @@ export function ScheduleInterviewDialog({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [candidate, schoolId, scheduleForm, selectedPanelists, setSelectedPreferredSlot, onClose]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -537,12 +549,8 @@ export function ScheduleInterviewDialog({
     return `${firstName.charAt(0)}${lastName.charAt(0)}`;
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText("https://meeting.example.com/room/abc123");
-    setCopied(true);
-    toast.success("Link copied to clipboard");
-    setTimeout(() => setCopied(false), 2000);
-  };
+  // Removed handleCopyLink function as it's no longer needed
+  // since we're showing a system-generated message instead of a link
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
@@ -561,9 +569,19 @@ export function ScheduleInterviewDialog({
     return formatTime(endTime);
   };
 
+        // AFTER - Line ~570
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-         <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[80vw]">
+         <DialogContent 
+           className="max-h-[90vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[80vw]"
+           onInteractOutside={(e) => {
+             // Prevent closing when clicking autocomplete dropdown
+             const target = e.target as HTMLElement
+             if (target.closest('[data-autocomplete-dropdown]')) {
+               e.preventDefault()
+             }
+           }}
+         >
         <div className="grid md:grid-cols-2 gap-0 h-full">
           {/* Left Panel - Form */}
                    <div className="p-6 overflow-y-auto max-h-[90vh]">
@@ -573,6 +591,8 @@ export function ScheduleInterviewDialog({
                 Schedule an interview with {candidate?.first_name} {candidate?.last_name} for {candidate?.job_title}
               </DialogDescription>
             </DialogHeader>
+            
+           
             
             <div className="space-y-5">
               {/* Date and Time - Unified */}
@@ -719,10 +739,11 @@ export function ScheduleInterviewDialog({
               )}
 
               {/* Interviewers */}
-              <div className="space-y-2">
+              <div className="space-y-2" key={`interviewers-section-${selectedPanelists.length}`}>
                 <Label className="text-sm font-medium text-slate-700">Interviewers</Label>
                 <div className="relative">
                   <PanelistAutocomplete 
+                    key={`panelist-autocomplete-${selectedPanelists.length}`}
                     panelists={savedPanelists} 
                     selected={selectedPanelists} 
                     onAdd={handlePanelistAdd} 
@@ -809,7 +830,7 @@ export function ScheduleInterviewDialog({
           <div className="bg-slate-50 p-6 overflow-y-auto max-h-[90vh] hidden md:block">
             <div className="space-y-4">
               {/* Interview Summary Card */}
-              <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="bg-white rounded-lg  border overflow-hidden">
                 {/* Date and Time Header */}
                 {scheduleForm.date && scheduleForm.time && (
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 border-b">
@@ -827,8 +848,10 @@ export function ScheduleInterviewDialog({
                           {formatTime(scheduleForm.time)} - {calculateEndTime(scheduleForm.time, scheduleForm.duration)}
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-sm text-slate-600">
-                          <Clock className="w-4 h-4" />
-                          <span>GMT+8 • {scheduleForm.duration} min</span>
+                         <GlobeLock className="w-4 h-4 text-slate-500" />
+                          <span>GMT+5:30 (IST) </span>
+                           <Clock className="w-4 h-4 text-slate-500" />
+                          <span>{scheduleForm.duration} min</span> 
                         </div>
                       </div>
                     </div>
@@ -900,12 +923,9 @@ export function ScheduleInterviewDialog({
                     {scheduleForm.meetingType === "online" ? (
                       <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
                         <LinkIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        <a 
-                          href="https://meeting.example.com/room/abc123" 
-                          className="text-sm text-blue-600 hover:underline truncate font-medium"
-                        >
-                          meeting.example.com/room/abc123
-                        </a>
+                        <span className="text-sm text-blue-700 font-medium">
+                          Google Meet link will be generated by system
+                        </span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
