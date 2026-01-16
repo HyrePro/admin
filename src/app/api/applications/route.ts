@@ -102,6 +102,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || 'interview_ready'
+    const assignedToMe = searchParams.get('assignedToMe') || 'false'
+    const urgencyFilterActive = searchParams.get('urgencyFilterActive') || 'false'
+    const sortOrder = searchParams.get('hiring_asc') || 'asc'
+    
     
     // Validate and sanitize pagination parameters
     const rawStartIndex = parseInt(searchParams.get('startIndex') || '0') || 0
@@ -153,6 +157,9 @@ export async function GET(request: NextRequest) {
         p_start_index: startIndex,
         p_end_index: endIndex,
         p_search: searchParam,
+        p_assign_to_me: assignedToMe,
+        p_hiring_urgency: urgencyFilterActive,
+        p_hiring_asc: sortOrder
       }));
       
       // Check if the error is the specific type mismatch error

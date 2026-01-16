@@ -64,6 +64,75 @@ export default function PanelistAutocomplete({
     return result
   }, [query, panelists, selected])
 
+  // Email detection and addition
+  useEffect(() => {
+    if (query.includes(",")) {
+      const emails = query
+        .split(",")
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const validEmails = emails.filter(email => emailRegex.test(email));
+      
+      // Add valid emails that aren't already in the selected list
+      validEmails.forEach(email => {
+        // Check if email already exists in selected panelists
+        const emailExists = selected.some(p => p.email === email);
+        if (!emailExists) {
+          // Create a temporary panelist object for the email
+          const tempPanelist: Panelist = {
+            id: email,
+            first_name: email.split('@')[0],
+            last_name: email.split('@')[1],
+            email: email,
+            role: 'External',
+            avatar: null
+          };
+          onAdd(tempPanelist);
+        }
+      });
+      
+      // Clear the input and close dropdown
+      setQuery("");
+      setOpen(false);
+    }
+  }, [query, selected, onAdd]);
+
+  // Handle Enter key press to add current email
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const trimmedQuery = query.trim();
+      
+      if (trimmedQuery) {
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(trimmedQuery)) {
+          // Check if email already exists in selected panelists
+          const emailExists = selected.some(p => p.email === trimmedQuery);
+          if (!emailExists) {
+            // Create a temporary panelist object for the email
+            const tempPanelist: Panelist = {
+              id: trimmedQuery,
+              first_name: trimmedQuery.split('@')[0],
+              last_name: trimmedQuery.split('@')[1],
+              email: trimmedQuery,
+              role: 'External',
+              avatar: null
+            };
+            onAdd(tempPanelist);
+          }
+        }
+        
+        // Clear the input and close dropdown
+        setQuery("");
+        setOpen(false);
+      }
+    }
+  };
+
   // Debug logging
   useEffect(() => {
     console.log('[PanelistAutocomplete] State:', {
@@ -173,11 +242,12 @@ export default function PanelistAutocomplete({
           setQuery(e.target.value)
           setOpen(true)
         }}
+        onKeyDown={handleKeyDown}
         onFocus={() => {
           console.log('[PanelistAutocomplete] Input focused, query:', query)
           if (query) setOpen(true)
         }}
-        placeholder="Add interviewer by name or email"
+        placeholder="Add interviewer by name, email, or comma-separated emails"
         className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
       />
 

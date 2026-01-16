@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Check, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
 interface PricingPlan {
@@ -69,7 +69,7 @@ const plans: PricingPlan[] = [
     price: '₹75,000',
     period: 'per year',
     description: 'Perfect for mid-sized schools',
-    badge: 'Most Popular',
+    badge: null,
     features: [
       '10 Job postings per year',
       'Review up to 200 applications per job',
@@ -81,7 +81,7 @@ const plans: PricingPlan[] = [
       'Smart selection recommendations'
     ],
     cta: 'Get Gold',
-    highlighted: true
+    highlighted: false
   },
   {
     id: 'platinum',
@@ -105,41 +105,43 @@ const plans: PricingPlan[] = [
   }
 ];
 
-const PricingPlansSheet: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose }) => {
+const PricingPlansDialog: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose }) => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);
-    setFeedbackMessage(`You have selected the ${plans.find(p => p.id === planId)?.name} plan!`);
+    // Handle plan selection - you can add your logic here
+    console.log(`Selected plan: ${plans.find(p => p.id === planId)?.name}`);
   };
 
-  const handleNext = () => {
-    if (!selectedPlan) {
-      setFeedbackMessage('Please select a plan first!');
-      return;
+  const handlePlanCTA = (planId: string) => {
+    const selectedPlanData = plans.find(p => p.id === planId);
+    if (selectedPlanData) {
+      // Handle the CTA action - this is where you'd connect to your API
+      console.log(`CTA clicked for plan: ${selectedPlanData.name}`);
+      setFeedbackMessage(`Thank you for selecting the ${selectedPlanData.name} plan! An API will be connected here soon.`);
+      
+      // Close the dialog after a short delay
+      setTimeout(() => {
+        onClose();
+        setSelectedPlan(null);
+        setFeedbackMessage(null);
+      }, 2000);
     }
-    
-    // Show feedback and simulate API call
-    const selectedPlanName = plans.find(p => p.id === selectedPlan)?.name;
-    setFeedbackMessage(`Thank you for selecting the ${selectedPlanName} plan! An API will be connected here soon.`);
-    
-    // Close the sheet after a short delay
-    setTimeout(() => {
-      onClose();
-      setSelectedPlan(null);
-    }, 2000);
   };
+
+
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl overflow-y-hidden flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="text-2xl font-bold">Choose Your Plan</SheetTitle>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[80vw] xl:max-w-[75vw]">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-2xl font-bold">Choose Your Plan</DialogTitle>
+        </DialogHeader>
         
-       <div className="py-6 flex-1 overflow-y-auto">
-          <div className="flex gap-4 px-1 min-w-max">
+        <div className="px-6 pb-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <div className="flex gap-4 min-w-max">
             {plans.map((plan) => (
               <div
                 key={plan.id}
@@ -150,49 +152,44 @@ const PricingPlansSheet: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose }
                 } ${selectedPlan === plan.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
                 onClick={() => handlePlanSelect(plan.id)}
               >
-                {/* Badge */}
-                {plan.badge && (
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                    <Badge variant="default" className="bg-purple-600 text-white px-3 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap shadow">
-                      {plan.badge}
-                    </Badge>
-                  </div>
-                )}
+                {/* Removed badge since it conflicts with design requirements */}
 
-                <div className={`p-6 ${plan.highlighted ? 'pt-7' : 'pt-6'}`}>
-                  {/* Plan Name */}
-                  <div className="mb-6">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                      {plan.name}
-                    </h3>
-                    
-                    {/* Description */}
-                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
-                      {plan.description}
-                    </p>
-                  </div>
+                <div className="p-6 flex flex-col justify-between h-full">
+                  <div>
+                    {/* Plan Name */}
+                    <div className="mb-6">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                        {plan.name}
+                      </h3>
+                      
+                      {/* Description */}
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                        {plan.description}
+                      </p>
+                    </div>
 
-                  {/* Features Header */}
-                  <div className="mb-3">
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Unlock these features:
-                    </p>
-                  </div>
+                    {/* Features Header */}
+                    <div className="mb-3">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Unlock these features:
+                      </p>
+                    </div>
 
-                  {/* Features */}
-                  <div className="space-y-2 mb-6">
-                    <ul className="space-y-2">
-                      {plan.features.map((feature: string, idx: number) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-                          <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
-                          <span className="leading-relaxed">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {/* Features */}
+                    <div className="space-y-2 mb-6">
+                      <ul className="space-y-2">
+                        {plan.features.map((feature: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+                            <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+                            <span className="leading-relaxed">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
-                  {/* Price and Button */}
-                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                  {/* Price and Button - Aligned at bottom */}
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
                     <div className="flex items-baseline gap-1 mb-3">
                       <span className="text-2xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
                       {plan.period && (
@@ -201,57 +198,32 @@ const PricingPlansSheet: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose }
                     </div>
                     
                     <Button 
-                      className={`w-full ${
-                        selectedPlan === plan.id 
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                          : plan.highlighted 
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                          : plan.id === 'platinum'
-                          ? 'bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold'
-                          : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700'
-                      }`}
+                      className={`w-full bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:from-purple-600 hover:to-purple-800 transition-all duration-200 ease-in-out h-10 px-4 py-2 border-0 shadow-none`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handlePlanSelect(plan.id);
+                        handlePlanCTA(plan.id);
                       }}
                     >
-                      {selectedPlan === plan.id ? (
-                        <>
-                          <Check className="w-4 h-4 mr-1" />
-                          Selected
-                        </>
-                      ) : (
-                        plan.cta
-                      )}
+                      {plan.cta}
                     </Button>
                   </div>
                 </div>
               </div>
             ))}
-            </div>
-            </div>
-        
-        <div className="border-t p-6 bg-background sticky bottom-0 mt-auto">
-          <SheetFooter className="flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleNext}
-              disabled={!selectedPlan}
-              className="w-full sm:w-auto bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
-            >
-              Next <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </SheetFooter>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+        
+        {/* Feedback message */}
+        {feedbackMessage && (
+          <div className="px-6 pb-6">
+            <div className="text-center text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+              {feedbackMessage}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default PricingPlansSheet;
+export default PricingPlansDialog;

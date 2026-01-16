@@ -31,13 +31,28 @@ import {
   Loader2,
   Copy,
   Check,
-  GlobeLock
+  GlobeLock,
+  CheckCircle2,
+  CircleAlert,
+  Info
 } from "lucide-react";
 import { createClient } from '@/lib/supabase/api/client';
 import { useAuthStore } from '@/store/auth-store';
 import { useAuth } from '@/context/auth-context';
 import { toast } from "sonner";
 import PanelistAutocomplete from "./PanelistAutocomplete";
+import { usePanelistAvailability } from '@/hooks/usePanelistAvailability';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface Candidate {
     application_id: string;
@@ -153,6 +168,215 @@ export function ScheduleInterviewDialog({
   }, [selectedPanelists]);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Panelist display component
+  const PanelistDisplay = ({ 
+    panelist, 
+    scheduleForm, 
+    onRemove 
+  }: { 
+    panelist: Panelist; 
+    scheduleForm: ScheduleInterviewForm; 
+    onRemove: (email: string) => void;
+  }) => {
+    // Calculate end time based on start time and duration
+    const [hours, minutes] = scheduleForm.time.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + parseInt(scheduleForm.duration);
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+
+    const { data: availabilityData, isLoading, isError } = usePanelistAvailability({
+      panelistEmail: panelist.email,
+      interviewDate: scheduleForm.date,
+      startTime: scheduleForm.time,
+      endTime,
+      enabled: Boolean(scheduleForm.date && scheduleForm.time && scheduleForm.duration)
+    });
+
+    // Determine availability status
+    let availabilityStatus: 'available' | 'unavailable' | 'checking' | 'error' = 'checking';
+    if (isLoading) {
+      availabilityStatus = 'checking';
+    } else if (isError) {
+      availabilityStatus = 'error';
+    } else if (availabilityData) {
+      const hasConflict = availabilityData.some(item => item.is_available === false);
+      availabilityStatus = hasConflict ? 'unavailable' : 'available';
+    }
+
+    return (
+      <div 
+        className="flex items-center justify-between bg-slate-100 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs relative"
+      >
+        {panelist.avatar ? (
+          <img 
+            src={panelist.avatar} 
+            alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
+            className="w-5 h-5 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
+            {panelist.first_name && panelist.last_name 
+              ? `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`
+              : (panelist.email || '').charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span className="text-slate-700 font-medium">{panelist.email}</span>
+        <div className="ml-1">
+          {availabilityStatus === 'checking' && (
+            <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+          )}
+          {availabilityStatus === 'available' && (
+            <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-600 text-white" />
+          )}
+          {availabilityStatus === 'unavailable' && (
+            <HoverCard>
+              <HoverCardTrigger>
+                <CircleAlert className="w-3 h-3 text-red-600" />
+              </HoverCardTrigger>
+              <HoverCardContent className="max-w-xs p-3 bg-white text-slate-800 text-xs border shadow-lg">
+                <div className="space-y-3">
+                  <p className="font-semibold text-red-600 text-sm">Conflicts Detected!</p>
+                  {availabilityData && availabilityData
+                    .filter(item => item.is_available === false)
+                    .map((conflict, idx) => (
+                      <div key={idx} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-slate-500" />
+                          <span className="font-medium">{conflict.job_id || 'Job ID N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-slate-500" />
+                          <span>{conflict.conflict_start_time} - {conflict.conflict_end_time}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="w-4 h-4 text-slate-500" />
+                          <span className="truncate">{conflict.candidate_email}</span>
+                        </div>
+                        <div className="text-xs px-2 py-1 bg-slate-200 rounded inline-block">
+                          {conflict.interview_status}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          )}
+          {availabilityStatus === 'error' && (
+            <X className="w-3 h-3 text-yellow-600" />
+          )}
+        </div>
+        <button 
+          type="button"
+          onClick={() => onRemove(panelist.email)}
+          className="text-slate-400 hover:text-slate-600 transition-colors ml-1"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    );
+  };
+
+  // Panelist preview display component
+  const PanelistPreviewDisplay = ({ 
+    panelist, 
+    scheduleForm 
+  }: { 
+    panelist: Panelist; 
+    scheduleForm: ScheduleInterviewForm; 
+  }) => {
+    // Calculate end time based on start time and duration
+    const [hours, minutes] = scheduleForm.time.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + parseInt(scheduleForm.duration);
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+    const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+
+    const { data: availabilityData, isLoading, isError } = usePanelistAvailability({
+      panelistEmail: panelist.email,
+      interviewDate: scheduleForm.date,
+      startTime: scheduleForm.time,
+      endTime,
+      enabled: Boolean(scheduleForm.date && scheduleForm.time && scheduleForm.duration)
+    });
+
+    // Determine availability status
+    let availabilityStatus: 'available' | 'unavailable' | 'checking' | 'error' = 'checking';
+    if (isLoading) {
+      availabilityStatus = 'checking';
+    } else if (isError) {
+      availabilityStatus = 'error';
+    } else if (availabilityData) {
+      const hasConflict = availabilityData.some(item => item.is_available === false);
+      availabilityStatus = hasConflict ? 'unavailable' : 'available';
+    }
+
+    return (
+      <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          {panelist.avatar ? (
+          <img 
+            src={panelist.avatar} 
+            className="w-7 h-7 rounded-full object-cover"
+            alt=""
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-white text-xs font-medium">
+            {panelist.first_name && panelist.last_name 
+              ? `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`
+              : (panelist.email || '').charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span className="text-sm text-slate-700 truncate">{panelist.email}</span>
+        </div>
+        <div className="ml-1">
+          {availabilityStatus === 'checking' && (
+            <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+          )}
+          {availabilityStatus === 'available' && (
+            <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-600 text-white" />
+          )}
+          {availabilityStatus === 'unavailable' && (
+            <HoverCard>
+              <HoverCardTrigger>
+                <CircleAlert className="w-3 h-3 text-red-600" />
+              </HoverCardTrigger>
+              <HoverCardContent className="max-w-xs p-3 bg-white text-slate-800 text-xs border shadow-lg">
+                <div className="space-y-3">
+                  <p className="font-semibold text-red-600 text-sm">Conflicts Detected!</p>
+                  {availabilityData && availabilityData
+                    .filter(item => item.is_available === false)
+                    .map((conflict, idx) => (
+                      <div key={idx} className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-slate-500" />
+                          <span className="font-medium">{conflict.job_id || 'Job ID N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-slate-500" />
+                          <span>{conflict.conflict_start_time} - {conflict.conflict_end_time}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="w-4 h-4 text-slate-500" />
+                          <span className="truncate">{conflict.candidate_email}</span>
+                        </div>
+                        <div className="text-xs px-2 py-1 bg-slate-200 rounded inline-block">
+                          {conflict.interview_status}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          )}
+          {availabilityStatus === 'error' && (
+            <X className="w-3 h-3 text-yellow-600" />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const fetchSchoolId = async () => {
@@ -436,7 +660,9 @@ export function ScheduleInterviewDialog({
   };
 
   const handleSaveSchedule = useCallback(async () => {
-    if (!candidate || !schoolId) {
+    // Get school ID from auth store
+    const currentSchoolId = useAuthStore.getState().schoolId;
+    if (!candidate || !currentSchoolId) {
       toast.error("Missing required information. Please try again.");
       return;
     }
@@ -488,6 +714,17 @@ export function ScheduleInterviewDialog({
       }
     }
     
+    // Validate required IDs are valid UUIDs
+    if (!candidate.job_id || candidate.job_id === '') {
+      toast.error("Job ID is missing. Cannot schedule interview.");
+      return;
+    }
+    
+    if (!candidate.application_id || candidate.application_id === '') {
+      toast.error("Application ID is missing. Cannot schedule interview.");
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -495,9 +732,9 @@ export function ScheduleInterviewDialog({
       const { data: insertData, error: insertError } = await supabase
         .from('interview_schedule')
         .insert({
-          school_id: schoolId,
+          school_id: currentSchoolId,
           candidate_email: candidate.email,
-          job_id: candidate.job_id || '',
+          job_id: candidate.job_id,
           panelists: currentPanelistEmails.map((email: string) => ({ email })),
           interview_date: date,
           interview_time: time,
@@ -510,7 +747,13 @@ export function ScheduleInterviewDialog({
       
       if (insertError) {
         console.error('Error saving to interview_schedule:', insertError);
-        toast.error(`Error saving interview schedule: ${insertError.message}`);
+        
+        // More specific error message for UUID validation
+        if (insertError.message.includes('invalid input syntax for type uuid')) {
+          toast.error(`Error saving interview: Invalid ID format detected. Please refresh the page and try again. ${insertError.message}`);
+        } else {
+          toast.error(`Error saving interview schedule: ${insertError.message}`);
+        }
         return;
       }
       
@@ -534,7 +777,7 @@ export function ScheduleInterviewDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [candidate, schoolId, scheduleForm, selectedPanelists, setSelectedPreferredSlot, onClose]);
+  }, [candidate, scheduleForm, selectedPanelists, setSelectedPreferredSlot, onClose]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -754,30 +997,12 @@ export function ScheduleInterviewDialog({
                 {selectedPanelists.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {selectedPanelists.map((panelist, index) => (
-                      <div 
-                        key={panelist.id} 
-                        className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs"
-                      >
-                        {panelist.avatar ? (
-                          <img 
-                            src={panelist.avatar} 
-                            alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
-                            className="w-5 h-5 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
-                            {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
-                          </div>
-                        )}
-                        <span className="text-slate-700 font-medium">{panelist.email}</span>
-                        <button 
-                          type="button"
-                          onClick={() => removePanelist(panelist.email)}
-                          className="text-slate-400 hover:text-slate-600 transition-colors ml-1"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
+                      <PanelistDisplay
+                        key={panelist.id}
+                        panelist={panelist}
+                        scheduleForm={scheduleForm}
+                        onRemove={removePanelist}
+                      />
                     ))}
                   </div>
                 )}
@@ -891,20 +1116,11 @@ export function ScheduleInterviewDialog({
                     <div className="space-y-2">
                       {selectedPanelists.length > 0 ? (
                         selectedPanelists.map((panelist, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                            {panelist.avatar ? (
-                              <img 
-                                src={panelist.avatar} 
-                                className="w-7 h-7 rounded-full object-cover"
-                                alt=""
-                              />
-                            ) : (
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center text-white text-xs font-medium">
-                                {`${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`}
-                              </div>
-                            )}
-                            <span className="text-sm text-slate-700 truncate">{panelist.email}</span>
-                          </div>
+                          <PanelistPreviewDisplay
+                            key={index}
+                            panelist={panelist}
+                            scheduleForm={scheduleForm}
+                          />
                         ))
                       ) : (
                         <p className="text-sm text-slate-400 italic p-2">No interviewers selected</p>
