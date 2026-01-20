@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 type ResponseState = 'accepted' | 'declined' | 'pending'
 type ViewMode = 'month' | 'week' | 'day'
@@ -35,87 +35,32 @@ export const mockInterviews: InterviewSchedule[] = [
     status: 'scheduled',
     interview_type: 'technical',
     candidate_response: 'accepted',
-    interviewer_response: 'accepted',
-    meeting_link: 'https://meet.example.com/interview-123',
-    interviewers: [
-      { name: 'Ahmad Zainy', avatar: 'AZ' },
-      { name: 'Lydia Workman', avatar: 'LW' }
-    ],
-    notes: 'Record key feedback during the session for evaluation.'
-  },
-  {
-    id: '2',
-    first_name: 'Michael',
-    last_name: 'Chen',
-    candidate_email: 'mchen@email.com',
-    job_title: 'Product Manager',
-    interview_date: '2026-01-13',
-    start_time: '14:00',
-    status: 'scheduled',
-    interview_type: 'behavioral',
-    candidate_response: 'accepted',
-    interviewer_response: 'pending',
-    meeting_link: 'https://meet.example.com/interview-456',
-    interviewers: [
-      { name: 'John Smith', avatar: 'JS' }
-    ],
-    notes: 'Focus on leadership experience and team management skills.'
-  },
-  {
-    id: '3',
-    first_name: 'Emily',
-    last_name: 'Rodriguez',
-    candidate_email: 'emily.r@email.com',
-    job_title: 'UX Designer',
-    interview_date: '2026-01-15',
-    start_time: '11:00',
-    status: 'scheduled',
-    interview_type: 'portfolio',
-    candidate_response: 'pending',
-    interviewer_response: 'accepted',
-    meeting_link: 'https://meet.example.com/interview-789',
-    interviewers: [
-      { name: 'Sarah Design', avatar: 'SD' }
-    ],
-    notes: 'Review portfolio beforehand. Prepare design challenge.'
-  },
-  {
-    id: '4',
-    first_name: 'David',
-    last_name: 'Park',
-    candidate_email: 'dpark@email.com',
-    job_title: 'Data Scientist',
-    interview_date: '2026-01-11',
-    start_time: '09:00',
-    status: 'completed',
-    interview_type: 'technical',
-    candidate_response: 'accepted',
-    interviewer_response: 'accepted',
-    meeting_link: 'https://meet.example.com/interview-111',
-    interviewers: [
-      { name: 'Dr. Analytics', avatar: 'DA' }
-    ]
-  },
-  {
-    id: '5',
-    first_name: 'Jessica',
-    last_name: 'Williams',
-    candidate_email: 'jwilliams@email.com',
-    job_title: 'Marketing Director',
-    interview_date: '2026-01-11',
-    start_time: '15:30',
-    status: 'scheduled',
-    interview_type: 'final',
-    candidate_response: 'accepted',
-    interviewer_response: 'accepted',
-    meeting_link: 'https://meet.example.com/interview-222',
-    interviewers: [
-      { name: 'CEO Mark', avatar: 'CM' },
-      { name: 'VP Marketing', avatar: 'VM' }
-    ],
-    notes: 'Final round with executive team. Discuss compensation.'
+    interviewer_response: 'accepted'
   }
 ]
+
+/* ---------- constants ---------- */
+const WORKING_HOURS_VISIBLE = 8
+const TIME_COLUMN_WIDTH = 64
+
+/* ---------- helpers ---------- */
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate()
+
+const formatTime = (time: string) => {
+  const [h, m] = time.split(':')
+  const hour = Number(h)
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+  return `${display}:${m} ${ampm}`
+}
+
+const formatTimeRange = (time: string) => {
+  const [h, m] = time.split(':')
+  return `${h}:${m} - ${(Number(h) + 1).toString().padStart(2, '0')}:${m}`
+}
 
 const formatDate = (date: Date, formatStr: string) => {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -157,25 +102,7 @@ const getWeekDays = (date: Date) => {
   return days
 }
 
-const isSameDay = (d1: Date, d2: Date) => 
-  d1.getFullYear() === d2.getFullYear() &&
-  d1.getMonth() === d2.getMonth() &&
-  d1.getDate() === d2.getDate()
 
-const isToday = (date: Date) => isSameDay(date, new Date())
-
-const formatTimeRange = (time: string) => {
-  const [h, m] = time.split(':')
-  return `${h}:${m} - ${(Number(h) + 1).toString().padStart(2, '0')}:${m}`
-}
-
-const formatTime = (time: string) => {
-  const [h, m] = time.split(':')
-  const hour = Number(h)
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
-  return `${displayHour}:${m} ${ampm}`
-}
 
 const InterviewPopover = ({ interview, position, onClose }: { interview: InterviewSchedule; position: { x: number; y: number }; onClose: () => void }) => {
   return (
@@ -305,6 +232,60 @@ export default function InterviewSchedulePage({ interviews = mockInterviews }: {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [showViewDropdown, setShowViewDropdown] = useState(false)
+  const [currentTime, setCurrentTime] = useState<Date>(new Date())
+  
+  const weekDayContainerRef = useRef<HTMLDivElement>(null)
+  const dayContainerRef = useRef<HTMLDivElement>(null)
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+    
+    return () => clearInterval(interval)
+  }, [])
+  
+  useEffect(() => {
+    if (viewMode !== 'month') {
+      setTimeout(() => {
+        scrollToCurrentTime()
+      }, 100)
+    }
+  }, [viewMode, currentDate])
+  
+  const scrollToCurrentTime = () => {
+    if (viewMode === 'month') return
+    
+    const containerRef = viewMode === 'week' ? weekDayContainerRef : dayContainerRef
+    if (!containerRef.current) return
+    
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    
+    const hourPosition = currentHour + (currentMinute / 60)
+    const pixelPosition = hourPosition * 80
+    
+    // Different offsets for week vs day view due to different layouts
+    const offset = viewMode === 'week' ? 212 : 152 // Week view offset adjusted by -12, day view by +48 to match indicator positioning
+    containerRef.current.scrollTop = pixelPosition - offset
+  }
+  
+  const isTodayDate = (date: Date) => isSameDay(date, currentTime)
+  const isToday = (date: Date) => isSameDay(date, currentTime)
+  
+  const getCurrentTimePosition = () => {
+    if (viewMode === 'month') return null
+    
+    const now = currentTime
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    
+    const hourPosition = currentHour + (currentMinute / 60)
+    const pixelPosition = hourPosition * 80
+    
+    return pixelPosition
+  }
 
   const { days, firstDay } = getDaysInMonth(currentDate)
   const weekDays = getWeekDays(currentDate)
@@ -316,8 +297,6 @@ export default function InterviewSchedulePage({ interviews = mockInterviews }: {
     const dateString = `${year}-${month}-${day}`
     return interviews.filter(i => i.interview_date === dateString)
   }
-
-
 
   const previousPeriod = () => {
     const newDate = new Date(currentDate)
@@ -427,63 +406,115 @@ export default function InterviewSchedulePage({ interviews = mockInterviews }: {
 
         {viewMode === 'week' && (
           <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200">
-              <div className="px-4 py-3 text-sm font-semibold text-gray-700 border-r">Time</div>
-              {weekDays.map(day => (
-                <div key={day.toISOString()} className="px-4 py-3 text-center border-r last:border-r-0">
-                  <div className="text-xs text-gray-500">{formatDate(day, 'EEE')}</div>
-                  <div className={`text-sm font-semibold mt-1 ${isToday(day) ? 'text-blue-600' : 'text-gray-700'}`}>{formatDate(day, 'd')}</div>
-                </div>
-              ))}
+            <div className="flex bg-gray-50 border-b border-gray-200 sticky top-0 z-30">
+              <div className="w-16 px-2 py-3 text-sm font-semibold text-gray-700 border-r flex-shrink-0">Time</div>
+              <div className="flex-1 grid grid-cols-7">
+                {weekDays.map(day => (
+                  <div key={day.toISOString()} className="px-2 py-3 text-center border-r last:border-r-0">
+                    <div className="text-xs text-gray-500">{formatDate(day, 'EEE')}</div>
+                    <div className={`text-sm font-semibold mt-1 ${isToday(day) ? 'text-blue-600' : 'text-gray-700'}`}>{formatDate(day, 'd')}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="max-h-[600px] overflow-auto">
-              {timeSlots.map(time => (
-                <div key={time} className="grid grid-cols-8">
-                  <div className="px-4 py-3 text-xs text-gray-500 border-r border-b bg-gray-50">{time}</div>
-                  {weekDays.map(day => {
-                    const dayInterviews = getInterviewsForDate(day).filter(i => i.start_time.startsWith(time.split(':')[0]))
-                    return (
-                      <div key={`${day.toISOString()}-${time}`} className="p-2 border-r border-b bg-white min-h-[80px]">
-                        {dayInterviews.map(interview => (
-                          <InterviewCard key={interview.id} interview={interview} />
-                        ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
+            <div className="max-h-[600px] overflow-auto" ref={weekDayContainerRef}>
+              <div className="relative">
+                {getCurrentTimePosition() !== null && weekDays.some(day => isTodayDate(day)) && (
+                  <>
+                    <div 
+                      className="absolute h-0.5 bg-red-500 z-20 pointer-events-none"
+                      style={{ 
+                        top: `${(getCurrentTimePosition() || 0) - 12}px`, // Adjusted for correct position
+                        left: '4rem',
+                        right: '0'
+                      }}
+                    >
+                      <div className="absolute -top-2 -left-2 w-4 h-4 bg-red-500 rounded-full"></div>
+                    </div>
+                    <div 
+                      className="absolute text-xs font-medium text-red-500 z-20 pointer-events-none whitespace-nowrap"
+                      style={{ 
+                        top: `${(getCurrentTimePosition() || 0) - 16}px`, // Adjusted for correct position
+                        right: '0.5rem'
+                      }}
+                    >
+                      {formatTime(`${Math.floor((getCurrentTimePosition() || 0) / 80).toString().padStart(2, '0')}:${Math.round((((getCurrentTimePosition() || 0) / 80) % 1) * 60).toString().padStart(2, '0')}`)}
+                    </div>
+                  </>
+                )}
+                {timeSlots.map(time => (
+                  <div key={time} className="flex">
+                    <div className="w-16 px-2 py-3 text-xs text-gray-500 border-r border-b bg-gray-50 flex-shrink-0">{time}</div>
+                    <div className="flex-1 grid grid-cols-7">
+                      {weekDays.map(day => {
+                        const dayInterviews = getInterviewsForDate(day).filter(i => i.start_time.startsWith(time.split(':')[0]))
+                        return (
+                          <div key={`${day.toISOString()}-${time}`} className="p-2 border-r border-b bg-white min-h-[80px]">
+                            {dayInterviews.map(interview => (
+                              <InterviewCard key={interview.id} interview={interview} />
+                            ))}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {viewMode === 'day' && (
           <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 border-b p-4 text-center">
+            <div className="bg-gray-50 border-b p-4 text-center sticky top-0 z-30">
               <div className="text-sm text-gray-500">{formatDate(currentDate, 'EEEE')}</div>
               <div className={`text-2xl font-semibold mt-1 ${isToday(currentDate) ? 'text-blue-600' : 'text-gray-900'}`}>{formatDate(currentDate, 'd')}</div>
             </div>
-            <div className="max-h-[600px] overflow-auto">
-              {timeSlots.map(time => {
-                const timeInterviews = getInterviewsForDate(currentDate).filter(i => i.start_time.startsWith(time.split(':')[0]))
-                return (
-                  <div key={time} className="flex border-b">
-                    <div className="w-24 px-4 py-3 text-xs text-gray-500 border-r bg-gray-50">{time}</div>
-                    <div className="flex-1 p-3 bg-white min-h-[80px]">
-                      <div className="space-y-2">
-                        {timeInterviews.map(interview => (
-                          <InterviewCard key={interview.id} interview={interview} />
-                        ))}
+            <div className="max-h-[600px] overflow-auto" ref={dayContainerRef}>
+              <div className="relative">
+                {getCurrentTimePosition() !== null && isTodayDate(currentDate) && (
+                  <>
+                    <div 
+                      className="absolute h-0.5 bg-red-500 z-20 pointer-events-none"
+                      style={{ 
+                        top: `${(getCurrentTimePosition() || 0) + 48}px`, // Adjusted for correct position
+                        left: '6rem',
+                        right: '0'
+                      }}
+                    >
+                      <div className="absolute -top-2 -left-2 w-4 h-4 bg-red-500 rounded-full"></div>
+                    </div>
+                    <div 
+                      className="absolute text-xs font-medium text-red-500 z-20 pointer-events-none whitespace-nowrap"
+                      style={{ 
+                        top: `${(getCurrentTimePosition() || 0) + 44}px`, // Adjusted for correct position
+                        right: '0.5rem'
+                      }}
+                    >
+                      {formatTime(`${Math.floor((getCurrentTimePosition() || 0) / 80).toString().padStart(2, '0')}:${Math.round((((getCurrentTimePosition() || 0) / 80) % 1) * 60).toString().padStart(2, '0')}`)}
+                    </div>
+                  </>
+                )}
+                {timeSlots.map(time => {
+                  const timeInterviews = getInterviewsForDate(currentDate).filter(i => i.start_time.startsWith(time.split(':')[0]))
+                  return (
+                    <div key={time} className="flex border-b">
+                      <div className="w-24 px-4 py-3 text-xs text-gray-500 border-r bg-gray-50 flex-shrink-0">{time}</div>
+                      <div className="flex-1 p-3 bg-white min-h-[80px]">
+                        <div className="space-y-2">
+                          {timeInterviews.map(interview => (
+                            <InterviewCard key={interview.id} interview={interview} />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
-
-
     </div>
   )
 }

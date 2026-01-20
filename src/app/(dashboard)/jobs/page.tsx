@@ -175,7 +175,7 @@ export default function JobsPage() {
         <Button
           variant="outline"
           onClick={() => router.push('/jobs/create-job-post')}
-          className='btn-create'
+          className='btn-create bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold'
         >
           <Plus className="btn-icon" />
           Create New Job Post

@@ -104,15 +104,6 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'ALL';
     const search = searchParams.get('search') || '';
     
-    // Validate status parameter
-    const validStatuses = ['ALL', 'in_progress', 'application_submitted', 'assessment_in_progress', 'assessment_in_evaluation', 'assessment_evaluated', 'assessment_ready', 'assessment_failed', 'demo_creation', 'demo_ready', 'demo_in_progress', 'demo_in_evaluation', 'demo_evaluated', 'demo_failed', 'interview_in_progress', 'interview_ready', 'interview_scheduled', 'paused', 'completed', 'suspended', 'appealed', 'withdrawn', 'offered', 'panelist_review_in_progress'];
-    if (!validStatuses.includes(status.toUpperCase())) {
-      return NextResponse.json(
-        { error: `Invalid status. Valid values are: ${validStatuses.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    console.log('RPC get applications count: Query parameters:', { status, search })
     // Call the RPC with user's school_id and parameters
     const { data: countData, error } = await supabaseService.rpc('get_applications_count_by_school', {
       p_school_id: adminInfo.school_id,

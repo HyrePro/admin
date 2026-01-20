@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { GenericHoverCard } from "@/components/ui/generic-hover-card";
 import {
   Table,
   TableBody,
@@ -14,12 +15,55 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, ChevronRight, Users, RefreshCw, AlertCircle, Download, ChevronLeft } from "lucide-react";
-import { getJobApplications, type JobApplication } from "@/lib/supabase/api/get-job-applications";
-import { createClient } from '@/lib/supabase/api/client';
+import { useQuery } from '@tanstack/react-query';
 import { forceDownload } from "@/lib/utils";
 import { statusColors } from "../../utils/statusColor";
 import "react-toastify/dist/ReactToastify.css";
 import '@/styles/candidates.css';
+
+interface JobApplication {
+  application_id: string;
+  applicant_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  city: string;
+  state: string;
+  created_at: string;
+  status: string;
+  resume_url?: string;
+  resume_file_name?: string;
+  teaching_experience: Array<{
+    city: string;
+    school: string;
+    endDate: string;
+    startDate: string;
+    designation: string;
+  }>;
+  education_qualifications: Array<{
+    degree: string;
+    endDate: string;
+    startDate: string;
+    institution: string;
+    specialization: string;
+  }>;
+  subjects: string[];
+  submitted_at?: string | null;
+  score: number;
+  category_scores: Record<string, {
+    score: number;
+    attempted: number;
+    total_questions: number;
+  }>;
+  overall?: {
+    score: number;
+    attempted: number;
+    total_questions: number;
+  } | null;
+  video_url?: string | null;
+  demo_score?: number | null;
+}
 
 interface JobCandidatesProps {
   job_id: string;
@@ -55,7 +99,11 @@ const STATUS_CONFIG = {
 export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
   const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('JobCandidates mounted with job_id:', job_id);
+  }, [job_id]);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
@@ -64,73 +112,76 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
   const [downloadingResumes, setDownloadingResumes] = useState<Set<string>>(new Set());
   const pageSize = 10;
 
-  const fetchTotalApplications = useCallback(async (search: string = "") => {
-    try {
-      const supabase = createClient();
-      
-      let query = supabase
-        .from("job_applications")
-        .select("*", { count: "exact", head: true })
-        .eq("job_id", job_id);
-      
-      if (search) {
-        // This is a simplified search - you might need to adjust based on your actual search logic
-        query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
-      }
-      
-      const { count, error } = await query;
-      
-      if (error) throw error;
-      
-      return count || 0;
-    } catch (err) {
-      console.error("Error fetching total applications count:", err);
-      return 0;
-    }
-  }, [job_id]);
+  // Define the type for the API response
+  interface ApiResponse {
+    applications: JobApplication[];
+    total: number;
+    message?: string;
+  }
 
-  const fetchApplications = useCallback(async (search: string = "", page: number = 0) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const startIndex = page * pageSize;
+  // Use TanStack Query to fetch applications data
+  const { data: queryData, isLoading: queryLoading, isError: queryError, refetch } = useQuery<ApiResponse>({
+    queryKey: ['job-applications', job_id, debouncedSearchText, currentPage],
+    queryFn: async () => {
+      console.log('Fetching job applications with params:', { job_id, debouncedSearchText, currentPage, pageSize });
+      
+      const startIndex = currentPage * pageSize;
       const endIndex = startIndex + pageSize;
       
-      const { data, error } = await getJobApplications(
-        job_id,
-        startIndex,
-        endIndex,
-        search
-      );
-
-      if (error) {
-        throw new Error(error);
+      const params = new URLSearchParams({
+        jobId: job_id,
+        startIndex: startIndex.toString(),
+        endIndex: endIndex.toString(),
+        search: debouncedSearchText,
+      });
+      
+      console.log('API Request URL:', `/api/job-applications?${params.toString()}`);
+      
+      const response = await fetch(`/api/job-applications?${params.toString()}`);
+      
+      console.log('API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error response:', errorData);
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
+      
+      const result = await response.json();
+      console.log('API Success response:', result);
+      return result;
+    },
+    enabled: !!job_id,
+    staleTime: 30000, // 30 seconds
+  });
 
+  // Update local state when query data changes
+  useEffect(() => {
+    if (queryData?.applications) {
       // Validate and clean the data
-      const validApplications = (data || []).filter((app) => {
+      const validApplications = (queryData.applications || []).filter((app: JobApplication) => {
         // Basic validation to ensure we have essential fields
         return app && 
                typeof app.application_id === 'string' && 
                app.application_id.length > 0;
       });
-
-      setApplications(validApplications);
       
-      // Fetch total count
-      const totalCount = await fetchTotalApplications(search);
-      setTotalApplications(totalCount);
-    } catch (err) {
-      console.error("Error fetching applications:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch applications");
-      // Set empty array on error to prevent rendering issues
-      setApplications([]);
-      setTotalApplications(0);
-    } finally {
-      setLoading(false);
+      setApplications(validApplications);
+      setTotalApplications(queryData.total || 0);
     }
-  }, [job_id, pageSize, fetchTotalApplications]);
+  }, [queryData]);
+
+  // Use TanStack Query loading state
+  const loading = queryLoading;
+  
+  // Handle error from query
+  useEffect(() => {
+    if (queryError) {
+      setError("Failed to fetch applications");
+    } else {
+      setError(null);
+    }
+  }, [queryError]);
 
   // Debounce search text
   useEffect(() => {
@@ -141,10 +192,10 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // Fetch applications when debounced search text or page changes
+  // Refetch when search text or page changes
   useEffect(() => {
-    fetchApplications(debouncedSearchText, currentPage);
-  }, [debouncedSearchText, currentPage, fetchApplications]);
+    refetch();
+  }, [debouncedSearchText, currentPage, refetch]);
 
   // Reset to first page when search text changes
   useEffect(() => {
@@ -218,12 +269,12 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
       <p className="text-gray-600 text-center mb-6 max-w-md">
         {error || "Something went wrong while fetching candidates. Please try again."}
       </p>
-      <Button onClick={() => fetchApplications(debouncedSearchText, currentPage)} className="flex items-center gap-2">
+      <Button onClick={() => refetch()} className="flex items-center gap-2">
         <RefreshCw className="h-4 w-4" />
         Try Again
       </Button>
     </div>
-  ), [error, fetchApplications, debouncedSearchText, currentPage]);
+  ), [error, refetch, debouncedSearchText, currentPage]);
 
   // Loading Skeleton
   const LoadingSkeleton = useCallback(() => (
@@ -331,10 +382,12 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
             </div>
           </TableCell>
           <TableCell>
-            <div className="cell-content">
-              <Badge className={getStatusBadge(application.status).color}>
-                <div className="badge-text">{getStatusBadge(application.status).text}</div>
-              </Badge>
+            <div className="cell-content flex items-start">
+              <GenericHoverCard entity="application-stage" entityId={application.status}>
+                <Badge className={getStatusBadge(application.status).color}>
+                  <div className="badge-text">{getStatusBadge(application.status).text}</div>
+                </Badge>
+              </GenericHoverCard>
             </div>
           </TableCell>
           <TableCell>

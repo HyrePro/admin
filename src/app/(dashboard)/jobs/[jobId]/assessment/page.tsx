@@ -1,47 +1,113 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, AlertCircle, RefreshCw } from "lucide-react";
 import React, { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-
-// Mock job data - replace with actual useJob hook
-const mockJob = {
-  id: "1",
-  title: "Math Teacher",
-  status: "OPEN",
-  subjects: ["Mathematics"],
-  grade_levels: ["9-12"],
-  number_of_questions: 15,
-  assessment_difficulty: {
-    interviewFormat: "structured",
-    includeInterview: true,
-    demoVideoDuration: 10,
-    interviewDuration: 45,
-    includeSubjectTest: true,
-    subjectTestDuration: 30,
-    interviewQuestions: []
-  },
-  application_analytics: {
-    total_applications: 45,
-    assessment: 30,
-    demo: 15,
-    interviews: 8,
-    offered: 2
-  }
-};
+import { Button } from "@/components/ui/button";
+import { useQuery } from '@tanstack/react-query';
+import { useJob } from "../layout";
 
 export default function JobAssessmentPage() {
-  const job = mockJob; // Replace with: const { job } = useJob();
+  const { job } = useJob();
+  const jobId = job?.id;
+  
   const [isMcqExpanded, setIsMcqExpanded] = useState(true);
   const [isDemoExpanded, setIsDemoExpanded] = useState(false);
   const [isInterviewExpanded, setIsInterviewExpanded] = useState(false);
-  const [numberOfQuestions, setNumberOfQuestions] = useState(job.number_of_questions || 15);
-  const [demoDuration, setDemoDuration] = useState(job.assessment_difficulty.demoVideoDuration || 10);
+  
+  // Fetch assessment config using TanStack Query
+  const {
+    data: assessmentConfig,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['job-assessment-config', jobId],
+    queryFn: async () => {
+      if (!jobId) throw new Error('Job ID is required');
+      const response = await fetch(`/api/jobs/${jobId}/assessment-config`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch assessment configuration');
+      }
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!jobId,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-  if (!job) {
-    return <div className="p-6">Loading...</div>;
+  // Use assessment config data or fallback to job data
+  const jobData = assessmentConfig || job;
+  
+  const [numberOfQuestions, setNumberOfQuestions] = useState(jobData?.number_of_questions || 15);
+  const [demoDuration, setDemoDuration] = useState(jobData?.assessment_difficulty?.demoVideoDuration || 2);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-full bg-white">
+        <div className="mx-auto px-6 py-6">
+          <div className="space-y-4">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-gray-200 animate-pulse"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-3 w-48 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="h-20 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="h-full bg-white">
+        <div className="mx-auto px-6 py-6">
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="bg-red-50 rounded-full p-4 mb-4">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load assessment configuration</h3>
+            <p className="text-gray-600 text-center mb-6 max-w-md">
+              {error instanceof Error ? error.message : "Something went wrong while fetching assessment details. Please try again."}
+            </p>
+            <Button onClick={() => refetch()} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!jobData) {
+    return (
+      <div className="h-full bg-white">
+        <div className="mx-auto px-6 py-6">
+          <div className="text-center py-12">
+            <p className="text-gray-600">No assessment configuration found</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -83,19 +149,25 @@ export default function JobAssessmentPage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="text-sm font-medium text-gray-700">Number of Questions</label>
-                      <span className="text-sm font-semibold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded">
+                      <span className="text-sm font-semibold text-black bg-gray-100 px-2.5 py-0.5 rounded">
                         {numberOfQuestions}
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="5"
-                      max="30"
-                      step="5"
-                      value={numberOfQuestions}
-                      onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
-                      className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                    />
+                    <div className="w-full h-1.5 bg-gray-200 rounded-lg overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full"
+                        style={{ width: `${((numberOfQuestions - 5) / 25) * 100}%` }}
+                      ></div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="30"
+                        step="5"
+                        value={numberOfQuestions}
+                        onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
+                        className="absolute inset-0 w-full h-1.5 opacity-0 cursor-pointer"
+                      />
+                    </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1.5">
                       <span>5</span>
                       <span>10</span>
@@ -107,17 +179,23 @@ export default function JobAssessmentPage() {
                   </div>
 
                   {/* Test Details */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="bg-gray-50 rounded-lg px-3 py-2.5">
-                      <p className="text-xs text-gray-600">Duration</p>
-                      <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                        {job.assessment_difficulty.subjectTestDuration} minutes
+                      <p className="text-xs text-gray-600">Difficulty</p>
+                      <p className="text-sm font-semibold text-gray-900 mt-0.5 capitalize">
+                        {jobData.assessment_difficulty?.assessment_type || 'medium'}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg px-3 py-2.5">
                       <p className="text-xs text-gray-600">Total Questions</p>
                       <p className="text-sm font-semibold text-gray-900 mt-0.5">
                         {numberOfQuestions}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg px-3 py-2.5">
+                      <p className="text-xs text-gray-600">Duration</p>
+                      <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                        {numberOfQuestions * 0.5} minutes
                       </p>
                     </div>
                   </div>
@@ -157,7 +235,7 @@ export default function JobAssessmentPage() {
                   <div className="flex items-center gap-2">
                     <Checkbox 
                       id="demo-enabled" 
-                      checked={job.assessment_difficulty.includeSubjectTest}
+                      checked={jobData.assessment_difficulty?.includeSubjectTest ?? true}
                     />
                     <Label htmlFor="demo-enabled" className="text-sm text-gray-700 cursor-pointer">
                       Enable demo assessment stage
@@ -168,23 +246,29 @@ export default function JobAssessmentPage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="text-sm font-medium text-gray-700">Video Duration</label>
-                      <span className="text-sm font-semibold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded">
+                      <span className="text-sm font-semibold text-black bg-gray-100 px-2.5 py-0.5 rounded">
                         {demoDuration} min
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="5"
-                      max="15"
-                      step="1"
-                      value={demoDuration}
-                      onChange={(e) => setDemoDuration(Number(e.target.value))}
-                      className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-600 [&::-webkit-slider-thumb]:cursor-pointer"
-                    />
+                    <div className="w-full h-1.5 bg-gray-200 rounded-lg overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full"
+                        style={{ width: `${((demoDuration - 2) / 8) * 100}%` }}
+                      ></div>
+                      <input
+                        type="range"
+                        min="2"
+                        max="10"
+                        step="1"
+                        value={demoDuration}
+                        onChange={(e) => setDemoDuration(Number(e.target.value))}
+                        className="absolute inset-0 w-full h-1.5 opacity-0 cursor-pointer"
+                      />
+                    </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1.5">
-                      <span>5 min</span>
+                      <span>2 min</span>
+                      <span>6 min</span>
                       <span>10 min</span>
-                      <span>15 min</span>
                     </div>
                   </div>
 
@@ -255,7 +339,7 @@ export default function JobAssessmentPage() {
                   <div className="flex items-center gap-2">
                     <Checkbox 
                       id="interview-enabled" 
-                      checked={job.assessment_difficulty.includeInterview}
+                      checked={jobData.assessment_difficulty?.includeInterview ?? true}
                     />
                     <Label htmlFor="interview-enabled" className="text-sm text-gray-700 cursor-pointer">
                       Enable interview rounds
@@ -267,13 +351,13 @@ export default function JobAssessmentPage() {
                     <div className="bg-gray-50 rounded-lg px-3 py-2.5">
                       <p className="text-xs text-gray-600">Duration</p>
                       <p className="text-sm font-semibold text-gray-900 mt-0.5">
-                        {job.assessment_difficulty.interviewDuration} minutes
+                        {jobData.assessment_difficulty?.interviewDuration || 45} minutes
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg px-3 py-2.5">
                       <p className="text-xs text-gray-600">Format</p>
                       <p className="text-sm font-semibold text-gray-900 mt-0.5 capitalize">
-                        {job.assessment_difficulty.interviewFormat}
+                        {jobData.assessment_difficulty?.interviewFormat || 'structured'}
                       </p>
                     </div>
                   </div>

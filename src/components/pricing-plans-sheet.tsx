@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, X, ArrowRight } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface PricingPlan {
   id: string;
@@ -111,18 +110,15 @@ const PricingPlansDialog: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose 
 
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);
-    // Handle plan selection - you can add your logic here
     console.log(`Selected plan: ${plans.find(p => p.id === planId)?.name}`);
   };
 
   const handlePlanCTA = (planId: string) => {
     const selectedPlanData = plans.find(p => p.id === planId);
     if (selectedPlanData) {
-      // Handle the CTA action - this is where you'd connect to your API
       console.log(`CTA clicked for plan: ${selectedPlanData.name}`);
       setFeedbackMessage(`Thank you for selecting the ${selectedPlanData.name} plan! An API will be connected here soon.`);
       
-      // Close the dialog after a short delay
       setTimeout(() => {
         onClose();
         setSelectedPlan(null);
@@ -131,74 +127,95 @@ const PricingPlansDialog: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose 
     }
   };
 
-
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[80vw] xl:max-w-[75vw]">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-2xl font-bold">Choose Your Plan</DialogTitle>
+      <DialogContent 
+        className="max-h-[95vh] overflow-hidden p-0 w-full max-w-[98vw] sm:max-w-[90vw] lg:max-w-[85vw]"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement
+          if (target.closest('[data-autocomplete-dropdown]')) {
+            e.preventDefault()
+          }
+        }}
+      >
+        <DialogHeader className="px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100">
+          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Choose Your Perfect Plan
+          </DialogTitle>
+          <DialogDescription className="text-base text-gray-600 mt-2">
+            Select the plan that best fits your school's hiring needs. All plans include AI-powered teacher assessment and comprehensive recruitment tools.
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="px-6 pb-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          <div className="flex gap-4 min-w-max">
+        <div className="px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 py-4 sm:py-6">
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl border transition-all duration-200 cursor-pointer w-[240px] flex-shrink-0 ${
+                className={`relative rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col min-h-[500px] ${
                   plan.highlighted
-                    ? 'border-purple-300 dark:border-purple-500 bg-white dark:bg-[#161B22] shadow-lg'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#161B22] hover:border-gray-300 dark:hover:border-gray-600'
-                } ${selectedPlan === plan.id ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
+                    ? 'border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-xl'
+                    : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-lg'
+                } ${selectedPlan === plan.id ? 'ring-4 ring-purple-400 ring-offset-2 scale-105' : ''}`}
                 onClick={() => handlePlanSelect(plan.id)}
               >
-                {/* Removed badge since it conflicts with design requirements */}
+                {plan.highlighted && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
+                      MOST POPULAR
+                    </span>
+                  </div>
+                )}
 
-                <div className="p-6 flex flex-col justify-between h-full">
-                  <div>
-                    {/* Plan Name */}
-                    <div className="mb-6">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
-                        {plan.name}
-                      </h3>
-                      
-                      {/* Description */}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
-                        {plan.description}
-                      </p>
-                    </div>
+                <div className="p-6 flex flex-col flex-grow">
+                  {/* Plan Header */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 tracking-wide">
+                      {plan.name}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {plan.description}
+                    </p>
+                  </div>
 
-                    {/* Features Header */}
-                    <div className="mb-3">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                        Unlock these features:
-                      </p>
-                    </div>
-
-                    {/* Features */}
-                    <div className="space-y-2 mb-6">
-                      <ul className="space-y-2">
-                        {plan.features.map((feature: string, idx: number) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-                            <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-500 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
-                            <span className="leading-relaxed">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  {/* Price */}
+                  <div className="mb-6 pb-6 border-b border-gray-200">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                        {plan.price}
+                      </span>
+                      {plan.period && (
+                        <span className="text-sm text-gray-500 font-medium">/{plan.period}</span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Price and Button - Aligned at bottom */}
-                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
-                    <div className="flex items-baseline gap-1 mb-3">
-                      <span className="text-2xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
-                      {plan.period && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">/{plan.period}</span>
-                      )}
-                    </div>
-                    
+                  {/* Features Header */}
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      What's Included:
+                    </p>
+                  </div>
+
+                  {/* Features List */}
+                  <div className="flex-grow mb-6">
+                    <ul className="space-y-3">
+                      {plan.features.map((feature: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-3 text-sm text-gray-700">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center mt-0.5">
+                            <Check className="w-3.5 h-3.5 text-green-600" strokeWidth={3} />
+                          </div>
+                          <span className="leading-relaxed">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* CTA Button */}
+                  <div className="mt-auto">
                     <Button 
-                      className={`w-full bg-gradient-to-r from-purple-500 to-purple-700 text-white hover:from-purple-600 hover:to-purple-800 transition-all duration-200 ease-in-out h-10 px-4 py-2 border-0 shadow-none`}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 h-12 text-base font-semibold shadow-lg hover:shadow-xl rounded-xl"
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePlanCTA(plan.id);
@@ -211,13 +228,33 @@ const PricingPlansDialog: React.FC<PricingPlansSheetProps> = ({ isOpen, onClose 
               </div>
             ))}
           </div>
+
+          {/* Additional Info */}
+          <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-base font-semibold text-gray-900 mb-1">Need Help Choosing?</h4>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  Our team is here to help you select the perfect plan for your school. Contact us for a personalized recommendation based on your hiring needs.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
         
-        {/* Feedback message */}
+        {/* Feedback Message */}
         {feedbackMessage && (
-          <div className="px-6 pb-6">
-            <div className="text-center text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-              {feedbackMessage}
+          <div className="px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+            <div className="flex items-center justify-center gap-3 text-sm text-green-700 bg-green-50 border border-green-200 p-4 rounded-xl">
+              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{feedbackMessage}</span>
             </div>
           </div>
         )}

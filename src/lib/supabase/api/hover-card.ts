@@ -37,9 +37,16 @@ export interface AdminUserHoverInfo {
   created_at: string;
 }
 
-export type HoverEntity = "job" | "candidate" | "admin";
+export interface ApplicationStageHoverInfo {
+  id: string;
+  stage_key: string;
+  stage_name: string;
+  stage_description: string;
+}
 
-export type HoverInfo = JobHoverInfo | CandidateHoverInfo | AdminUserHoverInfo;
+export type HoverEntity = "job" | "candidate" | "admin" | "application-stage";
+
+export type HoverInfo = JobHoverInfo | CandidateHoverInfo | AdminUserHoverInfo | ApplicationStageHoverInfo;
 
 // Generic fetcher function
 export async function fetchHoverCardData(entity: HoverEntity, entityId: string): Promise<HoverInfo> {
@@ -90,6 +97,19 @@ export async function fetchHoverCardData(entity: HoverEntity, entityId: string):
       }
 
       return adminData[0] as AdminUserHoverInfo;
+
+    case "application-stage":
+      // For application stage, we don't need to fetch from DB since the data comes from config
+      // We'll return a static object with the stage information
+      const { getApplicationStageDetails } = await import('@/lib/application-stage-config');
+      const stageDetails = getApplicationStageDetails(entityId);
+      
+      return {
+        id: entityId,
+        stage_key: entityId,
+        stage_name: stageDetails.name,
+        stage_description: stageDetails.description
+      } as ApplicationStageHoverInfo;
 
     default:
       throw new Error("Invalid entity type for hover card");

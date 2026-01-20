@@ -17,14 +17,14 @@ function LoadingSkeleton() {
       {/* Personal Information Skeleton */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <div className="h-5 bg-gray-200 rounded animate-pulse w-40"></div>
+          <div className="h-5 bg-gray-200 rounded w-40 animate-pulse"></div>
         </div>
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                <div className="h-3 bg-gray-200 rounded w-24 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
               </div>
             ))}
           </div>
@@ -34,7 +34,7 @@ function LoadingSkeleton() {
       {/* Experience Skeleton */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <div className="h-5 bg-gray-200 rounded animate-pulse w-48"></div>
+          <div className="h-5 bg-gray-200 rounded w-48 animate-pulse"></div>
         </div>
         <div className="p-5">
           <div className="h-24 bg-gray-200 rounded animate-pulse"></div>

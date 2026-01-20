@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit, ChevronDown } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/api/client";
 import dynamic from "next/dynamic";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { usePathname, useRouter as useNextRouter } from "next/navigation";
 import "@/styles/progress-bar.css";
-import { Share2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit, ChevronDown, MoreVertical, Share2 } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/context/auth-context';
 
 const EditJobDetailsDialog = dynamic(() => import("@/components/edit-job-details-dialog").then(mod => mod.EditJobDetailsDialog), {
   ssr: false
@@ -33,7 +34,7 @@ interface JobLayoutProps {
   children: React.ReactNode;
   params: Promise<{
     jobId: string;
-  }>;
+  }>; 
 }
 
 type Job = {
@@ -53,6 +54,7 @@ type Job = {
   created_at?: string;
   school_id?: string;
   number_of_questions?: number;
+  created_by?: string; // UUID of the user who created the job
   assessment_difficulty?: {
     interviewFormat?: string;
     includeInterview?: boolean;
@@ -94,6 +96,8 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  
+  const { user } = useAuth();
 
   // Check if we're on an application details page (e.g., /jobs/jobId/applicationId or /jobs/jobId/applicationId/tab)
   // This checks for paths that have at least 3 segments after /jobs/ where the second segment matches the current jobId
@@ -178,40 +182,45 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
     }
   };
 
-  const fetchJobDetails = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Create a Supabase client instance
-      const supabase = createClient();
-
-      const { data, error } = await supabase.rpc("get_job_with_analytics", {
-        p_job_id: jobId,
-      });
-
-      if (error) {
-        throw new Error(error.message || "Failed to fetch job details");
-      } else if (data && data.length > 0) {
-        const jobData = data[0];
-        // Ensure job data is properly serialized to avoid non-serializable object errors
-        const serializedJob = JSON.parse(JSON.stringify(jobData));
-        setJob(serializedJob);
-        setSelectedStatus(serializedJob.status);
-      } else {
-        throw new Error("Job not found");
+  const {
+    data: jobData,
+    isLoading: jobLoading,
+    error: jobQueryError,
+    refetch
+  } = useQuery({
+    queryKey: ['job-with-analytics', jobId],
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/${jobId}/job-with-analytics`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch job details');
       }
-    } catch (err) {
-      console.error("Error fetching job details:", err);
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!jobId,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  useEffect(() => {
-    fetchJobDetails();
-  }, [jobId]);
+  // Update local state when query data changes
+  React.useEffect(() => {
+    if (jobData) {
+      setJob(jobData);
+      setSelectedStatus(jobData.status);
+    }
+  }, [jobData]);
+
+  // Update loading and error states from query
+  React.useEffect(() => {
+    setLoading(jobLoading);
+  }, [jobLoading]);
+
+  React.useEffect(() => {
+    setError(jobQueryError ? jobQueryError.message : null);
+  }, [jobQueryError]);
+
+  const fetchJobDetails = () => refetch();
 
   const handleSaveJobDetails = async (updatedJob: Partial<Job>) => {
     // TODO: Implement the actual save functionality
@@ -247,20 +256,66 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
 
   // Loading Skeleton
   const LoadingSkeleton = () => (
-    <div className="space-y-6">
-      <Card className="animate-pulse">
-        <CardHeader>
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="flex gap-2">
-            <div className="h-6 bg-gray-200 rounded w-20"></div>
-            <div className="h-6 bg-gray-200 rounded w-16"></div>
-            <div className="h-6 bg-gray-200 rounded w-24"></div>
+    <div className="h-full bg-white">
+      <div className="mx-auto px-6 py-6">
+        <div className="flex gap-6">
+          {/* Main Content - Left Side Skeleton */}
+          <div className="flex-1 min-w-0">
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+              </div>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-20 bg-gray-200 rounded"></div>
-        </CardContent>
-      </Card>
+
+          {/* Sidebar - Right Side Skeleton */}
+          <div className="min-w-72 flex-shrink-0 h-fit border-l border-gray-200 pl-6">
+            <div className="h-5 w-24 bg-gray-200 rounded mb-4 animate-pulse"></div>
+            
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-start gap-2 mb-3">
+                <div className="w-4 h-4 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="h-3 flex-1 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-12 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-1"></div>
+                      <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -299,9 +354,6 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-gray-500" />
-          </div>
         </div>
         <ErrorState />
       </div>
@@ -399,8 +451,9 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
             <div className="px-6 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col gap-2 flex-1 min-w-0">
-                  <div className="flex flex-row items-center gap-2 flex-wrap">
-                    <h1 className="text-xl font-semibold text-gray-900">
+                  {/* Title and badges row */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                       {job?.title}
                     </h1>
                     <Popover>
@@ -408,7 +461,7 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "capitalize font-medium text-xs px-2 py-0.5 cursor-pointer flex items-center gap-1",
+                            "capitalize font-medium text-xs px-2 py-0.5 cursor-pointer flex items-center gap-1 flex-shrink-0",
                             statusColors[job?.status as keyof typeof statusColors] || "bg-gray-50 text-gray-700 border-gray-200"
                           )}
                         >
@@ -427,48 +480,59 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                               disabled={selectedStatus === status}
                             >
                               {status.toLowerCase().replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                              {selectedStatus === status && (
-                                <span className="ml-2">•</span>
-                              )}
+                              {selectedStatus === status && <span className="ml-2">•</span>}
                             </Button>
                           ))}
                         </div>
                       </PopoverContent>
                     </Popover>
-                    <Badge variant="secondary" className="text-xs px-2 py-1">
-                      Assigned to You
-                    </Badge>
+                    {job?.created_by && user?.id && job.created_by === user.id && (
+                      <Badge variant="secondary" className="text-xs px-2 py-1 flex-shrink-0">
+                        Created by You
+                      </Badge>
+                    )}
                   </div>
                   
-                  {/* Job metadata */}
-                  <div className="flex items-center gap-3 text-sm flex-wrap">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Job metadata - stacked on mobile */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm mt-2 sm:flex-wrap min-w-0">
+                    {/* Job Type */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="font-medium text-gray-900 capitalize">{job?.job_type || 'Full Time'}</span>
+                      <span className="font-medium text-gray-900 capitalize whitespace-nowrap">{job?.job_type || 'Full Time'}</span>
                     </div>
-                    <span className="text-gray-300 hidden lg:inline">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+
+                    {/* Applications */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-gray-600 mr-1">Applications:</span>
-                      <span className="font-medium text-gray-900 mr-2">{job?.application_analytics?.total_applications || 0} of 50</span>
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <span className="text-gray-600 whitespace-nowrap">Applications:</span>
+                      <span className="font-medium text-gray-900 whitespace-nowrap">{job?.application_analytics?.total_applications || 0} of 50</span>
+                      <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2 flex-shrink-0">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full relative overflow-hidden animate-shine"
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
                           style={{ width: `${job?.application_analytics?.total_applications ? Math.min(100, (job.application_analytics.total_applications / 50) * 100) : 0}%` }}
                         ></div>
                       </div>
                     </div>
-                    <span className="text-gray-300 hidden lg:inline">|</span>
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-gray-600">Added at:</span>
-                      <span className="font-medium text-gray-900">{job?.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '14 Apr, 2025'}</span>
+
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+
+                    {/* Date and Urgency */}
+                    <div className="flex flex-wrap sm:items-center gap-2 ">
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-gray-600 whitespace-nowrap">Added:</span>
+                        <span className="font-medium text-gray-900 whitespace-nowrap">
+                          {job?.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '14 Apr, 2025'}
+                        </span>
+                      </div>
                       
                       {/* Urgency indicator */}
                       {job?.created_at && (() => {
@@ -481,29 +545,24 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         const daysUntilDue = Math.ceil(timeDiff / (1000 * 3600 * 24));
                         
                         let urgencyLabel = '';
-                        let urgencyVariant = '';
                         let urgencyColor = '';
                         
                         if (daysUntilDue <= 3) {
                           urgencyLabel = 'CRITICAL';
-                          urgencyVariant = 'destructive';
                           urgencyColor = 'bg-red-100 text-red-800 border-red-200';
                         } else if (daysUntilDue <= 7) {
                           urgencyLabel = 'URGENT';
-                          urgencyVariant = 'default';
                           urgencyColor = 'bg-orange-100 text-orange-800 border-orange-200';
                         } else if (daysUntilDue <= 15) {
                           urgencyLabel = 'MODERATE';
-                          urgencyVariant = 'secondary';
                           urgencyColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
                         } else {
                           urgencyLabel = 'NORMAL';
-                          urgencyVariant = 'outline';
                           urgencyColor = 'bg-green-100 text-green-800 border-green-200';
                         }
                         
                         return (
-                          <span className={`ml-2 px-2 py-1 rounded-md text-xs font-semibold border ${urgencyColor}`}>
+                          <span className={`whitespace-nowrap px-2 py-1 rounded-md text-xs font-semibold border ${urgencyColor} inline-block`}>
                             {urgencyLabel}: Due in {daysUntilDue} days
                           </span>
                         );
@@ -513,10 +572,11 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Show Edit and Share buttons on medium screens and up */}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8"
+                    className="h-8 hidden md:flex"
                     onClick={() => setIsEditDialogOpen(true)}
                   >
                     <Edit className="h-4 w-4 mr-2 text-gray-600" />
@@ -526,18 +586,18 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8"
+                    className="h-8 hidden md:flex"
                     onClick={handleCopyLink}
                   >
                     {copied ? (
                       <>
-                        <Check className="h-4 w-4 mr-2 text-green-600" />
+                        <Check className="h-4 w-4 text-green-600" />
                         Copied!
                       </>
                     ) : (
                       <>
-                        <Share className="h-4 w-4 mr-2 text-gray-600" />
-                        Share
+                        <Share2 className="h-4 w-4 text-gray-600" />
+                        
                       </>
                     )}
                   </Button>
@@ -549,14 +609,29 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         size="sm"
                         className="h-8"
                       >
-                        <svg className="h-4 w-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                        
+                        <MoreVertical className="h-4 w-4 text-gray-600" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-48 p-1" align="end">
                       <div className="space-y-1">
+                        {/* Show Edit and Share options on small screens only */}
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-sm font-normal md:hidden"
+                          onClick={() => setIsEditDialogOpen(true)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-sm font-normal md:hidden"
+                          onClick={handleCopyLink}
+                        >
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Share
+                        </Button>
+                        {/* Show Copy Job Link on all screens */}
                         <Button
                           variant="ghost"
                           className="w-full justify-start text-sm font-normal"

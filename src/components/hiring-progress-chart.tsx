@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Label, Pie, PieChart } from "recharts"
 import { useAuthStore } from "@/store/auth-store"
+import { Users, UserCheck, Briefcase, Award, TrendingUp } from "lucide-react"
 
 import {
   Card,
@@ -17,7 +18,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { createClient } from "@/lib/supabase/api/client"
+import { useHiringProgress } from "@/hooks/useHiringProgress"
 
 interface HiringProgressChartProps {
   schoolId?: string;
@@ -34,22 +35,16 @@ const HiringProgressChart: React.FC<HiringProgressChartProps> = ({ schoolId: pro
   const { schoolId: storeSchoolId } = useAuthStore();
   const effectiveSchoolId = propSchoolId || storeSchoolId;
   
-  const [data, setData] = React.useState<HiringProgressData | null>({} as HiringProgressData);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const fetchData = async () => {
-      const supabase = await createClient();
-      const { data, error } = await supabase.rpc('get_hiring_progress', { p_school_id: effectiveSchoolId });
-      
-      if(error) console.error(error);
-      console.log(data[0])
-      setData(data[0]);
-      setLoading(false);
-    };
-    
-    fetchData();
-  }, [effectiveSchoolId]);
+  // Only fetch data when we have a valid school ID
+  const isValidSchoolId = effectiveSchoolId && effectiveSchoolId !== '';
+  
+  const {
+    data,
+    isLoading: loading,
+    error: queryError
+  } = useHiringProgress(isValidSchoolId ? effectiveSchoolId : '');
+  
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'An unknown error occurred') : null;
 
   const chartData = React.useMemo(() => {
     if (!data) return [];
@@ -88,11 +83,11 @@ const HiringProgressChart: React.FC<HiringProgressChartProps> = ({ schoolId: pro
     },
     shortlisted: {
       label: "Shortlisted",
-      color: "#f97316", // orange-500
+      color: "#f59e0b", // amber-500
     },
     interviewed: {
       label: "Interviewed",
-      color: "#22c55e", // green-500
+      color: "#10b981", // emerald-500
     },
     offered: {
       label: "Offers Extended",
@@ -104,82 +99,153 @@ const HiringProgressChart: React.FC<HiringProgressChartProps> = ({ schoolId: pro
     return chartData.reduce((acc, curr) => acc + curr.count, 0)
   }, [chartData])
 
-  if (loading || !data) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+  const conversionRate = React.useMemo(() => {
+    if (!data || data.candidates_screened === 0) return 0;
+    return ((data.offers_extended / data.candidates_screened) * 100).toFixed(1);
+  }, [data]);
+
+  const stages = [
+    {
+      label: "Screened",
+      value: data?.candidates_screened || 0,
+      icon: Users,
+      color: "bg-blue-500",
+      lightColor: "bg-blue-50",
+      textColor: "text-blue-700",
+      borderColor: "border-blue-200"
+    },
+    {
+      label: "Shortlisted",
+      value: data?.shortlisted_for_interview || 0,
+      icon: UserCheck,
+      color: "bg-amber-500",
+      lightColor: "bg-amber-50",
+      textColor: "text-amber-700",
+      borderColor: "border-amber-200"
+    },
+    {
+      label: "Interviewed",
+      value: data?.interviews_completed || 0,
+      icon: Briefcase,
+      color: "bg-emerald-500",
+      lightColor: "bg-emerald-50",
+      textColor: "text-emerald-700",
+      borderColor: "border-emerald-200"
+    },
+    {
+      label: "Offered",
+      value: data?.offers_extended || 0,
+      icon: Award,
+      color: "bg-violet-500",
+      lightColor: "bg-violet-50",
+      textColor: "text-violet-700",
+      borderColor: "border-violet-200"
+    }
+  ];
+
+  if (loading || !data || !isValidSchoolId) {
+    return (
+      <Card className="h-full border-gray-200 shadow-sm">
+        <div className="flex items-center justify-center h-full min-h-[400px]">
+          <div className="text-center">
+            {!isValidSchoolId ? (
+              <p className="text-sm text-gray-600">No school selected. Please select a school to view hiring progress.</p>
+            ) : (
+              <>
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-gray-600">Loading hiring progress...</p>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300 gap-3 py-3 px-3 flex flex-col border-1 border-gray-200 shadow-none h-full">
-      <div className="items-center pb-0">
-        <CardTitle className="text-base font-medium">Overall Hiring Progress</CardTitle>
-      </div>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={chartData}
-              dataKey="count"
-              nameKey="stage"
-              innerRadius={60}
-              strokeWidth={5}
+    <Card className="hover:shadow-xl transition-all duration-300 border border-gray-200 h-full overflow-hidden py-0 pt-4 justify-between">
+      {/* Header with Gradient */}
+      <CardHeader className="border-b border-gray-200 pb-2">
+            <CardTitle className="text-md font-bold text-gray-900">
+              Hiring Progress Overview
+            </CardTitle>
+            <p className="text-sm text-gray-600">Track your recruitment pipeline</p>
+      </CardHeader>
+
+      <CardContent className="">
+          {/* Chart Section */}
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto w-full"
             >
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          className="fill-foreground text-3xl font-bold"
-                        >
-                          {totalCandidates.toLocaleString()}
-                        </tspan>
-                        <tspan
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground"
-                        >
-                          Candidates
-                        </tspan>
-                      </text>
-                    )
-                  }
-                }}
-              />
-            </Pie>
-          </PieChart>
-        </ChartContainer>
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Pie
+                  data={chartData}
+                  dataKey="count"
+                  nameKey="stage"
+                  innerRadius={70}
+                  outerRadius={100}
+                  strokeWidth={2}
+                  stroke="#fff"
+                >
+                  <Label
+                    content={({ viewBox }) => {
+                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                        return (
+                          <g>
+                            <text
+                              x={viewBox.cx}
+                              y={viewBox.cy}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                            >
+                              <tspan
+                                x={viewBox.cx}
+                                y={(viewBox.cy || 0) - 10}
+                                className="fill-gray-900 text-4xl font-bold"
+                              >
+                                {totalCandidates.toLocaleString()}
+                              </tspan>
+                              <tspan
+                                x={viewBox.cx}
+                                y={(viewBox.cy || 0) + 20}
+                                className="fill-gray-600 text-sm font-medium"
+                              >
+                                Total Candidates
+                              </tspan>
+                            </text>
+                          </g>
+                        )
+                      }
+                    }}
+                  />
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+
+       
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span className="text-sm text-gray-700">Candidates Screened</span>
+
+      <CardFooter className="bg-gray-50 border-t border-gray-200 p-4">
+        <div className="w-full">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-4 bg-gradient-to-b from-blue-500 to-violet-500 rounded-full"></div>
+            <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Pipeline Stages</h4>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-            <span className="text-sm text-gray-700">Shortlisted for Interview</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-sm text-gray-700">Interviews Completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-violet-500"></div>
-            <span className="text-sm text-gray-700">Offers Extended</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {stages.map((stage, idx) => {
+              const Icon = stage.icon;
+              return (
+                <div key={idx} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                  <div className={`w-2 h-2 ${stage.color} rounded-full flex-shrink-0`}></div>
+                  <span className="text-xs text-gray-700 font-medium truncate">{stage.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </CardFooter>

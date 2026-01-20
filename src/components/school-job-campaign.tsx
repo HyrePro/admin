@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { MoreVertical } from "@/components/icons"
-import { createClient } from '@/lib/supabase/api/client'
 import { Card, CardDescription, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { useRouter } from 'next/navigation'
+import { useSchoolJobs } from '@/hooks/useSchoolJobs';
 
 // =====================
 // Type Definitions
@@ -44,35 +44,16 @@ interface SchoolJobsContainerProps {
 // =====================
 
 const SchoolJobsContainer: React.FC<SchoolJobsContainerProps> = ({ schoolId }) => {
-  const [jobs, setJobs] = useState<JobData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-
-  useEffect(() => {
-    if (!schoolId) return
-
-    const load = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const supabase = createClient()
-        const { data, error: err } = await supabase.rpc("get_school_jobs_data", {
-          p_school_id: schoolId
-        })
-        if (err) throw err
-
-        setJobs(data || [])
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Unknown error")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [schoolId])
+  
+  const {
+    data: jobs = [],
+    isLoading: loading,
+    error: queryError,
+    refetch
+  } = useSchoolJobs(schoolId)
+  
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'An unknown error occurred') : null
 
   if (loading) {
     return (

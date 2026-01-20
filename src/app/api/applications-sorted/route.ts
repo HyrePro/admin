@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
     const searchParam = search && search.trim() !== '' ? search : null;
     
     // Use the sorted function that supports sorting in the database
-    const { data, error } = await supabaseService.rpc("get_applications_by_school_sorted", {
+    const { data, error } = await supabaseService.rpc("get_applications_by_school", {
       p_school_id: adminInfo.school_id,
       p_start_index: startIndex,
       p_end_index: endIndex,

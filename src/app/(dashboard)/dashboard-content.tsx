@@ -112,7 +112,7 @@ export function DashboardContent({
 
   // Dashboard with job count
   return (
-    <div className="flex flex-1 flex-col px-4 pb-8 pt-4 h-full max-h-[calc(100vh-100px)] overflow-y-auto">
+    <div className="flex flex-1 flex-col px-4 pb-8 pt-4 h-full max-h-[calc(100vh)] overflow-y-auto">
       <div className="@container/main flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <DashboardCard

@@ -109,29 +109,16 @@ const STATUS_CONFIG = {
 // Status filter options
 const APPLICATION_STATUS_OPTIONS = [
   { value: 'ALL', label: 'All Statuses' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'application_submitted', label: 'Application Submitted' },
-  { value: 'assessment_in_progress', label: 'Assessment In Progress' },
-  { value: 'assessment_in_evaluation', label: 'Assessment In Evaluation' },
-  { value: 'assessment_evaluated', label: 'Assessment Evaluated' },
-  { value: 'assessment_ready', label: 'Assessment Ready' },
-  { value: 'assessment_failed', label: 'Assessment Failed' },
-  { value: 'demo_creation', label: 'Demo Creation' },
-  { value: 'demo_ready', label: 'Demo Ready' },
-  { value: 'demo_in_progress', label: 'Demo In Progress' },
-  { value: 'demo_in_evaluation', label: 'Demo In Evaluation' },
-  { value: 'demo_evaluated', label: 'Demo Evaluated' },
-  { value: 'demo_failed', label: 'Demo Failed' },
-  { value: 'interview_in_progress', label: 'Interview In Progress' },
-  { value: 'interview_ready', label: 'Interview Ready' },
-  { value: 'interview_scheduled', label: 'Interview Scheduled' },
-  { value: 'paused', label: 'Paused' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'suspended', label: 'Suspended' },
-  { value: 'appealed', label: 'Appealed' },
-  { value: 'withdrawn', label: 'Withdrawn' },
+  { value: 'application_%', label: 'Application Stage' },
+  { value: 'assessment_%', label: 'MCQ Assessment Stage' },
+  { value: 'demo_%', label: 'Demo Assessment Stage' },
+  { value: 'interview_%', label: 'Interview Stage' },
+  { value: 'panelist_%', label: 'Panelist Stage' },
   { value: 'offered', label: 'Offered' },
-  { value: 'panelist_review_in_progress', label: 'Panelist Review In Progress' },
+  { value: 'hired', label: 'Hired' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'appealed', label: 'Appealed' },
+  { value: 'suspended', label: 'Suspended' },
 ];
 
 // Status colors mapping
@@ -573,46 +560,66 @@ function CandidatesTableComponent({
   return (
   <div className="candidates-table-container flex flex-col h-full min-h-0">
   {/* Search and Filters - Fixed at top */}
-  <div className="flex flex-col sm:flex-row gap-4 mb-4 flex-shrink-0">
-    <div className="relative flex-1">
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+  <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible flex-shrink-0">
+    <div className="relative flex-1 overflow-visible">
+      <Search className="absolute left-4 top-5 transform text-gray-400 h-4 w-4" />
       <Input
-        placeholder="Search candidates by name, email, job..."
-        className="pl-10 w-full"
-        value={searchQuery}
-        onChange={(e) => handleSearchChange(e.target.value)}
         ref={candidateSearchInputRef}
+        type="text"
+        placeholder="Search candidates by name, email, job..."
+        value={searchQuery}
+        onChange={(e) => {
+          const inputValue = e.target.value;
+          if (isValidStringLength(inputValue, 0, 100)) {
+            handleSearchChange(sanitizeAndValidateInput(inputValue));
+          }
+        }}
+        className="pl-10 w-full rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none border border-input mt-2 ml-2"
+        aria-label="Search candidates by name, email, job"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            const firstCandidateRow = document.querySelector('.table-row-hover') as HTMLElement;
+            if (firstCandidateRow) {
+              firstCandidateRow.focus();
+            }
+          }
+        }}
       />
-      {jobsFilterLoading && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2" aria-label="Loading">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        </div>
+      
+    </div>
+    <div className="flex gap-4 mt-2">
+      <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+        <SelectTrigger className="flex-grow sm:w-[180px]" aria-label={translations.common.search + " candidates by status"}>
+          <SelectValue placeholder={translations.common.search + " by status"} />
+        </SelectTrigger>
+        <SelectContent>
+          {APPLICATION_STATUS_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+     
+      {onRefresh && (
+        <Button
+          variant="outline"
+          onClick={handleRefresh}
+          aria-label={translations.common.refresh}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+              e.preventDefault();
+              const firstCandidateRow = document.querySelector('[role="row"]') as HTMLElement;
+              if (firstCandidateRow) {
+                firstCandidateRow.focus();
+              }
+            }
+          }}
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       )}
     </div>
-    <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-      <SelectTrigger className="w-full sm:w-[180px]">
-        <SelectValue placeholder={translations.common.search + " by status"} />
-      </SelectTrigger>
-      <SelectContent>
-        {APPLICATION_STATUS_OPTIONS.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    {onRefresh && (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleRefresh}
-        className="flex items-center gap-2"
-        aria-label={translations.common.refreshList}
-      >
-        <RefreshCw className="h-4 w-4" />
-        <span className="hidden sm:inline">{translations.common.refresh}</span>
-      </Button>
-    )}
   </div>
 
   {/* Table Container - Custom wrapper with fixed header */}
@@ -756,58 +763,58 @@ function CandidatesTableComponent({
   </div>
 
   {/* Pagination - Fixed at bottom */}
-  <div className="pagination-container flex-shrink-0 w-full flex flex-col sm:flex-row items-center justify-between gap-4 py-2" role="navigation" aria-label="Pagination">
-    <div className="pagination-info" aria-live="polite">
+ <div className="pagination-container flex-shrink-0 w-full flex items-center justify-between gap-4 py-2" role="navigation" aria-label="Pagination">
+  <div className="pagination-info flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 justify-between">
+    <div aria-live="polite">
       {translations.pagination.showing} <span className="pagination-value">{formatNumber(paginationDetails.startIndex + 1)}</span> {translations.pagination.to}{' '}
       <span className="pagination-value">{formatNumber(paginationDetails.endIndex || 0)}</span> {translations.pagination.of}{' '}
       <span className="pagination-value">{formatNumber(paginationDetails.totalDisplayCount)}</span> {translations.pagination.candidates}
       <span className="sr-only">{translations.pagination.page} {currentPage + 1} {translations.pagination.ofTotal} {paginationDetails.totalPages || 1}</span>
     </div>
     
-    <div className="pagination-controls flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-      <div className="flex items-center gap-2 flex-wrap justify-center">
-        <span className="text-sm text-gray-600">Rows per page:</span>
-        <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(Number(value))}>
-          <SelectTrigger className="w-20 h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="10">10</SelectItem>
-            <SelectItem value="20">20</SelectItem>
-            <SelectItem value="30">30</SelectItem>
-            <SelectItem value="40">40</SelectItem>
-            <SelectItem value="50">50</SelectItem>
-            <SelectItem value="100">100</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="flex gap-2 flex-wrap justify-center">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePreviousPage}
-          disabled={!hasPreviousPage}
-          className="pagination-btn"
-          aria-label={translations.common.previous + " page"}
-        >
-          <ArrowLeft className="btn-icon" />
-          <span className="hidden sm:inline-block ml-2">{translations.common.previous}</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNextPage}
-          disabled={!hasNextPage || isFetchingNextPage}
-          className="pagination-btn"
-          aria-label={isFetchingNextPage ? translations.common.loading + " more candidates" : "Load More"}
-        >
-          <span className="hidden sm:inline-block mr-2">{isFetchingNextPage ? translations.common.loading + "..." : "Load More"}</span>
-          <ArrowRight className="btn-icon" />
-        </Button>
-      </div>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-600">Rows per page:</span>
+      <Select value={pageSize.toString()} onValueChange={(value) => handlePageSizeChange(Number(value))}>
+        <SelectTrigger className="w-20 h-8">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="10">10</SelectItem>
+          <SelectItem value="20">20</SelectItem>
+          <SelectItem value="30">30</SelectItem>
+          <SelectItem value="40">40</SelectItem>
+          <SelectItem value="50">50</SelectItem>
+          <SelectItem value="100">100</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   </div>
+
+  <div className="pagination-controls flex items-center gap-2">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handlePreviousPage}
+      disabled={!hasPreviousPage}
+      className="pagination-btn"
+      aria-label={translations.common.previous + " page"}
+    >
+      <ArrowLeft className="btn-icon" />
+      <span className="hidden sm:inline-block ml-2">{translations.common.previous}</span>
+    </Button>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleNextPage}
+      disabled={!hasNextPage || isFetchingNextPage}
+      className="pagination-btn"
+      aria-label={isFetchingNextPage ? translations.common.loading + " more candidates" : "Load More"}
+    >
+      <span className="hidden sm:inline-block mr-2">{isFetchingNextPage ? translations.common.loading + "..." : "Load More"}</span>
+      <ArrowRight className="btn-icon" />
+    </Button>
+  </div>
+</div>
 </div>
   );
 }
@@ -865,9 +872,11 @@ const ApplicationRow = React.memo(({
 
       <TableCell className="table-cell-border">
         <div className="cell-content">
-          <Badge className={statusBadge.color}>
-            <div className="badge-text">{statusBadge.text}</div>
-          </Badge>
+          <GenericHoverCard entity="application-stage" entityId={application.application_status}>
+            <Badge className={statusBadge.color}>
+              <div className="badge-text">{statusBadge.text}</div>
+            </Badge>
+          </GenericHoverCard>
         </div>
       </TableCell>
 

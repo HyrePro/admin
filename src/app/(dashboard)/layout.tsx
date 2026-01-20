@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AuthProviderWrapper } from "@/components/auth-provider-wrapper";
 import { I18nProvider } from "@/contexts/i18n-context";
 import PricingPlansSheet from "@/components/pricing-plans-sheet";
+import BridgeLoader from "@/components/bridge-loader";
 
 // Interface for school information
 interface SchoolInfo {
@@ -160,6 +161,7 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        {/* <BridgeLoader /> */}
       </div>
     );
   }
@@ -178,7 +180,7 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>
-          <div className="flex px-2 items-center ms-2 min-w-0">
+          <div className="flex flex-1 px-2 items-center ms-2 min-w-0">
             <SchoolInfoDisplay schoolInfo={schoolInfo} />
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">
@@ -231,18 +233,14 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
                 </div>
               </PopoverContent>
             </Popover> */}
-                         <div className="hidden sm:block">
+            <div className="hidden sm:block">
               <Button 
                 variant="default" 
-                className="text-xs ms-2 bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 hover:from-yellow-400 hover:via-yellow-500 hover:to-yellow-600 text-white shadow-md font-semibold"
+                className="text-xs bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 hover:from-yellow-400 hover:via-yellow-500 hover:to-yellow-600 text-white shadow-md font-semibold"
                 onClick={() => setIsPricingSheetOpen(true)}
               >
                 Upgrade Plan
               </Button>
-              <PricingPlansSheet 
-                isOpen={isPricingSheetOpen}
-                onClose={() => setIsPricingSheetOpen(false)}
-              />
             </div>
             <div className="sm:hidden">
               <TooltipProvider>
@@ -274,11 +272,15 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
         </header>
 
         {/* Scrollable Content Area */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-  {children}
-</div>
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {children}
+        </div>
 
       </SidebarInset>
+      <PricingPlansSheet 
+        isOpen={isPricingSheetOpen}
+        onClose={() => setIsPricingSheetOpen(false)}
+      />
     </SidebarProvider>
   );
 }

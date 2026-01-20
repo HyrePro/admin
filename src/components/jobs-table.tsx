@@ -215,7 +215,6 @@ function JobsTableComponent({
                     <TableCell className="table-cell-border">
                       <div className="cell-content">
                         <Skeleton className="skeleton-primary" />
-                        <Skeleton className="skeleton-secondary mt-2" />
                       </div>
                     </TableCell>
                     <TableCell className="table-cell-border">
@@ -277,7 +276,7 @@ function JobsTableComponent({
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-4 overflow-visible flex-shrink-0">
         <div className="relative flex-1 overflow-visible">
-          <Search className="absolute left-4 top-4 transform text-gray-400 h-4 w-4" />
+          <Search className="absolute left-4 top-5 transform text-gray-400 h-4 w-4" />
           <Input
             ref={jobSearchInputRef}
             type="text"

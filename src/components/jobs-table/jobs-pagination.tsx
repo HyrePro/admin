@@ -63,16 +63,20 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
   });
 
   return (
-    <div className="pagination-container flex-shrink-0 w-full flex flex-col sm:flex-row items-center justify-between gap-4 py-2"  role="navigation" aria-label="Pagination">
-      <div className="pagination-info" aria-live="polite">
-        {translations.pagination.showing} <span className="pagination-value">{formatNumber(startIndex + 1)}</span> {translations.pagination.to}{' '}
-        <span className="pagination-value">{formatNumber(endIndex || 0)}</span> {translations.pagination.of}{' '}
-        <span className="pagination-value">{formatNumber(totalDisplayCount)}</span> {translations.pagination.jobs}
+    <div 
+      className="pagination-container flex-shrink-0 w-full flex items-center justify-between gap-4 py-2" 
+      role="navigation" 
+      aria-label="Pagination"
+    >
+      <div className="pagination-info flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 justify-between">
+        <span className="text-sm">
+          {translations.pagination.showing} <span className="pagination-value">{formatNumber(startIndex + 1)}</span> {translations.pagination.to}{' '}
+          <span className="pagination-value">{formatNumber(endIndex || 0)}</span> {translations.pagination.of}{' '}
+          <span className="pagination-value">{formatNumber(totalDisplayCount)}</span> {translations.pagination.jobs}
+        </span>
         <span className="sr-only">{translations.pagination.page} {currentPage + 1} {translations.pagination.ofTotal} {totalPages || 1}</span>
-      </div>
-      
-      <div className="pagination-controls flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-        <div className="flex items-center gap-2 flex-wrap justify-center">
+        
+        <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Rows per page:</span>
           <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
             <SelectTrigger className="w-20 h-8">
@@ -88,44 +92,44 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
             </SelectContent>
           </Select>
         </div>
-        
-        <div className="flex gap-2 flex-wrap justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLoadPrevious}
-            disabled={!hasPreviousPage}
-            className="pagination-btn"
-            aria-label={translations.common.previous + " page"}
-            onKeyDown={(e) => {
-              if (e.key === 'Tab' && e.shiftKey) {
-                e.preventDefault();
+      </div>
+
+      <div className="pagination-controls flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onLoadPrevious}
+          disabled={!hasPreviousPage}
+          className="pagination-btn"
+          aria-label={translations.common.previous + " page"}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && e.shiftKey) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <ChevronLeft className="btn-icon" />
+          <span className="hidden sm:inline-block ml-2">{translations.common.previous}</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onLoadMore}
+          disabled={!hasNextPage || isFetchingNextPage}
+          className="pagination-btn"
+          aria-label={isFetchingNextPage ? translations.common.loading + " more jobs" : translations.common.loadMore}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+              e.preventDefault();
+              if (jobSearchInputRef?.current) {
+                jobSearchInputRef.current.focus();
               }
-            }}
-          >
-            <ChevronLeft className="btn-icon" />
-            <span className="hidden sm:inline-block ml-2">{translations.common.previous}</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLoadMore}
-            disabled={!hasNextPage || isFetchingNextPage}
-            className="pagination-btn"
-            aria-label={isFetchingNextPage ? translations.common.loading + " more jobs" : translations.common.loadMore}
-            onKeyDown={(e) => {
-              if (e.key === 'Tab' && !e.shiftKey) {
-                e.preventDefault();
-                if (jobSearchInputRef?.current) {
-                  jobSearchInputRef.current.focus();
-                }
-              }
-            }}
-          >
-            <span className="hidden sm:inline-block mr-2">{isFetchingNextPage ? translations.common.loading + "..." : translations.common.loadMore}</span>
-            <ChevronRight className="btn-icon" />
-          </Button>
-        </div>
+            }
+          }}
+        >
+          <span className="hidden sm:inline-block mr-2">{isFetchingNextPage ? translations.common.loading + "..." : translations.common.loadMore}</span>
+          <ChevronRight className="btn-icon" />
+        </Button>
       </div>
     </div>
   );

@@ -16,6 +16,9 @@ export type JobHoverInfo = JobHoverInfoType;
 export type CandidateHoverInfo = CandidateHoverInfoType;
 export type AdminUserHoverInfo = AdminUserHoverInfoType;
 
+// Import the new type
+import { ApplicationStageHoverInfo } from '@/lib/supabase/api/hover-card';
+
 // Define query keys for hover card data
 const HOVER_CARD_QUERY_KEYS = {
   base: ['hover-card'] as const,
@@ -33,6 +36,10 @@ function isCandidateHoverInfo(data: HoverInfo): data is CandidateHoverInfo {
 
 function isAdminUserHoverInfo(data: HoverInfo): data is AdminUserHoverInfo {
   return (data as AdminUserHoverInfo).role !== undefined;
+}
+
+function isApplicationStageHoverInfo(data: HoverInfo): data is ApplicationStageHoverInfo {
+  return (data as ApplicationStageHoverInfo).stage_key !== undefined;
 }
 
 // Generic hook for hover card data
@@ -111,6 +118,27 @@ export function useAdminUserHoverData(
     enabled: !!userId,
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 1,
+    ...options,
+  });
+}
+
+export function useApplicationStageHoverData(
+  stageKey: string,
+  options?: Omit<UseQueryOptions<ApplicationStageHoverInfo, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<ApplicationStageHoverInfo, Error>({
+    queryKey: HOVER_CARD_QUERY_KEYS.entity('application-stage', stageKey),
+    queryFn: async () => {
+      const data = await fetchHoverCardData('application-stage', stageKey);
+      if (!isApplicationStageHoverInfo(data)) {
+        throw new Error('Invalid application stage hover data');
+      }
+      return data;
+    },
+    enabled: !!stageKey,
+    staleTime: 60 * 60 * 1000, // 60 minutes (since it's static config data)
+    gcTime: 120 * 60 * 1000, // 120 minutes
     retry: 1,
     ...options,
   });

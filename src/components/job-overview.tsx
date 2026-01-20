@@ -1,8 +1,5 @@
 "use client";
 
-import React from "react";
-import { Edit } from "lucide-react";
-
 interface JobOverviewProps {
   job: {
     id: string;
@@ -84,11 +81,11 @@ export function JobOverview({ job = mockJob }: Partial<JobOverviewProps>) {
   return (
     <div className="h-full bg-white">
       <div className="mx-auto px-6 py-6">
-        <div className="flex gap-6">
+        <div className="flex gap-6 h-full">
           {/* Main Content - Left Side */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col">
             {/* Job Description Section */}
-            <div className="mb-6">
+            <div className="mb-6 flex-1">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-gray-900">Job Description</h2>
                
@@ -103,8 +100,11 @@ export function JobOverview({ job = mockJob }: Partial<JobOverviewProps>) {
           
           </div>
 
+          {/* Divider */}
+          <div className="w-px bg-gray-200"></div>
+
           {/* Sidebar - Right Side */}
-          <div className="min-w-72 flex-shrink-0 h-fit border-l border-gray-200 pl-6">
+          <div className="flex-shrink-0 flex flex-col min-w-[15%]">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Job Detail</h3>
             
             <div className="space-y-4">
@@ -113,20 +113,22 @@ export function JobOverview({ job = mockJob }: Partial<JobOverviewProps>) {
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-xs text-gray-600">Department</span>
+                  <span className="text-xs text-gray-600">Grades</span>
                 </div>
-                <p className="text-sm font-medium text-gray-900">Inclusive Education</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {job?.grade_levels?.join(', ') || 'Not specified'}
+                </p>
               </div>
 
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                   </svg>
-                  <span className="text-xs text-gray-600">Employment</span>
+                  <span className="text-xs text-gray-600">Subjects</span>
                 </div>
-                <p className="text-sm font-medium text-gray-900 capitalize">
-                  {job?.job_type || 'Not specified'}
+                <p className="text-sm font-medium text-gray-900">
+                  {job?.subjects?.join(', ') || 'Not specified'}
                 </p>
               </div>
 
@@ -153,34 +155,11 @@ export function JobOverview({ job = mockJob }: Partial<JobOverviewProps>) {
                 </p>
               </div>
 
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                  <span className="text-xs text-gray-600">Curriculum</span>
-                </div>
-                <p className="text-sm font-medium text-gray-900">
-                  {job?.board || 'Not specified'}
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="text-xs text-gray-600">Location</span>
-                </div>
-                <p className="text-sm font-medium text-gray-900">
-                  {job?.location || 'Not specified'}
-                </p>
-              </div>
+            
             </div>
 
             {/* Hiring Manager Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
+            {/* <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="flex items-start gap-2 mb-3">
                 <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -243,7 +222,7 @@ export function JobOverview({ job = mockJob }: Partial<JobOverviewProps>) {
                   </button>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

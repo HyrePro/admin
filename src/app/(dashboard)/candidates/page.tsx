@@ -242,7 +242,7 @@ export default function CandidatesPage() {
         <Button
           variant="outline"
           onClick={() => setIsInviteDialogOpen(true)}
-          className='btn-invite'
+          className='btn-invite bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold'
         >
           <Plus className="btn-icon" />
           Invite Candidate
