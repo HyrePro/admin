@@ -73,7 +73,7 @@ const WeeklyActivity: React.FC<WeeklyActivityChartProps> = ({ schoolId: propScho
     };
 
     return (
-        <Card className="hover:shadow-xl transition-all duration-300 border border-gray-200 h-full overflow-hidden py-0 pt-4" >
+        <Card className="hover:shadow-xl transition-all duration-300 border border-gray-200 h-full overflow-hidden py-0 pt-4 shadow-none" >
             {/* Header */}
             <CardHeader className="border-b border-gray-200 pb-2">
                         <CardTitle className="text-md font-bold text-gray-900">

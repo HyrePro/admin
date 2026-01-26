@@ -2,7 +2,7 @@
 import { createPortal } from "react-dom";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
+import { 
   Dialog,
   DialogContent,
   DialogHeader,
@@ -34,7 +34,10 @@ import {
   GlobeLock,
   CheckCircle2,
   CircleAlert,
-  Info
+  Info,
+  Map,
+  ExternalLink,
+  LocateFixed
 } from "lucide-react";
 import { createClient } from '@/lib/supabase/api/client';
 import { useAuthStore } from '@/store/auth-store';
@@ -94,6 +97,12 @@ interface SchoolInfo {
   name: string;
   address: string;
   location: string;
+}
+
+interface SavedPanelistData {
+  id?: string; // Optional for manually added panelists
+  email: string;
+  role: 'admin' | 'viewer' | 'guest';
 }
 
 interface ScheduleInterviewForm {
@@ -168,6 +177,8 @@ export function ScheduleInterviewDialog({
   }, [selectedPanelists]);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [originalLocationUrl, setOriginalLocationUrl] = useState<string>('');
 
   // Panelist display component
   const PanelistDisplay = ({ 
@@ -209,20 +220,22 @@ export function ScheduleInterviewDialog({
       <div 
         className="flex items-center justify-between bg-slate-100 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs relative"
       >
-        {panelist.avatar ? (
-          <img 
-            src={panelist.avatar} 
-            alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
-            className="w-5 h-5 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
-            {panelist.first_name && panelist.last_name 
-              ? `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`
-              : (panelist.email || '').charAt(0).toUpperCase()}
-          </div>
-        )}
-        <span className="text-slate-700 font-medium">{panelist.email}</span>
+        <div className="flex items-center gap-2 mr-2">
+          {panelist.avatar ? (
+            <img 
+              src={panelist.avatar} 
+              alt={`${panelist.first_name || ''} ${panelist.last_name || ''}`}
+              className="w-5 h-5 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-[10px] font-medium">
+              {panelist.first_name && panelist.last_name 
+                ? `${(panelist.first_name || '').charAt(0)}${(panelist.last_name || '').charAt(0)}`
+                : (panelist.email || '').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-slate-700 font-medium">{panelist.email}</span>
+        </div>
         <div className="ml-1">
           {availabilityStatus === 'checking' && (
             <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
@@ -314,7 +327,7 @@ export function ScheduleInterviewDialog({
 
     return (
       <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mr-2">
           {panelist.avatar ? (
           <img 
             src={panelist.avatar} 
@@ -531,10 +544,18 @@ export function ScheduleInterviewDialog({
   const handlePanelistAdd = useCallback((p: Panelist): void => {
     console.log('handlePanelistAdd called with:', p);
     // Check if panelist is already selected
-    if (!selectedPanelists.some(selected => selected.id === p.id)) {
+    if (!selectedPanelists.some(selected => selected.id === p.id || selected.email === p.email)) {
       console.log('Adding new panelist');
+      
+      // If the panelist doesn't have an ID, it's manually added - assign 'guest' role
+      const panelistToAdd = {
+        ...p,
+        role: p.role || 'guest', // Default to 'guest' if no role provided
+        id: p.id || '' // Assign empty string if no ID (manually added)
+      };
+      
       // Update the form's panelists field with comma-separated emails
-      const newEmails = [...selectedPanelists, p].map(panelist => panelist.email);
+      const newEmails = [...selectedPanelists, panelistToAdd].map(panelist => panelist.email);
       const newValue = newEmails.join(', ') + (newEmails.length > 0 ? ', ' : '');
       
       setScheduleForm(prevForm => ({
@@ -543,8 +564,8 @@ export function ScheduleInterviewDialog({
       }));
       
       // Update selected panelists after schedule form is updated
-      setSelectedPanelists(prev => [...prev, p]);
-      console.log('State updated, selectedPanelists now:', [...selectedPanelists, p]);
+      setSelectedPanelists(prev => [...prev, panelistToAdd]);
+      console.log('State updated, selectedPanelists now:', [...selectedPanelists, panelistToAdd]);
     } else {
       console.log('Panelist already selected, skipping');
     }
@@ -705,11 +726,10 @@ export function ScheduleInterviewDialog({
       return;
     }
     
-    const currentPanelistEmails = selectedPanelists.map(panelist => panelist.email);
-    
-    for (const email of currentPanelistEmails) {
-      if (!isValidEmail(email)) {
-        toast.error(`Invalid email format: ${email}`);
+    // Validate all selected panelist emails
+    for (const panelist of selectedPanelists) {
+      if (!isValidEmail(panelist.email)) {
+        toast.error(`Invalid email format: ${panelist.email}`);
         return;
       }
     }
@@ -735,7 +755,11 @@ export function ScheduleInterviewDialog({
           school_id: currentSchoolId,
           candidate_email: candidate.email,
           job_id: candidate.job_id,
-          panelists: currentPanelistEmails.map((email: string) => ({ email })),
+          panelists: selectedPanelists.map((panelist) => ({
+            id: panelist.id || undefined,
+            email: panelist.email,
+            role: panelist.role as 'admin' | 'viewer' | 'guest'
+          })),
           interview_date: date,
           interview_time: time,
           duration_minutes: durationNum,
@@ -811,6 +835,128 @@ export function ScheduleInterviewDialog({
     const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
     return formatTime(endTime);
   };
+
+  // Helper function to validate if a string is a valid URL
+  const isValidUrl = (string: string): boolean => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  // Helper function to extract address from Google Maps URL
+  const extractAddressFromGoogleMapsUrl = (url: string): string => {
+    try {
+      const parsedUrl = new URL(url);
+      
+      // Handle different Google Maps URL formats
+      if (parsedUrl.hostname.includes('google.com') || parsedUrl.hostname.includes('googleapis.com')) {
+        // Try to extract address from various parameter formats
+        const qParam = parsedUrl.searchParams.get('q');
+        const daddrParam = parsedUrl.searchParams.get('daddr');
+        const addrParam = parsedUrl.searchParams.get('addr');
+        
+        // Also try to decode coordinates from 'll' parameter or 'center'
+        const llParam = parsedUrl.searchParams.get('ll');
+        const centerParam = parsedUrl.searchParams.get('center');
+        
+        // Prioritize parameters in this order: q, daddr, addr
+        if (qParam) {
+          // If q parameter contains coordinates, try to get readable address
+          if (/^-?\d+\.\d+,-?\d+\.\d+$/.test(qParam)) {
+            return qParam; // Return coordinates if no readable address
+          }
+          return decodeURIComponent(qParam);
+        }
+        
+        if (daddrParam) {
+          if (/^-?\d+\.\d+,-?\d+\.\d+$/.test(daddrParam)) {
+            return daddrParam;
+          }
+          return decodeURIComponent(daddrParam);
+        }
+        
+        if (addrParam) {
+          if (/^-?\d+\.\d+,-?\d+\.\d+$/.test(addrParam)) {
+            return addrParam;
+          }
+          return decodeURIComponent(addrParam);
+        }
+        
+        // Handle places URLs
+        if (parsedUrl.pathname.includes('/place/')) {
+          const placeName = parsedUrl.pathname.split('/place/')[1]?.split('/')[0];
+          if (placeName) {
+            return decodeURIComponent(placeName.replace(/\+/g, ' '));
+          }
+        }
+        
+        // Handle maps URLs with @coordinates
+        const pathname = parsedUrl.pathname;
+        if (pathname.includes('@')) {
+          const atIndex = pathname.indexOf('@');
+          const coordsPart = pathname.substring(atIndex + 1);
+          const coordsMatch = coordsPart.match(/^(-?\d+\.\d+,-?\d+\.\d+)/);
+          if (coordsMatch) {
+            return coordsMatch[1];
+          }
+        }
+      }
+      
+      // If we can't extract a readable address, return the original URL
+      return url;
+    } catch (error) {
+      console.error('Error parsing Google Maps URL:', error);
+      return url;
+    }
+  };
+
+  // Function to extract address from Google Maps URL and update form
+  const updateLocationWithExtractedAddress = useCallback((url: string) => {
+    if (url && isValidUrl(url)) {
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname.includes('google.com') || parsedUrl.hostname.includes('googleapis.com')) {
+          const extractedAddress = extractAddressFromGoogleMapsUrl(url);
+          // Only update if the extracted address is different from the current location
+          if (extractedAddress !== url) {
+            setOriginalLocationUrl(url); // Store the original URL
+            setScheduleForm(prev => ({
+              ...prev,
+              location: extractedAddress
+            }));
+          }
+        }
+      } catch (error) {
+        // If URL parsing fails, do nothing
+        console.error('Error processing Google Maps URL:', error);
+      }
+    } else {
+      // If it's not a valid URL, clear the original URL state
+      setOriginalLocationUrl('');
+    }
+  }, []);
+
+  // Effect to automatically extract address from Google Maps URL when user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only process if we don't already have an original URL stored
+      if (scheduleForm.location && isValidUrl(scheduleForm.location) && !originalLocationUrl) {
+        try {
+          const parsedUrl = new URL(scheduleForm.location);
+          if (parsedUrl.hostname.includes('google.com') || parsedUrl.hostname.includes('googleapis.com')) {
+            updateLocationWithExtractedAddress(scheduleForm.location);
+          }
+        } catch (error) {
+          console.error('Error processing Google Maps URL:', error);
+        }
+      }
+    }, 500); // Wait 500ms after user stops typing
+    
+    return () => clearTimeout(timer);
+  }, [scheduleForm.location, originalLocationUrl, updateLocationWithExtractedAddress]);
 
         // AFTER - Line ~570
   return (
@@ -920,7 +1066,7 @@ export function ScheduleInterviewDialog({
                   <button
                     type="button"
                     onClick={() => handleMeetingTypeChange("online")}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                    className={`p-3 rounded-lg border-1 text-left transition-all ${
                       scheduleForm.meetingType === "online"
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
@@ -938,7 +1084,7 @@ export function ScheduleInterviewDialog({
                   <button
                     type="button"
                     onClick={() => handleMeetingTypeChange("offline")}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                    className={`p-3 rounded-lg border-1 text-left transition-all ${
                       scheduleForm.meetingType === "offline"
                         ? 'border-purple-500 bg-purple-50'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
@@ -972,15 +1118,167 @@ export function ScheduleInterviewDialog({
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <Input
-                      className="pl-10 h-10 text-sm"
+                      className="pl-10 pr-16 h-10 text-sm"
                       value={scheduleForm.location}
-                      onChange={(e) => handleFormChange('location', e.target.value)}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        if (isValidUrl(newValue)) {
+                          try {
+                            const parsedUrl = new URL(newValue);
+                            if (parsedUrl.hostname.includes('google.com') || parsedUrl.hostname.includes('googleapis.com')) {
+                              setOriginalLocationUrl(newValue); // Store the original URL
+                              const extractedAddress = extractAddressFromGoogleMapsUrl(newValue);
+                              setScheduleForm(prev => ({
+                                ...prev,
+                                location: extractedAddress
+                              }));
+                            } else {
+                              // If it's a different URL type, just update the form
+                              setOriginalLocationUrl('');
+                              handleFormChange('location', newValue);
+                            }
+                          } catch {
+                            // If URL parsing fails, just update the form
+                            setOriginalLocationUrl('');
+                            handleFormChange('location', newValue);
+                          }
+                        } else {
+                          // If it's not a URL, just update the form
+                          setOriginalLocationUrl('');
+                          handleFormChange('location', newValue);
+                        }
+                      }}
                       placeholder="Enter interview location"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 h-7 w-7"
+                      onClick={() => {
+                        setShowLocationDialog(true);
+                      }}
+                    >
+                      <LocateFixed className="w-4 h-4 text-slate-500" />
+                    </Button>
                   </div>
                 </div>
               )}
-
+                            
+              {/* Location Selection Dialog */}
+              {showLocationDialog && (
+                <Dialog open={showLocationDialog} onOpenChange={setShowLocationDialog}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Select Location</DialogTitle>
+                    </DialogHeader>
+                                  
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-slate-700 mb-2 block">Paste Google Maps URL</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="text"
+                            placeholder="https://maps.google.com/..."
+                            className="flex-1"
+                            value={originalLocationUrl || scheduleForm.location}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              if (isValidUrl(newValue)) {
+                                try {
+                                  const parsedUrl = new URL(newValue);
+                                  if (parsedUrl.hostname.includes('google.com') || parsedUrl.hostname.includes('googleapis.com')) {
+                                    setOriginalLocationUrl(newValue); // Store the original URL
+                                    const extractedAddress = extractAddressFromGoogleMapsUrl(newValue);
+                                    setScheduleForm(prev => ({
+                                      ...prev,
+                                      location: extractedAddress
+                                    }));
+                                  } else {
+                                    // If it's a different URL type, just update the form
+                                    setOriginalLocationUrl('');
+                                    handleFormChange('location', newValue);
+                                  }
+                                } catch {
+                                  // If URL parsing fails, just update the form
+                                  setOriginalLocationUrl('');
+                                  handleFormChange('location', newValue);
+                                }
+                              } else {
+                                // If it's not a URL, just update the form
+                                setOriginalLocationUrl('');
+                                handleFormChange('location', newValue);
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // If the location is a valid Google Maps URL, open it in a new tab
+                              if (isValidUrl(scheduleForm.location)) {
+                                window.open(scheduleForm.location, '_blank');
+                              }
+                            }}
+                            disabled={!isValidUrl(scheduleForm.location)}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {/* Display extracted address if it's a valid Google Maps URL */}
+                        {isValidUrl(scheduleForm.location) && (
+                          <div className="mt-2 p-2 bg-slate-50 rounded-md border border-slate-200">
+                            <p className="text-xs text-slate-600 mb-1">Extracted address:</p>
+                            <p className="text-sm font-medium text-slate-800 truncate">
+                              {extractAddressFromGoogleMapsUrl(scheduleForm.location)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="pt-2">
+                        <p className="text-sm text-slate-600 mb-3">Final location value (will be saved):</p>
+                        <Input
+                          className="h-10 text-sm"
+                          value={scheduleForm.location}
+                          readOnly
+                          placeholder="Location will appear here after processing URL"
+                        />
+                      </div>
+                                    
+                      <div className="pt-2">
+                        <p className="text-sm text-slate-600 mb-3">Or enter location manually:</p>
+                        <Input
+                          className="h-10 text-sm"
+                          value={scheduleForm.location}
+                          onChange={(e) => {
+                            // When manually entering, clear the original URL and use the manual entry
+                            setOriginalLocationUrl('');
+                            handleFormChange('location', e.target.value);
+                          }}
+                          placeholder="Enter address or location"
+                        />
+                      </div>
+                                    
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowLocationDialog(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => setShowLocationDialog(false)}
+                        >
+                          Save Location
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+                            
               {/* Interviewers */}
               <div className="space-y-2" key={`interviewers-section-${selectedPanelists.length}`}>
                 <Label className="text-sm font-medium text-slate-700">Interviewers</Label>
@@ -1049,6 +1347,8 @@ export function ScheduleInterviewDialog({
                 )}
               </Button>
             </div>
+            
+
           </div>
 
           {/* Right Panel - Preview */}
@@ -1146,9 +1446,24 @@ export function ScheduleInterviewDialog({
                     ) : (
                       <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
                         <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                        <p className="text-sm text-slate-700">
+                        <p className="text-sm text-slate-700 flex-1">
                           {scheduleForm.location || "No location set"}
                         </p>
+                        {/* Show icon if location was extracted from a URL */}
+                        {(originalLocationUrl || (scheduleForm.location && isValidUrl(scheduleForm.location))) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="cursor-pointer">
+                                  <LinkIcon className="w-4 h-4 text-blue-500" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Location from link</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1211,5 +1526,6 @@ export function ScheduleInterviewDialog({
         </div>
       </DialogContent>
     </Dialog>
+    
   );
 }
