@@ -1,17 +1,15 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Share2, Copy, MessageSquare, Linkedin } from "lucide-react"
+import { Copy, MessageSquare, Linkedin } from "lucide-react"
 
 export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
   const [jobLink, setJobLink] = useState("")
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!jobId) return;
-    const link = `${'https://hyriki.com'}/apply/${jobId}`
-    setJobLink(link)
+    if (!jobId) return
+    setJobLink(`https://hyriki.com/apply/${jobId}`)
   }, [jobId])
 
   const copyToClipboard = async () => {
@@ -36,50 +34,54 @@ export default function JobPostSuccessShare({ jobId }: { jobId: string }) {
   }
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Share2 className="w-5 h-5 mr-2" />
-          Share Your Job Post
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="border border-gray-200 rounded-lg bg-white">
+      <div className="border-b border-gray-200 px-6 py-4">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Share Your Job Post</h3>
+      </div>
+
+      <div className="p-6 space-y-5">
         {/* Copy Link */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Application Link</label>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <input
               type="text"
               value={jobLink}
               readOnly
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-sm text-gray-700"
             />
-            <Button onClick={copyToClipboard} variant="outline">
+            <Button
+              onClick={copyToClipboard}
+              variant="outline"
+              className="shrink-0 border-gray-300 hover:bg-gray-50"
+            >
               <Copy className="w-4 h-4 mr-2" />
-              {copied ? "Copied!" : "Copy"}
+              {copied ? "Copied" : "Copy"}
             </Button>
           </div>
         </div>
 
         {/* Social Sharing */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">Share on Social Media</label>
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={shareOnWhatsApp} className="bg-green-600 hover:bg-green-700 text-white">
+          <label className="block text-sm font-medium text-gray-700 mb-3">Share on</label>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={shareOnWhatsApp}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
               <MessageSquare className="w-4 h-4 mr-2" />
               WhatsApp
             </Button>
-            <Button onClick={shareOnLinkedIn} className="bg-blue-700 hover:bg-blue-800 text-white">
+            <Button
+              onClick={shareOnLinkedIn}
+              className="bg-blue-700 hover:bg-blue-800 text-white"
+            >
               <Linkedin className="w-4 h-4 mr-2" />
               LinkedIn
             </Button>
-            <Button variant="outline" onClick={copyToClipboard}>
-              <Copy className="w-4 h-4 mr-2" />
-              Copy Link
-            </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
-} 
+}

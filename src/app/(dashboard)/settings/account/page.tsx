@@ -65,6 +65,22 @@ export default function AccountPage() {
             setEmail(userInfo.email || user?.email || '');
             setPhone(userInfo.phone_no || '');
             setAvatarUrl(userInfo.avatar || null);
+            
+            // Sync avatar URL with auth metadata if they don't match
+            if (user && userInfo.avatar !== (user.user_metadata?.avatar_url || null)) {
+                const supabase = createClient();
+                supabase.auth.updateUser({
+                    data: {
+                        ...user.user_metadata,
+                        avatar_url: userInfo.avatar
+                    }
+                }).then(async () => {
+                    // Refresh session after metadata update
+                    await supabase.auth.refreshSession();
+                }).catch(error => {
+                    console.warn('Failed to sync avatar with auth metadata:', error);
+                });
+            }
         } else if (user) {
             setEmail(user.email || '');
         }
@@ -159,6 +175,19 @@ export default function AccountPage() {
 
                 if (avatarUpdateError) throw avatarUpdateError;
 
+                // Also update Supabase auth user metadata to sync with navigation
+                const { error: metadataUpdateError } = await supabase.auth.updateUser({
+                    data: {
+                        ...user.user_metadata,
+                        avatar_url: publicUrl
+                    }
+                });
+
+                if (metadataUpdateError) throw metadataUpdateError;
+
+                // Refresh the session to update the auth context
+                await supabase.auth.refreshSession();
+
                 setAvatarUrl(publicUrl);
             } else if (previewUrl === null && avatarUrl === null) {
                 // TODO: Consider caching and error handling for this API call
@@ -169,6 +198,19 @@ export default function AccountPage() {
                     .eq('id', user.id);
 
                 if (avatarUpdateError) throw avatarUpdateError;
+
+                // Also update Supabase auth user metadata
+                const { error: metadataUpdateError } = await supabase.auth.updateUser({
+                    data: {
+                        ...user.user_metadata,
+                        avatar_url: null
+                    }
+                });
+
+                if (metadataUpdateError) throw metadataUpdateError;
+
+                // Refresh the session to update the auth context
+                await supabase.auth.refreshSession();
             }
 
             // Reset preview and selected file after successful save

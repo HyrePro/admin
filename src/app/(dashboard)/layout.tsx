@@ -180,7 +180,7 @@ function DashboardShellLayoutContent({ children }: { children: React.ReactNode; 
           <div className="lg:hidden">
             <SidebarTrigger className="ml-2" />
           </div>
-          <div className="flex flex-1 px-2 items-center ms-2 min-w-0">
+          <div className="flex flex-1 px-2 items-center ms-2 bg-red flex-1 min-w-0">
             <SchoolInfoDisplay schoolInfo={schoolInfo} />
           </div>
           <div className="ml-auto flex items-center gap-4 px-4">

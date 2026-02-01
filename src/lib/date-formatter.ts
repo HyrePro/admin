@@ -147,6 +147,7 @@ export const DatePresets = {
   
   // Custom formats
   CUSTOM_MDY: { month: 'short', day: 'numeric', year: 'numeric' } as DateFormatOptions,
+  CUSTOM_MD: { month: 'short', day: 'numeric' } as DateFormatOptions,
   CUSTOM_YMD: { year: 'numeric', month: 'short', day: 'numeric' } as DateFormatOptions,
   CUSTOM_HMS: { hour: 'numeric', minute: '2-digit', second: '2-digit' } as DateFormatOptions,
 };

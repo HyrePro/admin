@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -13,8 +14,10 @@ interface SuggestedTime {
 }
 
 interface Panelist {
+  id: string
+  role: string
   email: string
-  name: string
+  name?: string
 }
 
 interface SchoolInfo {
@@ -23,22 +26,18 @@ interface SchoolInfo {
 
 interface JobDetails {
   title: string
-  school_info: SchoolInfo[]
+  school: SchoolInfo
 }
 
-interface JobApplication {
-  candidate_name: string
-}
-
-interface InterviewSchedule {
-  candidate_email: string
-  interview_date: string
-  interview_time: string
-  duration_minutes: number
+interface InterviewData {
+  job: JobDetails
   type: 'online' | 'offline'
   panelists: Panelist[]
-  jobs: JobDetails[]
-  job_applications: JobApplication[]
+  candidate_name: string
+  interview_date: string
+  interview_time: string
+  candidate_email: string
+  duration_minutes: number
 }
 
 interface InterviewConfirmation {
@@ -49,7 +48,7 @@ interface InterviewConfirmation {
   status: 'pending' | 'accepted' | 'declined' | 'reschedule_requested'
   response_token: string
   responded_at: string | null
-  interview_schedule: InterviewSchedule[]
+  interview: InterviewData
 }
 
 interface ConfirmationResponse {
@@ -91,7 +90,7 @@ const SuccessScreen: React.FC = () => (
         Thank you for your response. The HR team has been notified of your decision.
       </p>
       <Link
-        href="/dashboard"
+        href="/"
         className="inline-block px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
       >
         Go to Dashboard
@@ -125,9 +124,9 @@ interface InterviewDetailsHeaderProps {
   schoolName: string
 }
 
-const InterviewDetailsHeader: React.FC<InterviewDetailsHeaderProps> = ({ 
-  jobTitle, 
-  schoolName 
+const InterviewDetailsHeader: React.FC<InterviewDetailsHeaderProps> = ({
+  jobTitle,
+  schoolName
 }) => (
   <div className="flex items-start justify-between mb-6">
     <div>
@@ -161,18 +160,17 @@ interface InterviewDetailsCardProps {
 }
 
 const InterviewDetailsCard: React.FC<InterviewDetailsCardProps> = ({ confirmation }) => {
-  const { interview_schedule } = confirmation
-  const schedule = interview_schedule[0]
-  
-  const candidateName = schedule?.job_applications?.[0]?.candidate_name || 
-                        schedule?.candidate_email || 'Candidate name not available'
+  const { interview } = confirmation
 
-  const jobTitle = schedule?.jobs?.[0]?.title || 'Position not available'
-  const schoolName = schedule?.jobs?.[0]?.school_info?.[0]?.name || 'School not available'
+  const candidateName = interview?.candidate_name ||
+    interview?.candidate_email || 'Candidate name not available'
 
-  const otherPanelists = useMemo(() => 
-    schedule?.panelists?.filter(p => p.email !== confirmation.recipient_email) || [],
-    [schedule?.panelists, confirmation.recipient_email]
+  const jobTitle = interview?.job?.title || 'Position not available'
+  const schoolName = interview?.job?.school?.name || 'School not available'
+
+  const otherPanelists = useMemo(() =>
+    interview?.panelists?.filter((p: Panelist) => p.email !== confirmation.recipient_email) || [],
+    [interview?.panelists, confirmation.recipient_email]
   )
 
   return (
@@ -201,7 +199,7 @@ const InterviewDetailsCard: React.FC<InterviewDetailsCardProps> = ({ confirmatio
               </svg>
             }
             label="Interview Date"
-            value={formatDate(schedule?.interview_date || '')}
+            value={formatDate(interview?.interview_date || '')}
           />
         </div>
 
@@ -213,7 +211,7 @@ const InterviewDetailsCard: React.FC<InterviewDetailsCardProps> = ({ confirmatio
               </svg>
             }
             label="Time"
-            value={schedule?.interview_time || ''}
+            value={interview?.interview_time || ''}
           />
 
           <DetailItem
@@ -223,9 +221,8 @@ const InterviewDetailsCard: React.FC<InterviewDetailsCardProps> = ({ confirmatio
               </svg>
             }
             label="Duration & Type"
-            value={`${schedule?.duration_minutes || 0} minutes • ${
-              schedule?.type === 'online' ? 'Online (Google Meet)' : 'In-person'
-            }`}
+            value={`${interview?.duration_minutes || 0} minutes • ${interview?.type === 'online' ? 'Online (Google Meet)' : 'In-person'
+              }`}
           />
         </div>
       </div>
@@ -233,14 +230,29 @@ const InterviewDetailsCard: React.FC<InterviewDetailsCardProps> = ({ confirmatio
       {otherPanelists.length > 0 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Other Panel Members</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {otherPanelists.map((panelist, index) => (
-              <span
+              <div
                 key={index}
-                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg"
               >
-                {panelist.name}
-              </span>
+                <div className="flex-shrink-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-gray-700">
+                    {panelist.name?.charAt(0)?.toUpperCase() || panelist.email?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {panelist.name || 'Guest'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {panelist.email}
+                  </p>
+                </div>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {panelist.role}
+                </span>
+              </div>
             ))}
           </div>
         </div>
@@ -256,11 +268,11 @@ interface ActionButtonProps {
   children: React.ReactNode
 }
 
-const ActionButton: React.FC<ActionButtonProps> = ({ 
-  onClick, 
-  disabled, 
-  variant, 
-  children 
+const ActionButton: React.FC<ActionButtonProps> = ({
+  onClick,
+  disabled,
+  variant,
+  children
 }) => {
   const variantStyles = {
     accept: 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800',
@@ -286,17 +298,17 @@ interface ActionButtonsProps {
   onDecline: () => void
 }
 
-const ActionButtons: React.FC<ActionButtonsProps> = ({ 
-  loading, 
-  onAccept, 
-  onReschedule, 
-  onDecline 
+const ActionButtons: React.FC<ActionButtonsProps> = ({
+  loading,
+  onAccept,
+  onReschedule,
+  onDecline
 }) => (
   <div className="bg-white rounded-xl shadow-lg p-8 space-y-4">
     <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
       Please Confirm Your Availability
     </h2>
-    
+
     <ActionButton onClick={onAccept} disabled={loading} variant="accept">
       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -329,13 +341,13 @@ interface TimeSlotInputProps {
   minDate: string
 }
 
-const TimeSlotInput: React.FC<TimeSlotInputProps> = ({ 
-  time, 
-  index, 
-  onUpdate, 
-  onRemove, 
+const TimeSlotInput: React.FC<TimeSlotInputProps> = ({
+  time,
+  index,
+  onUpdate,
+  onRemove,
   canRemove,
-  minDate 
+  minDate
 }) => (
   <div className="bg-gray-50 p-4 rounded-lg">
     <div className="flex gap-3 items-start">
@@ -401,7 +413,7 @@ const RescheduleForm: React.FC<RescheduleFormProps> = ({
   onCancel
 }) => {
   const minDate = useMemo(() => getTodayDate(), [])
-  
+
   const handleAddTime = useCallback(() => {
     onTimesChange([...suggestedTimes, { date: '', time: '' }])
   }, [suggestedTimes, onTimesChange])
@@ -416,7 +428,7 @@ const RescheduleForm: React.FC<RescheduleFormProps> = ({
     onTimesChange(updated)
   }, [suggestedTimes, onTimesChange])
 
-  const isSubmitDisabled = useMemo(() => 
+  const isSubmitDisabled = useMemo(() =>
     loading || suggestedTimes.some(t => !t.date || !t.time),
     [loading, suggestedTimes]
   )
@@ -427,7 +439,7 @@ const RescheduleForm: React.FC<RescheduleFormProps> = ({
       <p className="text-gray-600 mb-6">
         Please provide at least one alternative time slot that works better for you.
       </p>
-      
+
       <div className="space-y-4 mb-6">
         {suggestedTimes.map((time, index) => (
           <TimeSlotInput
@@ -489,10 +501,10 @@ const RescheduleForm: React.FC<RescheduleFormProps> = ({
 // Main component with the actual logic
 export default function PanelistConfirmationPageContent() {
   const searchParams = useSearchParams()
-  
+
   const token = searchParams.get('token')
   const action = searchParams.get('action')
-  
+
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -509,50 +521,24 @@ export default function PanelistConfirmationPageContent() {
     if (!token || typeof token !== 'string') return
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('interview_confirmations')
-        .select(`
-          id,
-          interview_id,
-          recipient_email,
-          recipient_type,
-          status,
-          response_token,
-          responded_at,
-          interview_schedule!interview_confirmations_interview_id_fkey (
-            candidate_email,
-            interview_date,
-            interview_time,
-            duration_minutes,
-            type,
-            panelists,
-            jobs!interview_schedule_job_id_fkey (
-              title,
-              school_info!jobs_school_id_fkey (
-                name
-              )
-            ),
-            job_applications!interview_schedule_candidate_id_fkey (
-              candidate_name
-            )
-          )
-        `)
-        .eq('response_token', token)
-        .single()
+      const { data, error } = await supabase.rpc(
+        'get_interview_confirmation_by_token',
+        { p_response_token: token }
+      )
 
-      if (fetchError) {
-        console.error('Fetch error:', fetchError)
-        throw fetchError
-      }
+      if (error) throw error
 
-      if (!data) {
+      if (!data || (Array.isArray(data) && data.length === 0)) {
         throw new Error('No interview confirmation found')
       }
-
-      setInterviewDetails(data as InterviewConfirmation)
       
-      if (data.status !== 'pending') {
-        setError(`This interview has already been ${data.status}`)
+      // Handle both single object and array response
+      const interviewData = Array.isArray(data) ? data[0] : data;
+      
+      setInterviewDetails(interviewData as InterviewConfirmation)
+
+      if (interviewData.status !== 'pending') {
+        setError(`This interview has already been ${interviewData.status}`)
       }
     } catch (err) {
       console.error('Error fetching interview details:', err)
@@ -563,7 +549,7 @@ export default function PanelistConfirmationPageContent() {
 
   const handleConfirmation = useCallback(async (confirmAction: ConfirmAction) => {
     if (!token || typeof token !== 'string') return
-    
+
     setLoading(true)
     setError(null)
 
@@ -647,13 +633,19 @@ export default function PanelistConfirmationPageContent() {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <div className="w-32 h-12 mx-auto mb-4 flex items-center justify-center">
-            <h2 className="text-2xl font-bold text-purple-600">Hyriki</h2>
+            <Image
+              src="/icon-black-transparent.png"
+              alt="Hyriki logo"
+              width={128}
+              height={48}
+              className="h-12 w-auto object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Interview Panel Request</h1>
           <p className="text-gray-600 mt-2">You have been invited to participate as an interview panelist</p>
         </div>
 
-        {interviewDetails && interviewDetails.interview_schedule.length > 0 && (
+        {interviewDetails && interviewDetails.interview && (
           <InterviewDetailsCard confirmation={interviewDetails} />
         )}
 

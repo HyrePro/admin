@@ -766,7 +766,10 @@ export function ScheduleInterviewDialog({
           type: scheduleForm.meetingType,
           meet_link: null,
           candidate_id: candidate.application_id,
-          status: scheduleForm.meetingType === 'online' ? 'pending' : 'scheduled'
+          status: scheduleForm.meetingType === 'online' ? 'pending' : 'scheduled',
+          location: scheduleForm.location,
+          location_url: originalLocationUrl || null,
+          note: scheduleForm.notes || null
         });
       
       if (insertError) {

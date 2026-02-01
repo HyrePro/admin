@@ -22,6 +22,7 @@ interface UpdateStatusDialogProps {
   isOpen: boolean
   onClose: () => void
   onStatusUpdate: (status: InterviewStatus) => void
+  isUpdating?: boolean
 }
 
 const STATUS_OPTIONS = [
@@ -52,6 +53,7 @@ export default function UpdateStatusDialog({
   isOpen,
   onClose,
   onStatusUpdate,
+  isUpdating = false,
 }: UpdateStatusDialogProps) {
   const [value, setValue] = React.useState<InterviewStatus | null>(null)
 
@@ -63,7 +65,11 @@ export default function UpdateStatusDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open && !isUpdating) {
+        onClose();
+      }
+    }}>
       <DialogContent className="max-w-lg p-0">
         {/* Header — no divider */}
         <DialogHeader className="px-6 pt-6 pb-3">
@@ -85,9 +91,11 @@ export default function UpdateStatusDialog({
                 key={v}
                 type="button"
                 onClick={() => setValue(v)}
+                disabled={isUpdating}
                 className={cn(
                   'w-full rounded-lg border bg-background px-4 py-4 text-left transition',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isUpdating && 'opacity-50 cursor-not-allowed',
                   selected
                     ? 'border-primary ring-1 ring-primary'
                     : 'border-border hover:bg-muted'
@@ -128,11 +136,18 @@ export default function UpdateStatusDialog({
 
         {/* Footer — spacing only, no border */}
         <DialogFooter className="px-6 pb-6 pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isUpdating}
+          >
+            {isUpdating ? 'Updating...' : 'Cancel'}
           </Button>
-          <Button onClick={confirm} disabled={!value}>
-            Confirm update
+          <Button 
+            onClick={confirm} 
+            disabled={!value || isUpdating}
+          >
+            {isUpdating ? 'Updating...' : 'Confirm update'}
           </Button>
         </DialogFooter>
       </DialogContent>

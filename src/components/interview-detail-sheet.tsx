@@ -19,6 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface Candidate {
   id: string;
@@ -227,6 +232,8 @@ const InterviewDetailSheet = ({ interview, isOpen, onClose }: InterviewDetailShe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null);
   // Parse interview data for display
   const parseInterviewData = () => {
     if (!interview) {
@@ -363,13 +370,47 @@ const InterviewDetailSheet = ({ interview, isOpen, onClose }: InterviewDetailShe
     setShowUpdateStatusDialog(true);
   };
 
-  const handleStatusUpdate = (status: 'completed' | 'rescheduled' | 'cancelled') => {
-    // Here you would typically update the interview status via an API call
-    console.log(`Updating interview status to: ${status}`);
-
-    // Close the dialog and the main sheet
-    setShowUpdateStatusDialog(false);
-    onClose();
+  const handleStatusUpdate = async (status: 'completed' | 'rescheduled' | 'cancelled') => {
+    if (!interview?.interview_id) {
+      setStatusUpdateMessage('Error: Interview ID is missing');
+      setTimeout(() => setStatusUpdateMessage(null), 3000);
+      return;
+    }
+    
+    setIsUpdatingStatus(true);
+    setStatusUpdateMessage(`Updating status to ${status}...`);
+    
+    try {
+      // Make API call to update interview status
+      const response = await fetch(`/api/interview/confirm?id=${interview.interview_id}&status=${status}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update interview status');
+      }
+      
+      // Show success message
+      setStatusUpdateMessage(`Successfully updated status to ${status}`);
+      
+      // Close the dialog and the main sheet after a brief delay
+      setTimeout(() => {
+        setShowUpdateStatusDialog(false);
+        onClose();
+        setStatusUpdateMessage(null);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error updating interview status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update interview status';
+      setStatusUpdateMessage(`Error: ${errorMessage}`);
+      
+      // Clear error message after 3 seconds
+      setTimeout(() => {
+        setStatusUpdateMessage(null);
+      }, 3000);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   return (
@@ -388,6 +429,23 @@ const InterviewDetailSheet = ({ interview, isOpen, onClose }: InterviewDetailShe
             <DialogTitle className="text-xl font-semibold text-gray-900">
               Interview Detail
             </DialogTitle>
+            {/* Status Update Feedback */}
+            {statusUpdateMessage && (
+              <div className={`mt-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                statusUpdateMessage.includes('Error:') 
+                  ? 'bg-red-50 text-red-700 border border-red-200' 
+                  : statusUpdateMessage.includes('Successfully')
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isUpdatingStatus && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                  )}
+                  <span>{statusUpdateMessage}</span>
+                </div>
+              </div>
+            )}
           </DialogHeader>
 
           <div className="px-6 py-2">
@@ -422,34 +480,54 @@ const InterviewDetailSheet = ({ interview, isOpen, onClose }: InterviewDetailShe
                 </div>
               </div>
               <div className="flex gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                       <MoreVertical className="w-5 h-5 text-gray-600" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => window.open(`/jobs/${parsedData.job.id}`, '_blank')}>
-                      View Job Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open(`/jobs/${parsedData.job.id}/${parsedData.candidate.id}`, '_blank')}>
-                      View Candidate Information
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {interview?.status === 'overdue' ? (
-                  <Button
-                    variant="outline"
-                    onClick={handleUpdateStatus}
-                    className="px-4 py-2 font-medium"
-                  >
-                    Update Status
-                  </Button>
-                ) : (
-                  <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
-                    Start Meeting
-                  </button>
-                )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1" align="end">
+                    <div className="space-y-1">
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm font-normal rounded-md hover:bg-gray-100"
+                        onClick={() => window.open(`/jobs/${parsedData.job.id}`, '_blank')}
+                      >
+                        View Job Details
+                      </button>
+                      <button
+                        className="w-full text-left px-3 py-2 text-sm font-normal rounded-md hover:bg-gray-100"
+                        onClick={() => window.open(`/jobs/${parsedData.job.id}/${parsedData.candidate.id}`, '_blank')}
+                      >
+                        View Candidate Information
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {interview?.status !== 'completed' && (
+                  <>
+                    {interview?.status === 'overdue' ? (
+                      <Button
+                        variant="outline"
+                        onClick={handleUpdateStatus}
+                        disabled={isUpdatingStatus}
+                        className="px-4 py-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUpdatingStatus ? 'Updating...' : 'Update Status'}
+                      </Button>
+                    ) : (
+                      <button 
+                        className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                          isUpdatingStatus 
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
+                        }`}
+                        disabled={isUpdatingStatus}
+                      >
+                        {isUpdatingStatus ? 'Updating...' : 'Start Meeting'}
+                      </button>
+                    )}
+                  </>)
+                }
               </div>
             </div>
           </div>
@@ -847,8 +925,13 @@ const InterviewDetailSheet = ({ interview, isOpen, onClose }: InterviewDetailShe
 
       <UpdateStatusDialog
         isOpen={showUpdateStatusDialog}
-        onClose={() => setShowUpdateStatusDialog(false)}
+        onClose={() => {
+          if (!isUpdatingStatus) {
+            setShowUpdateStatusDialog(false);
+          }
+        }}
         onStatusUpdate={handleStatusUpdate}
+        isUpdating={isUpdatingStatus}
       />
     </>);
 };
