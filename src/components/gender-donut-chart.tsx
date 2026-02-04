@@ -40,6 +40,7 @@ function GenderDonutChart({ demographics }: { demographics?: JobFunnelAnalyticsW
     () => genderChartData.reduce((s, d) => s + d.count, 0),
     [genderChartData]
   );
+  const hasData = totalApplicants > 0;
 
   return (
     <div className="h-full pt-8 pb-4">
@@ -47,36 +48,42 @@ function GenderDonutChart({ demographics }: { demographics?: JobFunnelAnalyticsW
         <CardTitle>Gender Distribution</CardTitle>
       </CardHeader>
       <CardContent className="flex items-center justify-center pb-6">
-        <ChartContainer config={genderChartConfig} className="mx-auto h-[250px] w-full justify-center items-center">
-          <PieChart>
-            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-            <Pie
-              data={genderChartData}
-              dataKey="count"
-              nameKey="gender"
-              innerRadius={60}
-              outerRadius={90}
-              strokeWidth={4}
-            >
-              <Label
-                content={({ viewBox }) => {
-                  if (!viewBox || !("cx" in viewBox)) return null;
-                  return (
-                    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                      <tspan className="fill-foreground text-3xl font-bold" x={viewBox.cx} y={viewBox.cy}>
-                        {totalApplicants}
-                      </tspan>
-                      <tspan className="fill-muted-foreground text-sm" x={viewBox.cx} y={(viewBox.cy ?? 0) + 22}>
-                        Applications
-                      </tspan>
-                    </text>
-                  );
-                }}
-              />
-            </Pie>
-            <ChartLegend content={<ChartLegendContent />} />
-          </PieChart>
-        </ChartContainer>
+        {hasData ? (
+          <ChartContainer config={genderChartConfig} className="mx-auto h-[250px] w-full justify-center items-center">
+            <PieChart>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Pie
+                data={genderChartData}
+                dataKey="count"
+                nameKey="gender"
+                innerRadius={60}
+                outerRadius={90}
+                strokeWidth={4}
+              >
+                <Label
+                  content={({ viewBox }) => {
+                    if (!viewBox || !("cx" in viewBox)) return null;
+                    return (
+                      <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                        <tspan className="fill-foreground text-3xl font-bold" x={viewBox.cx} y={viewBox.cy}>
+                          {totalApplicants}
+                        </tspan>
+                        <tspan className="fill-muted-foreground text-sm" x={viewBox.cx} y={(viewBox.cy ?? 0) + 22}>
+                          Applications
+                        </tspan>
+                      </text>
+                    );
+                  }}
+                />
+              </Pie>
+              <ChartLegend content={<ChartLegendContent />} />
+            </PieChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-[250px] w-full flex items-center justify-center">
+            <p className="text-muted-foreground">No data available</p>
+          </div>
+        )}
       </CardContent>
     </div>
   );

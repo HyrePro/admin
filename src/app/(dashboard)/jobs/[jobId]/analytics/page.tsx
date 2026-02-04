@@ -31,8 +31,7 @@ export default function JobAnalyticsPage({ params }: JobAnalyticsPageProps) {
   
   return (
     <div className="p-4 h-full">
-      {/* Directly render the JobOverviewAnalytics component */}
-      <div className="h-full">
+      <div className="h-full border rounded-lg bg-white overflow-hidden">
         {jobId && <JobOverviewAnalytics jobId={jobId} />}
       </div>
     </div>

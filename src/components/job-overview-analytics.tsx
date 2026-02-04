@@ -117,6 +117,9 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
   const [loadingDemo, setLoadingDemo] = React.useState(false);
   const [loadingInterview, setLoadingInterview] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [assessmentError, setAssessmentError] = React.useState<string | null>(null);
+  const [demoError, setDemoError] = React.useState<string | null>(null);
+  const [interviewError, setInterviewError] = React.useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = React.useState<string>('total'); // Default to 'total'
 
   React.useEffect(() => {
@@ -205,16 +208,19 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
     if (selectedMetric === 'assessment' && jobId && !mcqAssessmentData) {
       const fetchAssessmentData = async () => {
         setLoadingAssessment(true);
+        setAssessmentError(null);
         try {
           const result = await getMcqAssessmentAnalytics(jobId);
           if (result.error) {
             console.error("Error fetching MCQ assessment data:", result.error);
+            setAssessmentError(result.error || "Failed to fetch assessment analytics");
           } else {
             // Ensure data is properly serialized to avoid non-serializable object errors
             setMcqAssessmentData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching MCQ assessment data:", err);
+          setAssessmentError(err instanceof Error ? err.message : "Failed to fetch assessment analytics");
         } finally {
           setLoadingAssessment(false);
         }
@@ -229,16 +235,19 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
     if (selectedMetric === 'demo' && jobId && !demoAnalyticsData) {
       const fetchDemoData = async () => {
         setLoadingDemo(true);
+        setDemoError(null);
         try {
           const result = await getDemoAnalytics(jobId);
           if (result.error) {
             console.error("Error fetching demo analytics data:", result.error);
+            setDemoError(result.error || "Failed to fetch demo analytics");
           } else {
             // Ensure data is properly serialized to avoid non-serializable object errors
             setDemoAnalyticsData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching demo analytics data:", err);
+          setDemoError(err instanceof Error ? err.message : "Failed to fetch demo analytics");
         } finally {
           setLoadingDemo(false);
         }
@@ -253,16 +262,19 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
     if (selectedMetric === 'interview' && jobId && !interviewAnalyticsData) {
       const fetchInterviewData = async () => {
         setLoadingInterview(true);
+        setInterviewError(null);
         try {
           const result = await getInterviewAnalytics(jobId);
           if (result.error) {
             console.error("Error fetching interview analytics data:", result.error);
+            setInterviewError(result.error || "Failed to fetch interview analytics");
           } else {
             // Ensure data is properly serialized to avoid non-serializable object errors
             setInterviewAnalyticsData(result.data ? JSON.parse(JSON.stringify(result.data)) : null);
           }
         } catch (err) {
           console.error("Error in fetching interview analytics data:", err);
+          setInterviewError(err instanceof Error ? err.message : "Failed to fetch interview analytics");
         } finally {
           setLoadingInterview(false);
         }
@@ -277,10 +289,10 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
     return (
       <div className="space-y-6">
         {/* Loading KPI metrics */}
-        <div className="border rounded-lg rounded-b-none">
-          <div className="flex justify-between">
+        <div className="border-b">
+          <div className="flex justify-between divide-x">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className={`flex-1 ${i > 0 ? 'border-l' : ''} p-4`}>
+              <div key={i} className="flex-1 p-4">
                 <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2" />
                 <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
                 <div className="h-3 w-32 bg-gray-200 rounded animate-pulse mt-2" />
@@ -290,7 +302,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
         </div>
         
         {/* Loading chart */}
-        <div className="h-[400px] bg-gray-200 rounded animate-pulse" />
+        <div className="h-[400px] bg-gray-200 animate-pulse" />
       </div>
     );
   }
@@ -298,7 +310,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="p-4 border rounded-lg bg-red-50">
+        <div className="p-4 bg-red-50">
           <p className="text-red-800">Failed to load job analytics: {error}</p>
           <button 
             onClick={() => window.location.reload()}
@@ -314,7 +326,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
   if (!overviewData) {
     return (
       <div className="space-y-6">
-        <div className="p-4 border rounded-lg bg-yellow-50">
+        <div className="p-4 bg-yellow-50">
           <p className="text-yellow-800">No analytics data available for this job yet.</p>
           <p className="text-yellow-600 mt-2">Job ID: {jobId}</p>
           <details className="mt-2">
@@ -349,13 +361,12 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
     : 0;
 
   return (
-    <div className="pb-8">
-      
-      {/* KPI metrics with common border and individual left borders, selected metric without bottom border */}
-      <div className="border rounded-lg rounded-b-none">
-        <div className="flex justify-between">
+    <div className="h-full flex flex-col">
+      {/* KPI metrics with common border and individual left borders */}
+      <div className="shrink-0 border-b">
+        <div className="flex justify-between divide-x">
           <div 
-            className={`flex-1 p-4 ${selectedMetric === 'total' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors ${selectedMetric === 'total' ? 'rounded-b-none' : ''}`}
+            className={`flex-1 p-4 ${selectedMetric === 'total' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
             onClick={() => setSelectedMetric('total')}
           >
             <h3 className="font-medium">Total</h3>
@@ -367,7 +378,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
           </div>
           
           <div 
-            className={`flex-1 border-l p-4 ${selectedMetric === 'assessment' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors ${selectedMetric === 'assessment' ? 'rounded-b-none' : ''}`}
+            className={`flex-1 p-4 ${selectedMetric === 'assessment' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
             onClick={() => setSelectedMetric('assessment')}
           >
             <h3 className="font-medium">Assessment</h3>
@@ -379,7 +390,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
           </div>
           
           <div 
-            className={`flex-1 border-l p-4 ${selectedMetric === 'demo' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors ${selectedMetric === 'demo' ? 'rounded-b-none' : ''}`}
+            className={`flex-1 p-4 ${selectedMetric === 'demo' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
             onClick={() => setSelectedMetric('demo')}
           >
             <h3 className="font-medium">Demo</h3>
@@ -391,7 +402,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
           </div>
           
           <div 
-            className={`flex-1 border-l p-4 ${selectedMetric === 'interview' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors ${selectedMetric === 'interview' ? 'rounded-b-none' : ''}`}
+            className={`flex-1 p-4 ${selectedMetric === 'interview' ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
             onClick={() => setSelectedMetric('interview')}
           >
             <h3 className="font-medium">Interview</h3>
@@ -404,41 +415,44 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
         </div>
       </div>
 
-      {/* Funnel visualization that updates based on selected metric with borders on bottom, left, and right */}
-      {selectedMetric === 'total' && (
-        <TotalAnalytics funnelData={
-          funnelData 
-        }/>
-      )}
-      {selectedMetric === 'assessment' && (
-        <AssessmentAnalytics 
-          jobId={jobId} 
-          chartConfig={chartConfig} 
-          mcqAssessmentData={mcqAssessmentData}
-          loadingAssessment={loadingAssessment}
-          setLoadingAssessment={setLoadingAssessment}
-        />
-      )}
-      {selectedMetric === 'demo' && (
-        <DemoAnalytics 
-          jobId={jobId} 
-          chartConfig={chartConfig} 
-          demoAnalyticsData={demoAnalyticsData}
-          loadingDemo={loadingDemo}
-          setLoadingDemo={setLoadingDemo}
-        />
-      )}
-      {selectedMetric === 'interview' && (
-        <InterviewAnalytics 
-          jobId={jobId} 
-          chartConfig={chartConfig} 
-          interviewAnalyticsData={interviewAnalyticsData}
-          loadingInterview={loadingInterview}
-          setLoadingInterview={setLoadingInterview}
-        />
-      )}
-      
-      
+      {/* Content scroll area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="pb-8">
+          {selectedMetric === 'total' && (
+            <TotalAnalytics funnelData={funnelData} loading={false} error={null} />
+          )}
+          {selectedMetric === 'assessment' && (
+            <AssessmentAnalytics 
+              jobId={jobId} 
+              chartConfig={chartConfig} 
+              mcqAssessmentData={mcqAssessmentData}
+              loadingAssessment={loadingAssessment}
+              setLoadingAssessment={setLoadingAssessment}
+              errorAssessment={assessmentError}
+            />
+          )}
+          {selectedMetric === 'demo' && (
+            <DemoAnalytics 
+              jobId={jobId} 
+              chartConfig={chartConfig} 
+              demoAnalyticsData={demoAnalyticsData}
+              loadingDemo={loadingDemo}
+              setLoadingDemo={setLoadingDemo}
+              errorDemo={demoError}
+            />
+          )}
+          {selectedMetric === 'interview' && (
+            <InterviewAnalytics 
+              jobId={jobId} 
+              chartConfig={chartConfig} 
+              interviewAnalyticsData={interviewAnalyticsData}
+              loadingInterview={loadingInterview}
+              setLoadingInterview={setLoadingInterview}
+              errorInterview={interviewError}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };

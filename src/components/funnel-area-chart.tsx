@@ -94,7 +94,7 @@ function FunnelStageStackedBar({ stages }: { stages: JobFunnelAnalyticsWithDemog
   ], [stages]);
 
   return (
-    <div className="h-full border-r pt-8 pb-4">
+    <div className="h-full pt-8 pb-4">
       <CardHeader>
         <CardTitle>Hiring Funnel — Stage Breakdown</CardTitle>
         <CardDescription>Outcome distribution per funnel stage</CardDescription>

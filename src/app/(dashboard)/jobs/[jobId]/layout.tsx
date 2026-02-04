@@ -22,9 +22,10 @@ import dynamic from "next/dynamic";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { usePathname, useRouter as useNextRouter } from "next/navigation";
 import "@/styles/progress-bar.css";
-import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Check, Edit, ChevronDown, MoreVertical, Share2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Users, AlertCircle, RefreshCw, Share, Copy, Edit, ChevronDown, MoreVertical, Share2 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
+import { toast } from "sonner";
 
 const EditJobDetailsDialog = dynamic(() => import("@/components/edit-job-details-dialog").then(mod => mod.EditJobDetailsDialog), {
   ssr: false
@@ -92,9 +93,9 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [copied, setCopied] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   
   const { user } = useAuth();
@@ -171,15 +172,47 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
     setPendingStatus(null);
   };
 
+  const shareUrl = jobId ? `https://www.hyriki.com/apply/${jobId}` : "";
+  const shareTitle = job?.title ? `Hyriki Job: ${job.title}` : "Hyriki Job";
+  const shareText = job?.title
+    ? `Check out this job: ${job.title}`
+    : "Check out this job on Hyriki";
+
   const handleCopyLink = async () => {
-    const jobLink = `https://www.hyriki.com/apply/${jobId}`;
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(jobLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied");
     } catch (err) {
       console.error("Failed to copy link:", err);
+      toast.error("Couldn't copy link");
     }
+  };
+
+  const handleShare = async () => {
+    if (!shareUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+      }
+    }
+    setIsShareDialogOpen(true);
+  };
+
+  const handleDeleteJob = () => {
+    const toastId = toast.loading("Deleting job...");
+    window.setTimeout(() => {
+      toast.error("Something went wrong. Please try again.", { id: toastId });
+    }, 3500);
   };
 
   const {
@@ -422,6 +455,81 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Share Job</DialogTitle>
+              <DialogDescription>Share this job using your preferred app.</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  LinkedIn
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://x.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  X
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Facebook
+                </a>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Telegram
+                </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyLink}
+              >
+                Copy Link
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`}
+                >
+                  Email
+                </a>
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsShareDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Add the EditJobDetailsDialog component */}
         <EditJobDetailsDialog
           job={job}
@@ -587,19 +695,9 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                     variant="outline"
                     size="sm"
                     className="h-8 hidden md:flex"
-                    onClick={handleCopyLink}
+                    onClick={handleShare}
                   >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-600" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Share2 className="h-4 w-4 text-gray-600" />
-                        
-                      </>
-                    )}
+                    <Share2 className="h-4 w-4 text-gray-600" />
                   </Button>
 
                   <Popover>
@@ -626,7 +724,7 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         <Button
                           variant="ghost"
                           className="w-full justify-start text-sm font-normal md:hidden"
-                          onClick={handleCopyLink}
+                          onClick={handleShare}
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Share
@@ -643,6 +741,7 @@ export default function JobLayout({ children, params }: JobLayoutProps) {
                         <Button
                           variant="ghost"
                           className="w-full justify-start text-sm font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={handleDeleteJob}
                         >
                           <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

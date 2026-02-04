@@ -1,0 +1,13 @@
+{
+  "releases": [
+    {
+      "version": "0.0.0",
+      "date": "2026-02-04",
+      "type": "ui",
+      "summary": "Initial UI scaffolding.",
+      "changes": [
+        "Initial release notes page."
+      ]
+    }
+  ]
+}

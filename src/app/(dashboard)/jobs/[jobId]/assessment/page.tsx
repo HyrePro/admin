@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, Edit, AlertCircle, RefreshCw } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,35 @@ export default function JobAssessmentPage() {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Use assessment config data or fallback to job data
-  const jobData = assessmentConfig || job;
-  
-  const [numberOfQuestions, setNumberOfQuestions] = useState(jobData?.number_of_questions || 15);
-  const [demoDuration, setDemoDuration] = useState(jobData?.assessment_difficulty?.demoVideoDuration || 2);
+  const assessmentConfigRecord = Array.isArray(assessmentConfig) ? assessmentConfig[0] : assessmentConfig;
 
+  // Use assessment config data or fallback to job data
+  const jobData = assessmentConfigRecord || job;
+  
+  const [numberOfQuestions, setNumberOfQuestions] = useState(15);
+  const [demoDuration, setDemoDuration] = useState(2);
+  const [hasUserEdits, setHasUserEdits] = useState(false);
+
+  // Sync state from fetched config when user hasn't edited locally.
+  useEffect(() => {
+    if (hasUserEdits) {
+      return;
+    }
+
+    const source = assessmentConfigRecord ?? job;
+    if (!source) {
+      return;
+    }
+
+    if (source.number_of_questions !== undefined) {
+      setNumberOfQuestions(source.number_of_questions as number);
+    }
+    if (source.assessment_difficulty?.demoVideoDuration !== undefined) {
+      setDemoDuration(source.assessment_difficulty.demoVideoDuration as number);
+    } else if ((source as { demo_duration?: number }).demo_duration !== undefined) {
+      setDemoDuration((source as { demo_duration?: number }).demo_duration as number);
+    }
+  }, [assessmentConfigRecord, job, hasUserEdits]);
   // Loading state
   if (isLoading) {
     return (
@@ -164,7 +187,10 @@ export default function JobAssessmentPage() {
                         max="30"
                         step="5"
                         value={numberOfQuestions}
-                        onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
+                        onChange={(e) => {
+                          setNumberOfQuestions(Number(e.target.value));
+                          setHasUserEdits(true);
+                        }}
                         className="absolute inset-0 w-full h-1.5 opacity-0 cursor-pointer"
                       />
                     </div>
@@ -261,7 +287,10 @@ export default function JobAssessmentPage() {
                         max="10"
                         step="1"
                         value={demoDuration}
-                        onChange={(e) => setDemoDuration(Number(e.target.value))}
+                        onChange={(e) => {
+                          setDemoDuration(Number(e.target.value));
+                          setHasUserEdits(true);
+                        }}
                         className="absolute inset-0 w-full h-1.5 opacity-0 cursor-pointer"
                       />
                     </div>

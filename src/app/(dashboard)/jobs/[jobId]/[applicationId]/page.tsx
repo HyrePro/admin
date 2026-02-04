@@ -1,6 +1,23 @@
 "use client";
 
 import React from "react";
+import useSWR from "swr";
+import { useAuth } from "@/context/auth-context";
+import { useAuthStore } from "@/store/auth-store";
+import { insertCandidateComment } from "@/lib/supabase/api/candidate-comments";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { getStatusBadgeClasses } from "../../../../../../utils/statusColor";
 import dynamic from "next/dynamic";
 import { useApplication } from "./layout";
 import type { CandidateInfo } from "@/lib/supabase/api/get-job-application";
@@ -44,9 +61,29 @@ function LoadingSkeleton() {
   );
 }
 
+type ActivityItem = {
+  activity_id: string;
+  activity_type: "note" | "status_change";
+  title: string;
+  description: string;
+  created_at: string;
+  actor_id: string | null;
+  actor_name: string;
+};
+
 export default function ApplicationInfoPage() {
-  const { candidateInfo, loading } = useApplication();
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = React.useState(false);
+  const { candidateInfo, loading, applicationId, isNotesDialogOpen, setNotesDialogOpen } = useApplication();
+  const { user } = useAuth();
+  const { schoolId } = useAuthStore();
+  const [newNote, setNewNote] = React.useState("");
+  const [isSavingNote, setIsSavingNote] = React.useState(false);
+  const noteInputRef = React.useRef<HTMLTextAreaElement>(null);
+  const [activityItems, setActivityItems] = React.useState<ActivityItem[]>([]);
+  const [activityPage, setActivityPage] = React.useState(0);
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+  const [hasMoreActivity, setHasMoreActivity] = React.useState(true);
+
+  const PAGE_SIZE = 10;
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -68,61 +105,142 @@ export default function ApplicationInfoPage() {
     );
   }
 
-  // Dummy activity data
-  const activities = [
-    {
-      id: 1,
-      type: "status_change",
-      title: "Status Changed",
-      description: "Application status changed to AI Recommendation Completed",
-      user: "System",
-      timestamp: "2 hours ago",
-      icon: "check"
-    },
-    {
-      id: 2,
-      type: "note",
-      title: "Note Added",
-      description: "Strong candidate with excellent teaching background in mathematics.",
-      user: "Amanda Nur",
-      timestamp: "5 hours ago",
-      icon: "note"
-    },
-    {
-      id: 3,
-      type: "assessment",
-      title: "Assessment Completed",
-      description: "Candidate completed the MCQ assessment with a score of 85%",
-      user: "System",
-      timestamp: "1 day ago",
-      icon: "assessment"
-    },
-    {
-      id: 4,
-      type: "video",
-      title: "Video Assessment Submitted",
-      description: "Demo video submitted and ready for review",
-      user: "System",
-      timestamp: "2 days ago",
-      icon: "video"
-    },
-    {
-      id: 5,
-      type: "application",
-      title: "Application Submitted",
-      description: "Candidate submitted their application",
-      user: "System",
-      timestamp: "3 days ago",
-      icon: "application"
+  const formatOrdinal = (day: number) => {
+    if (day >= 11 && day <= 13) return `${day}th`;
+    const mod = day % 10;
+    if (mod === 1) return `${day}st`;
+    if (mod === 2) return `${day}nd`;
+    if (mod === 3) return `${day}rd`;
+    return `${day}th`;
+  };
+
+  const formatDateWithOrdinal = (value?: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    const day = date.getDate();
+    const monthYear = date.toLocaleDateString("en-GB", {
+      month: "short",
+      year: "numeric",
+    });
+    return `${formatOrdinal(day)} ${monthYear}`;
+  };
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (start && start.includes(" - ") && !end) {
+      const [rangeStart, rangeEnd] = start.split(" - ").map((item) => item.trim());
+      const startFormatted = formatDateWithOrdinal(rangeStart);
+      const endFormatted = formatDateWithOrdinal(rangeEnd);
+      if (startFormatted && endFormatted) return `${startFormatted} to ${endFormatted}`;
+      return startFormatted || endFormatted || "";
     }
-  ];
+
+    const startFormatted = formatDateWithOrdinal(start);
+    const endFormatted = formatDateWithOrdinal(end);
+    if (startFormatted && endFormatted) return `${startFormatted} to ${endFormatted}`;
+    return startFormatted || endFormatted || "";
+  };
+
+  const formatActivityTime = (value?: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatStatusLabel = (value: string) => {
+    return value
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+  const parseStatusChange = (value: string) => {
+    const match = value.match(/Status changed from (.+) to (.+)/i);
+    if (!match) return null;
+    return { from: match[1].trim(), to: match[2].trim() };
+  };
+
+  const fetchActivity = async (appId: string, startIndex: number, endIndex: number) => {
+    const response = await fetch(
+      `/api/application-activity?applicationId=${encodeURIComponent(appId)}&startIndex=${startIndex}&endIndex=${endIndex}`
+    );
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to fetch activity");
+    }
+    return response.json();
+  };
+
+  const { data: activityData, error: activityError, isLoading: activityLoading, mutate: mutateActivity } = useSWR(
+    applicationId ? ["application-activity", applicationId, activityPage] : null,
+    ([, appId, page]) => fetchActivity(appId, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1),
+    { revalidateOnFocus: false }
+  );
+
+  React.useEffect(() => {
+    if (!applicationId) return;
+    setActivityItems([]);
+    setActivityPage(0);
+    setHasMoreActivity(true);
+  }, [applicationId]);
+
+  React.useEffect(() => {
+    if (!isNotesDialogOpen) return;
+    window.setTimeout(() => noteInputRef.current?.focus(), 0);
+  }, [isNotesDialogOpen]);
+
+  React.useEffect(() => {
+    if (!activityData?.items) return;
+    const nextItems = activityData.items as ActivityItem[];
+    setActivityItems((prev) => (activityPage === 0 ? nextItems : [...prev, ...nextItems]));
+    setHasMoreActivity(nextItems.length === PAGE_SIZE);
+    setIsLoadingMore(false);
+  }, [activityData, activityPage]);
+
+  const handleLoadMore = () => {
+    if (isLoadingMore || !hasMoreActivity) return;
+    setIsLoadingMore(true);
+    setActivityPage((prev) => prev + 1);
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !user?.id || !schoolId || !applicationId) return;
+    setIsSavingNote(true);
+    try {
+      const result = await insertCandidateComment(
+        user.id,
+        schoolId,
+        applicationId,
+        newNote.trim(),
+        []
+      );
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      toast.success("Note added");
+      setNewNote("");
+      setNotesDialogOpen(false);
+      setActivityItems([]);
+      setActivityPage(0);
+      setHasMoreActivity(true);
+      await mutateActivity();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add note");
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   return (
     <div className="flex gap-6 px-6 py-6">
      
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full mx-auto">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full mx-auto items-stretch">
+        <div className="space-y-4 lg:col-span-1 min-w-0 h-full">
 
           {/* Subjects Section */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -176,7 +294,7 @@ export default function ApplicationInfoPage() {
                             <p className="text-xs text-gray-500 mt-0.5">{edu.specialization}</p>
                           )}
                           <p className="text-xs text-gray-500 mt-1">
-                            {edu.startDate} - {edu.endDate}
+                            {formatDateRange(edu.startDate, edu.endDate)}
                           </p>
                         </div>
                       </div>
@@ -215,7 +333,7 @@ export default function ApplicationInfoPage() {
                           <p className="text-xs text-gray-600 mt-0.5">{exp.school}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{exp.city}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {exp.startDate} - {exp.endDate}
+                            {formatDateRange(exp.startDate, exp.endDate)}
                           </p>
                         </div>
                       </div>
@@ -229,7 +347,7 @@ export default function ApplicationInfoPage() {
           </div>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-4 lg:col-span-1 min-w-0 h-full">
           {/* Resume Section */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
@@ -264,82 +382,139 @@ export default function ApplicationInfoPage() {
             </div>
           </div>
 
-         
         </div>
-         {/* Activity Section */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Activity</h3>
-              <button
-                onClick={() => setIsNotesDialogOpen(true)}
-                className="text-xs font-medium text-blue-600 hover:text-blue-700"
-              >
-                + Add Note
-              </button>
-            </div>
-            
-            <div className="max-h-96 overflow-y-auto">
-              <div className="p-4">
+
+        {/* Activity Section */}
+        <div className="bg-white rounded-lg border border-gray-200 lg:col-span-1 min-w-0 w-full flex flex-col h-full">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Activity</h3>
+            <button
+              onClick={() => setNotesDialogOpen(true)}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700"
+            >
+              + Add Note
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto w-full min-w-0">
+            <div className="p-4">
+              {activityLoading && activityItems.length === 0 && (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, index) => (
+                    <div key={index} className="h-10 bg-gray-100 rounded animate-pulse" />
+                  ))}
+                </div>
+              )}
+
+              {activityError && activityItems.length === 0 && (
+                <p className="text-sm text-red-600">Failed to load activity.</p>
+              )}
+
+              {!activityLoading && !activityError && activityItems.length === 0 && (
+                <p className="text-sm text-gray-500">No activity yet.</p>
+              )}
+
+              {activityItems.length > 0 && (
                 <div className="space-y-4">
-                  {activities.map((activity, index) => (
-                    <div key={activity.id} className="relative">
-                      {index !== activities.length - 1 && (
+                  {activityItems.map((activity, index) => (
+                    <div key={activity.activity_id} className="relative">
+                      {index !== activityItems.length - 1 && (
                         <div className="absolute left-4 top-8 bottom-0 w-px bg-gray-200" />
                       )}
-                      
                       <div className="flex gap-3">
                         <div className="relative flex-shrink-0">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            activity.type === "status_change" ? "bg-green-100" :
-                            activity.type === "note" ? "bg-blue-100" :
-                            activity.type === "assessment" ? "bg-purple-100" :
-                            activity.type === "video" ? "bg-orange-100" :
-                            "bg-gray-100"
+                            activity.activity_type === "status_change" ? "bg-green-100" : "bg-blue-100"
                           }`}>
-                            {activity.icon === "check" && (
+                            {activity.activity_type === "status_change" ? (
                               <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                               </svg>
-                            )}
-                            {activity.icon === "note" && (
+                            ) : (
                               <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             )}
-                            {activity.icon === "assessment" && (
-                              <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            )}
-                            {activity.icon === "video" && (
-                              <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                            {activity.icon === "application" && (
-                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            )}
                           </div>
                         </div>
-                        
                         <div className="flex-1 min-w-0 pb-4">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                            <span className="text-xs text-gray-500 whitespace-nowrap">{activity.timestamp}</span>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {formatActivityTime(activity.created_at)}
+                            </span>
                           </div>
-                          <p className="text-xs text-gray-600 mb-1">{activity.description}</p>
-                          <p className="text-xs text-gray-500">by {activity.user}</p>
+                          {activity.activity_type === "status_change" ? (
+                            (() => {
+                              const parsed = parseStatusChange(activity.description);
+                              if (!parsed) {
+                                return null;
+                              }
+                                return (
+                                  <div className="text-xs text-gray-600 mb-1 flex flex-wrap items-center gap-2">
+                                    <Badge className={getStatusBadgeClasses(parsed.from)}>
+                                      {formatStatusLabel(parsed.from)}
+                                    </Badge>
+                                  <span className="text-gray-400">-&gt;</span>
+                                  <Badge className={getStatusBadgeClasses(parsed.to)}>
+                                    {formatStatusLabel(parsed.to)}
+                                  </Badge>
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <p className="text-xs text-gray-600 mb-1">{activity.description}</p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            by {activity.actor_name && activity.actor_name !== "Unknown" ? activity.actor_name : "System"}
+                          </p>
                         </div>
                       </div>
                     </div>
                   ))}
+
+                  {hasMoreActivity && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        className="w-full text-xs font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore ? "Loading..." : "Load more"}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
+        </div>
       </div>
+
+      <Dialog open={isNotesDialogOpen} onOpenChange={setNotesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+            <DialogDescription>Add a note for this candidate.</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            ref={noteInputRef}
+            placeholder="Write your note..."
+            value={newNote}
+            onChange={(event) => setNewNote(event.target.value)}
+            className="min-h-[120px]"
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNotesDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNote} disabled={isSavingNote || !newNote.trim()}>
+              {isSavingNote ? "Saving..." : "Add Note"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
      
     </div>

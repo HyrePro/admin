@@ -27,6 +27,7 @@ interface AssessmentAnalyticsProps {
   mcqAssessmentData: MCQAssessmentAnalytics | null;
   loadingAssessment: boolean;
   setLoadingAssessment: (loading: boolean) => void;
+  errorAssessment?: string | null;
 }
 
 // Prepare category metrics data for assessment visualization
@@ -79,23 +80,33 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   return null;
 }
 
-export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loadingAssessment, setLoadingAssessment }: AssessmentAnalyticsProps) {
+export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loadingAssessment, setLoadingAssessment, errorAssessment = null }: AssessmentAnalyticsProps) {
 
   const categoryMetricsData = React.useMemo(() => prepareCategoryMetricsData(mcqAssessmentData), [mcqAssessmentData]);
 
   if (loadingAssessment) {
     return (
-      <div className="mt-6">
+      <div className="p-6">
         <div className="h-16 bg-gray-200 rounded animate-pulse mb-4"></div>
         <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
       </div>
     );
   }
 
+  if (errorAssessment) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-700">
+          Failed to load assessment analytics. {errorAssessment}
+        </p>
+      </div>
+    );
+  }
+
   if (!mcqAssessmentData) {
     return (
-      <div className="mt-6">
-        <p className="text-gray-500">No assessment analytics available.</p>
+      <div className="p-6">
+        <p className="text-sm text-gray-600">No assessment analytics available yet.</p>
       </div>
     );
   }
@@ -112,7 +123,7 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
   const worstCategoryName = worstCategory[0];
 
   return (
-    <div className="border-b border-l border-r rounded-b-lg rounded-t-none p-4">
+    <div className="p-6">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Averages Summary Cards */}

@@ -522,12 +522,64 @@ export function CandidateInfo({ candidateInfo }: CandidateInfoProps) {
   const [showAllNotes, setShowAllNotes] = useState(false);
 
   const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
+  };
+
+  const formatOrdinal = (day: number) => {
+    if (day >= 11 && day <= 13) return `${day}th`;
+    const mod = day % 10;
+    if (mod === 1) return `${day}st`;
+    if (mod === 2) return `${day}nd`;
+    if (mod === 3) return `${day}rd`;
+    return `${day}th`;
+  };
+
+  const formatEndDateWithOrdinal = (dateString?: string | null) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    const day = date.getDate();
+    const monthYear = date.toLocaleDateString("en-GB", {
+      month: "short",
+      year: "numeric",
+    });
+    return `${formatOrdinal(day)} ${monthYear}`;
+  };
+
+  const formatStartDateWithOrdinal = (dateString?: string | null) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    const day = date.getDate();
+    const monthYear = date.toLocaleDateString("en-GB", {
+      month: "short",
+      year: "numeric",
+    });
+    return `${formatOrdinal(day)} ${monthYear}`;
+  };
+
+  const formatDateRange = (start?: string | null, end?: string | null) => {
+    const normalizeRangeInput = (value?: string | null) => {
+      if (!value) return { start: value, end: undefined as string | undefined };
+      if (value.includes(" - ") && !end) {
+        const [rangeStart, rangeEnd] = value.split(" - ").map((item) => item.trim());
+        return { start: rangeStart || value, end: rangeEnd };
+      }
+      return { start: value, end };
+    };
+
+    const normalized = normalizeRangeInput(start);
+    const startFormatted = formatStartDateWithOrdinal(normalized.start);
+    const endFormatted = formatEndDateWithOrdinal(normalized.end);
+    if (startFormatted && endFormatted) return `${startFormatted} to ${endFormatted}`;
+    return startFormatted || endFormatted || "";
   };
 
   const formatDateTime = (dateString: string) => {
@@ -766,7 +818,7 @@ export function CandidateInfo({ candidateInfo }: CandidateInfoProps) {
                       <div>
                         <h5 className="font-semibold text-gray-900">{exp.designation}</h5>
                         <div className="text-gray-600">{exp.school},{exp.city}</div>
-                        <div className="text-sm text-gray-500">{formatDate(exp.startDate)} - {formatDate(exp.endDate)}</div>
+                        <div className="text-sm text-gray-500">{formatDateRange(exp.startDate, exp.endDate)}</div>
                       </div>
                     </div>
                   </div>
@@ -789,9 +841,9 @@ export function CandidateInfo({ candidateInfo }: CandidateInfoProps) {
                       <div>
                         <h5 className="font-semibold text-gray-900 ">{edu.degree} {edu.specialization}</h5>
                         <div className="text-gray-600">{edu.institution}</div>
-                        {edu.specialization && (
-                          <div className="text-sm text-gray-500 mt-1">                          {formatDate(edu.startDate)} - {formatDate(edu.endDate)} </div>
-                        )}
+                        <div className="text-sm text-gray-500 mt-1">
+                          {formatDateRange(edu.startDate, edu.endDate)}
+                        </div>
                         
                       </div>
                       <div className="text-right md:text-left">

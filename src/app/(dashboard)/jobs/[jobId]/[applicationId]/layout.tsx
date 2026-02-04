@@ -9,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   ArrowLeft,
   User,
-  MessageSquare,
   Edit3,
   FileText,
   AlertCircle,
@@ -100,6 +99,8 @@ const ApplicationContext = createContext<{
   applicationId: string;
   loading: boolean;
   error: string | null;
+  isNotesDialogOpen: boolean;
+  setNotesDialogOpen: (open: boolean) => void;
   refreshData: () => void;
 }>({
   candidateInfo: null,
@@ -109,6 +110,8 @@ const ApplicationContext = createContext<{
   applicationId: "",
   loading: true,
   error: null,
+  isNotesDialogOpen: false,
+  setNotesDialogOpen: () => {},
   refreshData: () => {}
 });
 
@@ -225,13 +228,10 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
   const [loadingJobTitle, setLoadingJobTitle] = useState(false);
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
   const handleGoBack = () => {
     router.back();
-  };
-
-  const handleMessageCandidate = () => {
-    console.log("Message candidate:", candidateInfo?.first_name, candidateInfo?.last_name);
   };
 
   const handleChangeStatus = () => {
@@ -239,7 +239,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
   };
 
   const handleAddNote = () => {
-    console.log("Add note for application:", applicationId);
+    setIsNotesDialogOpen(true);
   };
 
   const handleOffer = () => {
@@ -397,6 +397,8 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
       applicationId,
       loading,
       error,
+      isNotesDialogOpen,
+      setNotesDialogOpen: setIsNotesDialogOpen,
       refreshData
     }}>
       <div className="flex flex-col h-full bg-white">
@@ -530,14 +532,6 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-sm font-normal h-9 px-3"
-                        onClick={handleMessageCandidate}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message Candidate
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-sm font-normal h-9 px-3"
                         onClick={handleChangeStatus}
                       >
                         <Edit3 className="h-4 w-4 mr-2" />
@@ -580,14 +574,14 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
           </div>
 
           {/* Tab navigation */}
-          <div className="w-full">
-            <div className="flex border-b border-gray-200">
+          <div className="w-full overflow-x-auto">
+            <div className="flex border-b border-gray-200 min-w-max">
               <button
                 onClick={() => nextRouter.push(`/jobs/${jobId}/${applicationId}`)}
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
                   pathname === `/jobs/${jobId}/${applicationId}` || pathname === `/jobs/${jobId}/${applicationId}/`
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                     : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
                 )}
               >
@@ -598,7 +592,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
                   pathname.endsWith("/assessment")
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                     : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
                 )}
               >
@@ -609,7 +603,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
                   pathname.endsWith("/video-assessment")
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                     : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
                 )}
               >
@@ -620,7 +614,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
                   pathname.endsWith("/panelist-review")
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                     : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
                 )}
               >
@@ -631,7 +625,7 @@ export default function ApplicationLayout({ children, params }: ApplicationLayou
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition-all duration-200 relative whitespace-nowrap",
                   pathname.endsWith("/ai-recommendation")
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-blue-600 border-b-2 border-blue-600 -mb-px"
                     : "text-gray-600 hover:text-gray-900 border-b-[0.5px] border-transparent hover:border-gray-300"
                 )}
               >

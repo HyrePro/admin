@@ -49,6 +49,7 @@ function CityDistributionChart({ demographics }: { demographics?: JobFunnelAnaly
       .map(([city, count]) => ({ city, count: Number(count) }))
       .sort((a, b) => b.count - a.count);
   }, [demographics]);
+  const hasData = chartData.some((entry) => entry.count > 0);
 
   return (
     <div className="h-full pb-8 pt-4">
@@ -56,24 +57,30 @@ function CityDistributionChart({ demographics }: { demographics?: JobFunnelAnaly
         <CardTitle>City Distribution</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={cityChartConfig} className="h-[250px] w-full">
-          <BarChart data={chartData} layout="vertical" margin={{ left: 80, right: 20 }}>
-            <CartesianGrid horizontal={false} />
-            <YAxis 
-              dataKey="city" 
-              type="category" 
-              tickLine={false}
-              axisLine={false}
-              width={75}
-              tick={{ fontSize: 12 }}
-            />
-            <XAxis dataKey="count" type="number" hide />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <Bar dataKey="count" fill="var(--color-count)" radius={6}>
-              <LabelList content={<InsideBarLabel />} />
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+        {hasData ? (
+          <ChartContainer config={cityChartConfig} className="h-[250px] w-full">
+            <BarChart data={chartData} layout="vertical" margin={{ left: 80, right: 20 }}>
+              <CartesianGrid horizontal={false} />
+              <YAxis 
+                dataKey="city" 
+                type="category" 
+                tickLine={false}
+                axisLine={false}
+                width={75}
+                tick={{ fontSize: 12 }}
+              />
+              <XAxis dataKey="count" type="number" hide />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Bar dataKey="count" fill="var(--color-count)" radius={6}>
+                <LabelList content={<InsideBarLabel />} />
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-[250px] w-full flex items-center justify-center">
+            <p className="text-muted-foreground">No data available</p>
+          </div>
+        )}
       </CardContent>
     </div>
   );

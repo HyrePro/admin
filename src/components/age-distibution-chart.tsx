@@ -46,7 +46,7 @@ function AgeDistributionChart({ demographics }: { demographics?: JobFunnelAnalyt
   }, [demographics]);
 
   return (
-    <div className="h-full border-r pb-8 pt-4">
+    <div className="h-full pb-8 pt-4">
       <CardHeader>
         <CardTitle>Age Distribution</CardTitle>
       </CardHeader>
