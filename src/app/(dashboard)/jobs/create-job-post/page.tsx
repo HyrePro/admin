@@ -68,6 +68,11 @@ const validationSchema = Yup.object({
   jobTitle: Yup.string().required('Job title is required'),
   description: Yup.string(),
   subjects: Yup.array().min(1, 'At least one subject is required'),
+  otherSubject: Yup.string().when('subjects', {
+    is: (subjects: string[]) => Array.isArray(subjects) && subjects.includes('Other'),
+    then: (schema) => schema.required('Please specify the other subject'),
+    otherwise: (schema) => schema.optional(),
+  }),
   gradeLevel: Yup.array().min(1, 'At least one grade level is required'),
   employmentType: Yup.string().required('Employment type is required'),
   experience: Yup.string(),
@@ -83,6 +88,7 @@ type FormValues = {
   jobTitle: string
   description?: string
   subjects: string[]
+  otherSubject?: string
   gradeLevel: string[]
   employmentType: string
   experience: string
@@ -95,6 +101,7 @@ const initialValues: FormValues = {
   jobTitle: '',
   description: '',
   subjects: [],
+  otherSubject: '',
   gradeLevel: [],
   employmentType: 'full-time',
   experience: 'any',
@@ -117,6 +124,16 @@ const steps = [
     description: "Review all details before publishing your job post."
   }
 ]
+
+const normalizeSubjects = (subjects: string[], otherSubject?: string) => {
+  if (!Array.isArray(subjects)) return [];
+  if (!subjects.includes("Other")) return subjects;
+
+  const cleanedOther = (otherSubject || "").trim();
+  const filtered = subjects.filter((subject) => subject !== "Other");
+  if (!cleanedOther) return filtered;
+  return [...filtered, cleanedOther];
+};
 
 // Memoized loading fallback
 const StepLoader = memo(() => (
@@ -265,10 +282,13 @@ export default function CreateJobApplicationPage() {
     setScreening(values);
   }, [])
 
-  const handleFormSubmit = useCallback((values: FormValues) => {
-    // Store the form values in ref to avoid re-initialization
-    jobInfoRef.current = values
-    setJobInfo(values)
+const handleFormSubmit = useCallback((values: FormValues) => {
+    const normalizedValues = {
+      ...values,
+      subjects: normalizeSubjects(values.subjects, values.otherSubject),
+    };
+    jobInfoRef.current = normalizedValues
+    setJobInfo(normalizedValues)
     // Only navigate if we're not already navigating via handleNext
     if (step === 0) {
       setStep(1)
@@ -296,8 +316,12 @@ export default function CreateJobApplicationPage() {
         }
         // Instead of calling handleSubmit, manually update the state
         const currentValues = formikRef.current.values;
-        jobInfoRef.current = currentValues;
-        setJobInfo(currentValues);
+        const normalizedValues = {
+          ...currentValues,
+          subjects: normalizeSubjects(currentValues.subjects, currentValues.otherSubject),
+        };
+        jobInfoRef.current = normalizedValues;
+        setJobInfo(normalizedValues);
         setStep(prev => prev + 1);
       }
     } else if (step === 1) {

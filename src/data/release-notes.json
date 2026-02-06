@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.0.1",
+      "date": "2026-02-04",
+      "type": "ui",
+      "summary": "Automate release note updates",
+      "changes": [
+        "Automate release note updates"
+      ]
+    },
+    {
       "version": "0.0.0",
       "date": "2026-02-04",
       "type": "ui",

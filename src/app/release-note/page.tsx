@@ -78,14 +78,6 @@ export default function ReleaseNotePage() {
                 {releases[0]?.date ? formatDate(releases[0].date) : "—"}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-600">
-              <p className="font-semibold text-slate-900">Versioning rules</p>
-              <ul className="mt-2 space-y-1">
-                <li>0.0.x = UI updates</li>
-                <li>0.x.0 = functional releases</li>
-                <li>x.0.0 = major (only when requested)</li>
-              </ul>
-            </div>
           </aside>
 
           <section className="space-y-8">
