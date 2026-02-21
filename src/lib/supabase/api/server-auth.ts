@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/api/server';
+import { resolveSupabaseUser } from '@/lib/supabase/api/session-resolver';
 
 /**
  * Server-side utility to get user info with school_id
@@ -10,9 +11,10 @@ export async function getUserWithSchoolId() {
   try {
     const supabase = await createClient();
     
-    // Get the authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+    const { user, error: userError } = await resolveSupabaseUser(supabase, {
+      allowSessionFallback: true,
+    });
+
     if (userError || !user) {
       return { user: null, schoolId: null, error: 'Unauthorized. Please log in.' };
     }
@@ -47,9 +49,10 @@ export async function validateUserAuthAndSchool() {
   try {
     const supabase = await createClient();
     
-    // Get the authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+    const { user, error: userError } = await resolveSupabaseUser(supabase, {
+      allowSessionFallback: true,
+    });
+
     if (userError || !user) {
       return { authenticated: false, schoolId: null, user: null, error: 'Unauthorized. Please log in.' };
     }

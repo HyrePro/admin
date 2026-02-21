@@ -1,23 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
-// Ensure service role key is available for admin operations
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations')
-}
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-// Service client for database operations
-const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+import { resolveUserAndSchoolId } from '@/lib/supabase/api/route-auth'
 
 interface JobInterviewSettings {
   job_id: string;
@@ -32,71 +14,9 @@ interface JobInterviewSettings {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user from request cookies
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      supabaseUrl,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
-
-    // Try to get user from cookies first (primary method)
-    let user = null
-    let userError = null
-
-    try {
-      const { data: { user: cookieUser }, error: cookieError } = await supabase.auth.getUser()
-      user = cookieUser
-      userError = cookieError
-    } catch (error) {
-      console.log('Cookie auth failed, trying Authorization header...')
-    }
-
-    // If cookie auth failed, try Authorization header (fallback)
-    if (!user) {
-      const authHeader = request.headers.get('Authorization')
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7)
-        try {
-          const { data: { user: tokenUser }, error: tokenError } = await supabaseService.auth.getUser(token)
-          user = tokenUser
-          userError = tokenError
-        } catch (error) {
-          console.log('Token auth also failed:', error)
-        }
-      }
-    }
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please log in.' },
-        { status: 401 }
-      )
-    }
-
-    // Get user's admin info to retrieve school_id
-    const { data: adminInfo, error: adminError } = await supabaseService
-      .from('admin_user_info')
-      .select('school_id')
-      .eq('id', user.id)
-      .single()
-
-    if (adminError || !adminInfo?.school_id) {
-      return NextResponse.json(
-        { error: 'User school information not found. Please complete your profile.' },
-        { status: 404 }
-      )
+    const auth = await resolveUserAndSchoolId(request)
+    if (auth.error || !auth.schoolId || !auth.supabaseService) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized. Please log in.' }, { status: auth.status || 401 })
     }
 
     // Parse and validate request body
@@ -104,7 +24,6 @@ export async function POST(request: NextRequest) {
     
     const {
       job_id,
-      school_id,
       default_interview_type,
       default_duration,
       candidate_reminder_hours,
@@ -114,19 +33,19 @@ export async function POST(request: NextRequest) {
     } = settingsData
 
     // Validate required fields
-    if (!job_id || !school_id) {
+    if (!job_id) {
       return NextResponse.json(
-        { error: 'Missing required fields: job_id, school_id' },
+        { error: 'Missing required field: job_id' },
         { status: 400 }
       )
     }
 
     // Validate that job belongs to user's school
-    const { data: jobData, error: jobError } = await supabaseService
+    const { data: jobData, error: jobError } = await auth.supabaseService
       .from('jobs')
       .select('id, school_id')
       .eq('id', job_id)
-      .eq('school_id', adminInfo.school_id)
+      .eq('school_id', auth.schoolId)
       .single()
 
     if (jobError || !jobData) {
@@ -137,11 +56,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert or update job meeting settings
-    const { data, error } = await supabaseService
+    const { data, error } = await auth.supabaseService
       .from('job_meeting_settings')
       .upsert({
         job_id,
-        school_id,
+        school_id: auth.schoolId,
         default_interview_type: default_interview_type || 'in-person',
         default_duration: default_duration || '30',
         candidate_reminder_hours: candidate_reminder_hours || '24',
@@ -191,8 +110,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get job meeting settings
-    const { data, error } = await supabaseService
+    const auth = await resolveUserAndSchoolId(request)
+    if (auth.error || !auth.schoolId || !auth.supabaseService) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized. Please log in.' }, { status: auth.status || 401 })
+    }
+
+    // Get job meeting settings, ensure job belongs to school
+    const { data: jobData, error: jobError } = await auth.supabaseService
+      .from('jobs')
+      .select('id, school_id')
+      .eq('id', jobId)
+      .eq('school_id', auth.schoolId)
+      .single()
+
+    if (jobError || !jobData) {
+      return NextResponse.json(
+        { error: 'Job not found or does not belong to your school' },
+        { status: 404 }
+      )
+    }
+
+    const { data, error } = await auth.supabaseService
       .from('job_meeting_settings')
       .select('*')
       .eq('job_id', jobId)

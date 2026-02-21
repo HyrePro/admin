@@ -7,6 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/api/client";
 import { Mail, Loader2 } from "lucide-react";
+import { getClientAuthOrigin } from "@/lib/auth/get-client-auth-origin";
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -46,10 +47,13 @@ export function ForgotPasswordDialog({ open, onOpenChange, initialEmail = "" }: 
     
     setLoading(true);
     try {
+      const authOrigin = getClientAuthOrigin();
+      const resetRedirectUrl = new URL("/auth/reset-password", authOrigin);
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
         {
-          redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+          redirectTo: resetRedirectUrl.toString(),
         }
       );
       

@@ -1,4 +1,10 @@
-export default function VideoAssessmentLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function VideoAssessmentLoading() {
+  if (await isWarm("warm_app_video")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header skeleton */}

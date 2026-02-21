@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react'
 import { MoreVertical } from "@/components/icons"
 import { Card, CardDescription, CardTitle } from './ui/card'

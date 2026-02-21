@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/api/client"
 import { ForgotPasswordDialog } from "./forgot-password-dialog"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { getClientAuthOrigin } from "@/lib/auth/get-client-auth-origin"
 
 function LoginFormContent({
   className,
@@ -143,11 +144,12 @@ function LoginFormContent({
     try {
       // Create a Supabase client instance
       const supabase = createClient();
+      const authOrigin = getClientAuthOrigin();
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${authOrigin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

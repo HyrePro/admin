@@ -50,7 +50,7 @@ interface InterviewAnalyticsProps {
 
 // Prepare category metrics data for interview visualization
 export const prepareCategoryMetricsData = (interviewAnalyticsData: InterviewAnalyticsType | null) => {
-  if (!interviewAnalyticsData) return [];
+  if (!interviewAnalyticsData?.panelist_overview) return [];
 
   return interviewAnalyticsData.panelist_overview.map((metric) => ({
     name: metric.title,
@@ -104,6 +104,27 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData, loadingInterview, setLoadingInterview, errorInterview = null }: InterviewAnalyticsProps) {
 
   const categoryMetricsData = React.useMemo(() => prepareCategoryMetricsData(interviewAnalyticsData), [interviewAnalyticsData]);
+  const panelistOverview = interviewAnalyticsData?.panelist_overview ?? [];
+  const panelistSummary = interviewAnalyticsData?.panelist_summary ?? {
+    total_panelists: 0,
+    total_evaluations: 0,
+    avg_panelist_score: 0,
+    max_panelist_score: 0,
+    total_score_available: 0,
+  };
+  const scoreStatistics = interviewAnalyticsData?.score_statistics ?? {
+    avg_score: 0,
+    max_score: 0,
+    total_evaluations: 0,
+  };
+  const interviewFunnel = interviewAnalyticsData?.interview_funnel ?? {
+    eligible: 0,
+    scheduled: 0,
+    completed: 0,
+    rejected: 0,
+    offered: 0,
+    hired: 0,
+  };
 
   if (loadingInterview) {
     return (
@@ -133,33 +154,33 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
   }
 
   // Get sorted categories by performance
-  const sortedCategories = [...interviewAnalyticsData.panelist_overview]
+  const sortedCategories = [...panelistOverview]
     .sort((a, b) => b.average - a.average);
 
   const bestCategory = sortedCategories.length > 0 ? sortedCategories[0] : null;
   const worstCategory = sortedCategories.length > 0 ? sortedCategories[sortedCategories.length - 1] : null;
   
   // Check if all category scores are zero
-  const allCategoriesZero = interviewAnalyticsData.panelist_overview.length > 0 && 
-    interviewAnalyticsData.panelist_overview.every(metric => metric.average === 0);
+  const allCategoriesZero = panelistOverview.length > 0 && 
+    panelistOverview.every(metric => metric.average === 0);
   
   // Check if all panelist summary metrics are zero
   const allPanelistMetricsZero = (
-    interviewAnalyticsData.panelist_summary.total_panelists === 0 &&
-    interviewAnalyticsData.panelist_summary.total_evaluations === 0 &&
-    interviewAnalyticsData.panelist_summary.avg_panelist_score === 0 &&
-    interviewAnalyticsData.panelist_summary.max_panelist_score === 0 &&
-    interviewAnalyticsData.panelist_summary.total_score_available === 0
+    panelistSummary.total_panelists === 0 &&
+    panelistSummary.total_evaluations === 0 &&
+    panelistSummary.avg_panelist_score === 0 &&
+    panelistSummary.max_panelist_score === 0 &&
+    panelistSummary.total_score_available === 0
   );
   
   // Prepare data for the funnel chart
   const funnelData = [
-    { name: 'Eligible', value: interviewAnalyticsData.interview_funnel.eligible, fill: '#3b82f6' },
-    { name: 'Scheduled', value: interviewAnalyticsData.interview_funnel.scheduled, fill: '#f59e0b' },
-    { name: 'Completed', value: interviewAnalyticsData.interview_funnel.completed, fill: '#8b5cf6' },
-    { name: 'Rejected', value: interviewAnalyticsData.interview_funnel.rejected, fill: '#ef4444' },
-    { name: 'Offered', value: interviewAnalyticsData.interview_funnel.offered, fill: '#10b981' },
-    { name: 'Hired', value: interviewAnalyticsData.interview_funnel.hired, fill: '#ec4899' },
+    { name: 'Eligible', value: interviewFunnel.eligible, fill: '#3b82f6' },
+    { name: 'Scheduled', value: interviewFunnel.scheduled, fill: '#f59e0b' },
+    { name: 'Completed', value: interviewFunnel.completed, fill: '#8b5cf6' },
+    { name: 'Rejected', value: interviewFunnel.rejected, fill: '#ef4444' },
+    { name: 'Offered', value: interviewFunnel.offered, fill: '#10b981' },
+    { name: 'Hired', value: interviewFunnel.hired, fill: '#ec4899' },
   ];
 
   return (
@@ -172,21 +193,21 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Average Score</h3>
                 <p className="text-2xl font-bold text-indigo-600">
-                  {interviewAnalyticsData.score_statistics.avg_score.toFixed(2)}
+                  {scoreStatistics.avg_score.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500">out of max score</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Max Score</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {interviewAnalyticsData.score_statistics.max_score.toFixed(2)}
+                  {scoreStatistics.max_score.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500">highest achieved</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Total Evaluations</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {interviewAnalyticsData.score_statistics.total_evaluations}
+                  {scoreStatistics.total_evaluations}
                 </p>
                 <p className="text-sm text-gray-500">interviews</p>
               </div>
@@ -225,12 +246,12 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
                 <BarChart
                   data={[{
                     name: 'Metrics',
-                    eligible: interviewAnalyticsData.interview_funnel.eligible,
-                    scheduled: interviewAnalyticsData.interview_funnel.scheduled,
-                    completed: interviewAnalyticsData.interview_funnel.completed,
-                    rejected: interviewAnalyticsData.interview_funnel.rejected,
-                    offered: interviewAnalyticsData.interview_funnel.offered,
-                    hired: interviewAnalyticsData.interview_funnel.hired,
+                    eligible: interviewFunnel.eligible,
+                    scheduled: interviewFunnel.scheduled,
+                    completed: interviewFunnel.completed,
+                    rejected: interviewFunnel.rejected,
+                    offered: interviewFunnel.offered,
+                    hired: interviewFunnel.hired,
                   }]}
                   margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
                 >
@@ -352,7 +373,7 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
                   <div className="border rounded-lg p-4 min-h-[120px]">
                     <h3 className="font-medium text-gray-600">Categories</h3>
                     <p className="text-2xl font-bold text-sky-600">
-                      {interviewAnalyticsData.panelist_overview.length}
+                      {panelistOverview.length}
                     </p>
                     <p className="text-sm text-gray-500">Total assessment areas</p>
                   </div>
@@ -370,7 +391,7 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
                   <div className="border rounded-lg p-4 min-h-[120px]">
                     <h3 className="font-medium text-gray-600">Total Panelists</h3>
                     <p className="text-2xl font-bold text-purple-600">
-                      {interviewAnalyticsData.panelist_summary.total_panelists}
+                      {panelistSummary.total_panelists}
                     </p>
                     <p className="text-sm text-gray-500">panelists</p>
                   </div>
@@ -378,13 +399,13 @@ export function InterviewAnalytics({ jobId, chartConfig, interviewAnalyticsData,
                   <div className="border rounded-lg p-4 min-h-[120px]">
                     <h3 className="font-medium text-gray-600">Avg Panelist Score</h3>
                     <p className="text-2xl font-bold text-purple-600">
-                      {interviewAnalyticsData.panelist_summary.avg_panelist_score.toFixed(1)}
+                      {panelistSummary.avg_panelist_score.toFixed(1)}
                     </p>
                     <p className="text-sm text-gray-500">score</p>
                   </div>
                   
                   {/* Map through all categories */}
-                  {interviewAnalyticsData.panelist_overview.map((metric) => (
+                  {panelistOverview.map((metric) => (
                     <div key={metric.title} className="border rounded-lg p-4 min-h-[120px]">
                       <h3 className="font-medium text-gray-600 text-sm">{metric.title}</h3>
                       <p className="text-2xl font-bold text-blue-600 mt-1">

@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('Calling RPC get_jobs_count for total count with school_id:', schoolId);
     // Call the RPC function to get job count - using the new function for consistency
     // Pass 'ALL' for status to get all jobs, and null for search to get total count
     const { data, error } = await createClient().rpc("get_jobs_count", {
@@ -30,7 +29,6 @@ export async function GET(request: NextRequest) {
       p_search: null
     })
 
-    console.log('RPC get_jobs_count response for total count:', { data, error });
     
     if (error) {
       console.error('Supabase RPC error in get-total-job-count:', error);
@@ -42,7 +40,6 @@ export async function GET(request: NextRequest) {
 
     // The RPC function returns an array with the count value as the first element
     const totalCount = data && data.length > 0 ? Number(data[0]) : 0;
-    console.log('Total count extracted:', totalCount);
 
     return NextResponse.json(
       { 

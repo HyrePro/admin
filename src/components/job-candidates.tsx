@@ -20,50 +20,12 @@ import { forceDownload } from "@/lib/utils";
 import { statusColors } from "../../utils/statusColor";
 import "react-toastify/dist/ReactToastify.css";
 import '@/styles/candidates.css';
-
-interface JobApplication {
-  application_id: string;
-  applicant_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number: string;
-  city: string;
-  state: string;
-  created_at: string;
-  status: string;
-  resume_url?: string;
-  resume_file_name?: string;
-  teaching_experience: Array<{
-    city: string;
-    school: string;
-    endDate: string;
-    startDate: string;
-    designation: string;
-  }>;
-  education_qualifications: Array<{
-    degree: string;
-    endDate: string;
-    startDate: string;
-    institution: string;
-    specialization: string;
-  }>;
-  subjects: string[];
-  submitted_at?: string | null;
-  score: number;
-  category_scores: Record<string, {
-    score: number;
-    attempted: number;
-    total_questions: number;
-  }>;
-  overall?: {
-    score: number;
-    attempted: number;
-    total_questions: number;
-  } | null;
-  video_url?: string | null;
-  demo_score?: number | null;
-}
+import { useWarmRoute } from "@/hooks/use-warm-route";
+import {
+  JobCandidateApplication,
+  JobCandidatesRequest,
+} from "@/lib/query/contracts/job-candidates";
+import { jobCandidatesQueryOptions } from "@/lib/query/fetchers/job-candidates";
 
 interface JobCandidatesProps {
   job_id: string;
@@ -98,90 +60,40 @@ const STATUS_CONFIG = {
 
 export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
   const router = useRouter();
-  const [applications, setApplications] = useState<JobApplication[]>([]);
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('JobCandidates mounted with job_id:', job_id);
-  }, [job_id]);
-  const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalApplications, setTotalApplications] = useState(0);
   const [downloadingResumes, setDownloadingResumes] = useState<Set<string>>(new Set());
   const pageSize = 10;
-
-  // Define the type for the API response
-  interface ApiResponse {
-    applications: JobApplication[];
-    total: number;
-    message?: string;
-  }
+  const request: JobCandidatesRequest = {
+    jobId: job_id,
+    search: debouncedSearchText,
+    currentPage,
+    pageSize,
+  };
 
   // Use TanStack Query to fetch applications data
-  const { data: queryData, isLoading: queryLoading, isError: queryError, refetch } = useQuery<ApiResponse>({
-    queryKey: ['job-applications', job_id, debouncedSearchText, currentPage],
-    queryFn: async () => {
-      console.log('Fetching job applications with params:', { job_id, debouncedSearchText, currentPage, pageSize });
-      
-      const startIndex = currentPage * pageSize;
-      const endIndex = startIndex + pageSize;
-      
-      const params = new URLSearchParams({
-        jobId: job_id,
-        startIndex: startIndex.toString(),
-        endIndex: endIndex.toString(),
-        search: debouncedSearchText,
-      });
-      
-      console.log('API Request URL:', `/api/job-applications?${params.toString()}`);
-      
-      const response = await fetch(`/api/job-applications?${params.toString()}`);
-      
-      console.log('API Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error response:', errorData);
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('API Success response:', result);
-      return result;
-    },
-    enabled: !!job_id,
-    staleTime: 30000, // 30 seconds
-  });
+  const {
+    data: queryData,
+    isLoading: queryLoading,
+    isError: queryError,
+    refetch,
+  } = useQuery(jobCandidatesQueryOptions(request));
 
-  // Update local state when query data changes
-  useEffect(() => {
-    if (queryData?.applications) {
-      // Validate and clean the data
-      const validApplications = (queryData.applications || []).filter((app: JobApplication) => {
-        // Basic validation to ensure we have essential fields
-        return app && 
-               typeof app.application_id === 'string' && 
-               app.application_id.length > 0;
-      });
-      
-      setApplications(validApplications);
-      setTotalApplications(queryData.total || 0);
-    }
+  const applications = useMemo(() => {
+    const raw = queryData?.applications || [];
+    return raw.filter((app: JobCandidateApplication) => {
+      return app && typeof app.application_id === "string" && app.application_id.length > 0;
+    });
   }, [queryData]);
+
+  const totalApplications = queryData?.total || 0;
 
   // Use TanStack Query loading state
   const loading = queryLoading;
+  useWarmRoute("warm_job_candidates", !loading, 60);
   
-  // Handle error from query
-  useEffect(() => {
-    if (queryError) {
-      setError("Failed to fetch applications");
-    } else {
-      setError(null);
-    }
-  }, [queryError]);
+  const errorMessage = queryError ? "Failed to fetch applications" : null;
 
   // Debounce search text
   useEffect(() => {
@@ -191,11 +103,6 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
 
     return () => clearTimeout(timer);
   }, [searchText]);
-
-  // Refetch when search text or page changes
-  useEffect(() => {
-    refetch();
-  }, [debouncedSearchText, currentPage, refetch]);
 
   // Reset to first page when search text changes
   useEffect(() => {
@@ -256,9 +163,6 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
     }
   }, [currentPage]);
 
-  // Memoize the applications data to avoid unnecessary re-renders
-  const memoizedApplications = useMemo(() => applications, [applications]);
-
   // Error Component
   const ErrorState = useCallback(() => (
     <div className="flex flex-col items-center justify-center py-12 px-4">
@@ -267,14 +171,14 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load candidates</h3>
       <p className="text-gray-600 text-center mb-6 max-w-md">
-        {error || "Something went wrong while fetching candidates. Please try again."}
+        {errorMessage || "Something went wrong while fetching candidates. Please try again."}
       </p>
       <Button onClick={() => refetch()} className="flex items-center gap-2">
         <RefreshCw className="h-4 w-4" />
         Try Again
       </Button>
     </div>
-  ), [error, refetch, debouncedSearchText, currentPage]);
+  ), [errorMessage, refetch]);
 
   // Loading Skeleton
   const LoadingSkeleton = useCallback(() => (
@@ -314,7 +218,7 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
   ), [debouncedSearchText]);
 
   // Safe rendering function for application rows
-  const renderApplicationRow = useCallback((application: JobApplication) => {
+  const renderApplicationRow = useCallback((application: JobCandidateApplication) => {
     try {
       return (
         <TableRow key={application.application_id} className="hover:bg-gray-50">
@@ -452,13 +356,13 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
       {loading && <LoadingSkeleton />}
 
       {/* Error State */}
-      {error && !loading && <ErrorState />}
+      {errorMessage && !loading && <ErrorState />}
 
       {/* Content */}
-      {!loading && !error && (
+      {!loading && !errorMessage && (
         <>
           {/* Candidates Table */}
-          {memoizedApplications.length === 0 ? (
+          {applications.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="flex flex-col flex-grow overflow-hidden">
@@ -478,7 +382,7 @@ export const JobCandidates = React.memo(({ job_id }: JobCandidatesProps) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="overflow-y-auto">
-                      {memoizedApplications.map(renderApplicationRow)}
+                      {applications.map(renderApplicationRow)}
                     </TableBody>
                   </Table>
                 </div>

@@ -32,7 +32,7 @@ interface AssessmentAnalyticsProps {
 
 // Prepare category metrics data for assessment visualization
 export const prepareCategoryMetricsData = (mcqAssessmentData: MCQAssessmentAnalytics | null) => {
-  if (!mcqAssessmentData) return [];
+  if (!mcqAssessmentData?.category_metrics) return [];
 
   return Object.entries(mcqAssessmentData.category_metrics).map(([category, metrics]) => ({
     name: category,
@@ -83,6 +83,18 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loadingAssessment, setLoadingAssessment, errorAssessment = null }: AssessmentAnalyticsProps) {
 
   const categoryMetricsData = React.useMemo(() => prepareCategoryMetricsData(mcqAssessmentData), [mcqAssessmentData]);
+  const metrics = mcqAssessmentData?.metrics ?? {
+    avg_score: 0,
+    avg_percentage: 0,
+    avg_attempted: 0,
+    avg_total_questions: 0,
+  };
+  const summary = mcqAssessmentData?.summary ?? {
+    eligible: 0,
+    attempted: 0,
+    passed: 0,
+    failed: 0,
+  };
 
   if (loadingAssessment) {
     return (
@@ -112,15 +124,16 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
   }
 
   // Get sorted categories by performance
-  const sortedCategories = Object.entries(mcqAssessmentData.category_metrics)
+  const categoryEntries = Object.entries(mcqAssessmentData.category_metrics || {});
+  const sortedCategories = categoryEntries
     .sort(([, a], [, b]) => b.avg_percentage - a.avg_percentage);
 
-  const bestCategory = sortedCategories[0];
-  const worstCategory = sortedCategories[sortedCategories.length - 1];
-  
-  // Create a set of category names for quick lookup of best/worst
-  const bestCategoryName = bestCategory[0];
-  const worstCategoryName = worstCategory[0];
+  const bestCategory = sortedCategories.length > 0 ? sortedCategories[0] : null;
+  const worstCategory = sortedCategories.length > 0 ? sortedCategories[sortedCategories.length - 1] : null;
+  const hasCategoryData = categoryEntries.length > 0;
+  const spread = bestCategory && worstCategory
+    ? bestCategory[1].avg_percentage - worstCategory[1].avg_percentage
+    : 0;
 
   return (
     <div className="p-6">
@@ -132,21 +145,21 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Average Score</h3>
                 <p className="text-2xl font-bold text-indigo-600">
-                  {mcqAssessmentData!.metrics.avg_score.toFixed(2)}
+                  {metrics.avg_score.toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-500">out of {mcqAssessmentData!.metrics.avg_total_questions}</p>
+                <p className="text-sm text-gray-500">out of {metrics.avg_total_questions}</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Average Percentage</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {mcqAssessmentData!.metrics.avg_percentage.toFixed(2)}%
+                  {metrics.avg_percentage.toFixed(2)}%
                 </p>
                 <p className="text-sm text-gray-500">overall performance</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Questions Attempted</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {mcqAssessmentData!.metrics.avg_attempted.toFixed(2)}
+                  {metrics.avg_attempted.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500">on average</p>
               </div>
@@ -177,10 +190,10 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
                 <BarChart
                   data={[{
                     name: 'Metrics',
-                    eligible: mcqAssessmentData!.summary.eligible,
-                    attempted: mcqAssessmentData!.summary.attempted,
-                    passed: mcqAssessmentData!.summary.passed,
-                    failed: mcqAssessmentData!.summary.failed,
+                    eligible: summary.eligible,
+                    attempted: summary.attempted,
+                    passed: summary.passed,
+                    failed: summary.failed,
                   }]}
                   margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
                 >
@@ -247,7 +260,7 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
             <div className="border rounded-lg p-4 min-h-[120px]">
               <h3 className="font-medium text-gray-600">Categories</h3>
               <p className="text-2xl font-bold text-sky-600">
-                {Object.keys(mcqAssessmentData!.category_metrics).length}
+                {categoryEntries.length}
               </p>
               <p className="text-sm text-gray-500">Total assessment areas</p>
             </div>
@@ -256,13 +269,22 @@ export function AssessmentAnalytics({ jobId, chartConfig, mcqAssessmentData, loa
             <div className="border rounded-lg p-4 min-h-[120px]">
               <h3 className="font-medium text-gray-600">Performance Range</h3>
               <p className="text-2xl font-bold text-blue-600">
-                {worstCategory[1].avg_percentage.toFixed(1)}% - {bestCategory[1].avg_percentage.toFixed(1)}%
+                {worstCategory ? `${worstCategory[1].avg_percentage.toFixed(1)}%` : '0%'} - {bestCategory ? `${bestCategory[1].avg_percentage.toFixed(1)}%` : '0%'}
               </p>
-              <p className="text-sm text-gray-500">Spread: {(bestCategory[1].avg_percentage - worstCategory[1].avg_percentage).toFixed(1)}%</p>
+              <p className="text-sm text-gray-500">Spread: {spread.toFixed(1)}%</p>
             </div>
-            
+
+            {!hasCategoryData && (
+              <div className="border rounded-lg p-4 min-h-[120px] md:col-span-2">
+                <h3 className="font-medium text-gray-600">No category performance yet</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  No category-level attempts were recorded for this job in the selected period.
+                </p>
+              </div>
+            )}
+
             {/* Map through all categories */}
-            {Object.entries(mcqAssessmentData!.category_metrics).map(([categoryName, metrics]) => (
+            {categoryEntries.map(([categoryName, metrics]) => (
               <div key={categoryName} className="border rounded-lg p-4 min-h-[120px]">
                 <h3 className="font-medium text-gray-600 text-sm">{categoryName}</h3>
                 <p className="text-2xl font-bold text-blue-600 mt-1">

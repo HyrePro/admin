@@ -6,7 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useQuery } from '@tanstack/react-query';
-import { useJob } from "../layout";
+import { useJob } from "@/components/job-layout-client";
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 export default function JobAssessmentPage() {
   const { job } = useJob();
@@ -41,6 +42,7 @@ export default function JobAssessmentPage() {
   });
 
   const assessmentConfigRecord = Array.isArray(assessmentConfig) ? assessmentConfig[0] : assessmentConfig;
+  useWarmRoute("warm_job_assessment", !isLoading, 60);
 
   // Use assessment config data or fallback to job data
   const jobData = assessmentConfigRecord || job;

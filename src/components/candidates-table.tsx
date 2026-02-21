@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useRef } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Table,
   TableBody,
@@ -225,6 +225,7 @@ function CandidatesTableComponent({
 
   // Refs
   const candidateSearchInputRef = useRef<HTMLInputElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   // State for tracking operations
   const [isSorting, setIsSorting] = useState(false);
@@ -349,6 +350,24 @@ function CandidatesTableComponent({
       paginationDetails.endIndex
     );
   }, [serverSidePagination, applications, filteredApplications, paginationDetails.startIndex, paginationDetails.endIndex]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: paginatedApplications.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 64,
+    overscan: 8,
+  });
+
+  const shouldVirtualize = paginatedApplications.length > 50;
+  const virtualRows = shouldVirtualize
+    ? rowVirtualizer.getVirtualItems()
+    : paginatedApplications.map((_, index) => ({ index, start: 0, end: 0 }));
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = shouldVirtualize && virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    shouldVirtualize && virtualRows.length > 0
+      ? totalSize - virtualRows[virtualRows.length - 1].end
+      : 0;
 
   // Handle viewing an application
   const handleViewApplication = useCallback((jobId: string, applicationId: string) => {
@@ -624,7 +643,7 @@ function CandidatesTableComponent({
 
   {/* Table Container - Custom wrapper with fixed header */}
   <div className="flex-1 min-h-0 border rounded-md bg-white overflow-hidden">
-    <div className="h-full overflow-auto">
+    <div className="h-full overflow-auto relative" ref={tableScrollRef}>
       {/* Use native table element to bypass Table component's wrapper */}
       <table className="w-full caption-bottom text-sm relative">
         <TableHeader className="sticky top-0 z-20 bg-white border-b">
@@ -731,16 +750,31 @@ function CandidatesTableComponent({
               </TableCell>
             </TableRow>
           ) : (
-            paginatedApplications.map((application) => (
-              <ApplicationRow
-                key={`${application.application_id}-${application.job_id}`}
-                application={application}
-                statusColors={APPLICATION_STATUS_COLORS}
-                handleCopyLink={handleCopyLink}
-                handleViewApplication={handleViewApplication}
-                translations={{ actions: translations.actions }}
-              />
-            ))
+            <>
+              {paddingTop > 0 && (
+                <TableRow aria-hidden="true">
+                  <TableCell colSpan={6} style={{ height: `${paddingTop}px` }} className="p-0 border-none" />
+                </TableRow>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const application = paginatedApplications[virtualRow.index];
+                return (
+                  <ApplicationRow
+                    key={`${application.application_id}-${application.job_id}`}
+                    application={application}
+                    statusColors={APPLICATION_STATUS_COLORS}
+                    handleCopyLink={handleCopyLink}
+                    handleViewApplication={handleViewApplication}
+                    translations={{ actions: translations.actions }}
+                  />
+                );
+              })}
+              {paddingBottom > 0 && (
+                <TableRow aria-hidden="true">
+                  <TableCell colSpan={6} style={{ height: `${paddingBottom}px` }} className="p-0 border-none" />
+                </TableRow>
+              )}
+            </>
           )}
         </TableBody>
       </table>

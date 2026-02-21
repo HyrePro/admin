@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import useSWR from "swr";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
 import { useAuthStore } from "@/store/auth-store";
 import { insertCandidateComment } from "@/lib/supabase/api/candidate-comments";
@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { getStatusBadgeClasses } from "../../../../../../utils/statusColor";
 import dynamic from "next/dynamic";
-import { useApplication } from "./layout";
-import type { CandidateInfo } from "@/lib/supabase/api/get-job-application";
+import { useApplication } from "@/components/application-layout-client";
 
 // Dynamically import the CandidateInfo component
 const CandidateInfoComponent = dynamic(() => import("@/components/candidate-info").then(mod => mod.CandidateInfo), {
@@ -78,10 +77,7 @@ export default function ApplicationInfoPage() {
   const [newNote, setNewNote] = React.useState("");
   const [isSavingNote, setIsSavingNote] = React.useState(false);
   const noteInputRef = React.useRef<HTMLTextAreaElement>(null);
-  const [activityItems, setActivityItems] = React.useState<ActivityItem[]>([]);
-  const [activityPage, setActivityPage] = React.useState(0);
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
-  const [hasMoreActivity, setHasMoreActivity] = React.useState(true);
+  const queryClient = useQueryClient();
 
   const PAGE_SIZE = 10;
 
@@ -175,36 +171,34 @@ export default function ApplicationInfoPage() {
     return response.json();
   };
 
-  const { data: activityData, error: activityError, isLoading: activityLoading, mutate: mutateActivity } = useSWR(
-    applicationId ? ["application-activity", applicationId, activityPage] : null,
-    ([, appId, page]) => fetchActivity(appId, page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1),
-    { revalidateOnFocus: false }
-  );
-
-  React.useEffect(() => {
-    if (!applicationId) return;
-    setActivityItems([]);
-    setActivityPage(0);
-    setHasMoreActivity(true);
-  }, [applicationId]);
+  const activityQuery = useInfiniteQuery({
+    queryKey: ["application-activity", applicationId],
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) =>
+      fetchActivity(applicationId, pageParam * PAGE_SIZE, pageParam * PAGE_SIZE + PAGE_SIZE - 1),
+    enabled: !!applicationId,
+    getNextPageParam: (lastPage, allPages) => {
+      const items = (lastPage?.items as ActivityItem[]) || [];
+      return items.length === PAGE_SIZE ? allPages.length : undefined;
+    },
+    staleTime: 30 * 1000,
+  });
 
   React.useEffect(() => {
     if (!isNotesDialogOpen) return;
     window.setTimeout(() => noteInputRef.current?.focus(), 0);
   }, [isNotesDialogOpen]);
 
-  React.useEffect(() => {
-    if (!activityData?.items) return;
-    const nextItems = activityData.items as ActivityItem[];
-    setActivityItems((prev) => (activityPage === 0 ? nextItems : [...prev, ...nextItems]));
-    setHasMoreActivity(nextItems.length === PAGE_SIZE);
-    setIsLoadingMore(false);
-  }, [activityData, activityPage]);
+  const activityItems =
+    activityQuery.data?.pages.flatMap((page) => (page.items as ActivityItem[]) || []) ?? [];
+  const activityLoading = activityQuery.isLoading;
+  const activityError = activityQuery.error as Error | null;
+  const isLoadingMore = activityQuery.isFetchingNextPage;
+  const hasMoreActivity = activityQuery.hasNextPage ?? false;
 
   const handleLoadMore = () => {
     if (isLoadingMore || !hasMoreActivity) return;
-    setIsLoadingMore(true);
-    setActivityPage((prev) => prev + 1);
+    activityQuery.fetchNextPage();
   };
 
   const handleAddNote = async () => {
@@ -224,10 +218,7 @@ export default function ApplicationInfoPage() {
       toast.success("Note added");
       setNewNote("");
       setNotesDialogOpen(false);
-      setActivityItems([]);
-      setActivityPage(0);
-      setHasMoreActivity(true);
-      await mutateActivity();
+      await queryClient.invalidateQueries({ queryKey: ["application-activity", applicationId] });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add note");
     } finally {

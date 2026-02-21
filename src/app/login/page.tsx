@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
+import { useSearchParams } from "next/navigation"
 import adminAnimation from "@/assets/animations/admin.json"
 import { LoginFormWrapper } from "@/components/login-form-wrapper"
 import HeaderIcon from "@/components/header-icon"
@@ -16,6 +17,10 @@ const Lottie = dynamic(() => import('react-lottie-player/dist/LottiePlayerLight'
 
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const invitation = searchParams.get("invitation")
+  const signupHref = invitation ? `/signup?invitation=${encodeURIComponent(invitation)}` : "/signup"
+
   return (
     <div className="grid min-h-svh lg:grid-cols-5">
       <div className="flex flex-col gap-4 p-6 md:p-10 lg:col-span-2">
@@ -23,7 +28,7 @@ export default function LoginPage() {
           <HeaderIcon />
           <div className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline font-medium" scroll={false}>
+            <Link href={signupHref} className="text-primary hover:underline font-medium" scroll={false}>
               Sign up
             </Link>
           </div>

@@ -62,7 +62,28 @@ export async function POST(req: NextRequest) {
     }
 
     // RPC returns TABLE → first row
-    const result = Array.isArray(data) ? data[0] : data;
+    const rawResult = Array.isArray(data) ? data[0] : data;
+    const result = rawResult && typeof rawResult === 'object'
+      ? {
+          ...rawResult,
+          error:
+            (rawResult as { error?: string; error_message?: string; message?: string }).error ??
+            (rawResult as { error_message?: string }).error_message ??
+            (rawResult as { message?: string }).message,
+          message:
+            (rawResult as { message?: string; error_message?: string }).message ??
+            (rawResult as { error_message?: string }).error_message,
+          requiresConfirmation:
+            (rawResult as { requiresConfirmation?: boolean; requires_confirmation?: boolean }).requiresConfirmation ??
+            (rawResult as { requires_confirmation?: boolean }).requires_confirmation ??
+            false,
+        }
+      : rawResult;
+
+    // Confirmation-required is a handled flow, not a hard API failure.
+    if (result?.requiresConfirmation && !confirmed) {
+      return NextResponse.json(result, { status: 200 });
+    }
 
     // Explicit failure surfaced from SQL
     if (result?.success === false) {

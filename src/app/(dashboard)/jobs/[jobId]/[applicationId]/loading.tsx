@@ -1,4 +1,10 @@
-export default function ApplicationDetailLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function ApplicationDetailLoading() {
+  if (await isWarm("warm_app_detail")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header skeleton */}

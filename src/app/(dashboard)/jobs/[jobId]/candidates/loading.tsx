@@ -1,4 +1,10 @@
-export default function JobCandidatesLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function JobCandidatesLoading() {
+  if (await isWarm("warm_job_candidates")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header skeleton */}

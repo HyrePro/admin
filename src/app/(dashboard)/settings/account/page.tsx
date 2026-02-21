@@ -7,7 +7,7 @@ import { Avatar } from '@radix-ui/react-avatar';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { createClient } from '@/lib/supabase/api/client';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // Generate initials from user name
@@ -21,21 +21,55 @@ const getUserInitials = (name: string) => {
         .slice(0, 2);
 };
 
-// TODO: Consider caching and error handling for this API call
-// Fetcher function for user data
-const fetchUserInfo = async (userId: string) => {
-    if (!userId) return null;
+type AccountUserInfo = {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    phone_no: string | null;
+    avatar: string | null;
+};
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('admin_user_info')
-        .select('*')
-        .eq('id', userId)
-        .single();
+const ACCOUNT_REQUEST_TIMEOUT_MS = 25_000;
 
-    if (error) throw error;
-    // Ensure the returned data is serializable
-    return data ? JSON.parse(JSON.stringify(data)) : null;
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = ACCOUNT_REQUEST_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(input, {
+            ...init,
+            signal: controller.signal,
+        });
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            throw new Error('Account request timed out. Please try again.');
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
+}
+
+const fetchUserInfo = async (): Promise<AccountUserInfo> => {
+    const response = await fetchWithTimeout('/api/settings/account', {
+        method: 'GET',
+        cache: 'no-store',
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        const errorMessage =
+            payload && typeof payload === 'object' && 'error' in payload
+                ? String((payload as { error?: string }).error || 'Failed to load account information')
+                : `Request failed (${response.status})`;
+        throw new Error(errorMessage);
+    }
+
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('Invalid account response');
+    }
+
+    return payload as AccountUserInfo;
 };
 
 
@@ -43,10 +77,13 @@ const fetchUserInfo = async (userId: string) => {
 export default function AccountPage() {
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { data: userInfo, error, isLoading } = useSWR(
-        user?.id ? ['user-info', user.id] : null,
-        ([_, userId]) => fetchUserInfo(userId)
-    );
+    const { data: userInfo, error, isLoading, refetch } = useQuery({
+        queryKey: ['settings', 'account'],
+        queryFn: fetchUserInfo,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+    });
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -122,34 +159,46 @@ export default function AccountPage() {
     };
 
     const handleSaveChanges = async () => {
-        if (!user) return;
-
         setIsSaving(true);
         const toastId = toast.loading('Saving profile...');
 
         try {
             const supabase = createClient();
+            const userId = user?.id ?? userInfo?.id ?? null;
 
             // First, update user info in database
-            // TODO: Consider caching and error handling for this API call
-            const { error: updateError } = await supabase
-                .from('admin_user_info')
-                .update({
+            const updateResponse = await fetchWithTimeout('/api/settings/account', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     first_name: firstName,
                     last_name: lastName,
-                    phone_no: phone
-                })
-                .eq('id', user.id);
+                    phone_no: phone,
+                }),
+                cache: 'no-store',
+            });
 
-            if (updateError) throw updateError;
+            const updatePayload = await updateResponse.json().catch(() => null);
+            if (!updateResponse.ok) {
+                const message =
+                    updatePayload && typeof updatePayload === 'object' && 'error' in updatePayload
+                        ? String((updatePayload as { error?: string }).error || 'Failed to update profile')
+                        : `Update failed (${updateResponse.status})`;
+                throw new Error(message);
+            }
 
             // Then, upload avatar if a new file was selected
             if (selectedFile) {
+                if (!userId) {
+                    throw new Error('User session is not ready. Please refresh and try again.');
+                }
                 toast.loading('Uploading avatar...', { id: toastId });
 
                 // Create file name with timestamp
                 const fileExt = selectedFile.name.split('.').pop();
-                const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+                const fileName = `${userId}/avatar_${Date.now()}.${fileExt}`;
 
                 // TODO: Consider caching and error handling for this API call
                 // Upload file to Supabase Storage in 'profiles' bucket
@@ -171,51 +220,59 @@ export default function AccountPage() {
                 const { error: avatarUpdateError } = await supabase
                     .from('admin_user_info')
                     .update({ avatar: publicUrl })
-                    .eq('id', user.id);
+                    .eq('id', userId);
 
                 if (avatarUpdateError) throw avatarUpdateError;
 
                 // Also update Supabase auth user metadata to sync with navigation
-                const { error: metadataUpdateError } = await supabase.auth.updateUser({
-                    data: {
-                        ...user.user_metadata,
-                        avatar_url: publicUrl
-                    }
-                });
+                if (user) {
+                    const { error: metadataUpdateError } = await supabase.auth.updateUser({
+                        data: {
+                            ...user.user_metadata,
+                            avatar_url: publicUrl
+                        }
+                    });
 
-                if (metadataUpdateError) throw metadataUpdateError;
+                    if (metadataUpdateError) throw metadataUpdateError;
 
-                // Refresh the session to update the auth context
-                await supabase.auth.refreshSession();
+                    // Refresh the session to update the auth context
+                    await supabase.auth.refreshSession();
+                }
 
                 setAvatarUrl(publicUrl);
             } else if (previewUrl === null && avatarUrl === null) {
+                if (!userId) {
+                    throw new Error('User session is not ready. Please refresh and try again.');
+                }
                 // TODO: Consider caching and error handling for this API call
                 // If user removed avatar, update database
                 const { error: avatarUpdateError } = await supabase
                     .from('admin_user_info')
                     .update({ avatar: null })
-                    .eq('id', user.id);
+                    .eq('id', userId);
 
                 if (avatarUpdateError) throw avatarUpdateError;
 
                 // Also update Supabase auth user metadata
-                const { error: metadataUpdateError } = await supabase.auth.updateUser({
-                    data: {
-                        ...user.user_metadata,
-                        avatar_url: null
-                    }
-                });
+                if (user) {
+                    const { error: metadataUpdateError } = await supabase.auth.updateUser({
+                        data: {
+                            ...user.user_metadata,
+                            avatar_url: null
+                        }
+                    });
 
-                if (metadataUpdateError) throw metadataUpdateError;
+                    if (metadataUpdateError) throw metadataUpdateError;
 
-                // Refresh the session to update the auth context
-                await supabase.auth.refreshSession();
+                    // Refresh the session to update the auth context
+                    await supabase.auth.refreshSession();
+                }
             }
 
             // Reset preview and selected file after successful save
             setPreviewUrl(null);
             setSelectedFile(null);
+            await refetch();
 
             toast.success('Profile updated successfully!', { id: toastId });
         } catch (error: unknown) {
@@ -271,8 +328,12 @@ export default function AccountPage() {
     }
 
     if (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         return <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700">Error loading user information: {error.message}</p>
+            <p className="text-red-700">Error loading user information: {message}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => void refetch()}>
+                Retry
+            </Button>
         </div>;
     }
 

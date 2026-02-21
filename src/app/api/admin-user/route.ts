@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { resolveUser } from '@/lib/supabase/api/route-auth'
 
 interface AdminUserInsertData {
   first_name: string
@@ -10,23 +10,12 @@ interface AdminUserInsertData {
   id?: string
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
-// Ensure service role key is available for admin operations
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations')
-}
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
-
 export async function POST(request: NextRequest) {
   try {
+    const auth = await resolveUser(request)
+    if (auth.error || !auth.supabaseService) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized. Please log in.' }, { status: auth.status || 401 })
+    }
     const body = await request.json()
     const { first_name, last_name, email, phone_no, user_id } = body
 
@@ -52,7 +41,7 @@ export async function POST(request: NextRequest) {
       insertData.id = user_id
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await auth.supabaseService
       .from('admin_user_info')
       .insert([insertData])
       .select()

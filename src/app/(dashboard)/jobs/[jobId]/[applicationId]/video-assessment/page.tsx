@@ -2,7 +2,8 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useApplication } from "../layout";
+import { useApplication } from "@/components/application-layout-client";
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 // Dynamically import the VideoAssessment component to reduce initial bundle size
 const VideoAssessmentComponent = dynamic(() => import("@/components/video-assessment").then(mod => mod.VideoAssessment), {
@@ -16,6 +17,7 @@ const VideoAssessmentComponent = dynamic(() => import("@/components/video-assess
 
 export default function VideoAssessmentPage() {
   const { applicationStage, loading } = useApplication();
+  useWarmRoute("warm_app_video", !loading, 60);
 
   if (loading) {
     return (

@@ -41,6 +41,7 @@ import { JobFunnelVisualizations } from '@/components/job-funnel-visualizations'
 import { DemoAnalytics } from '@/components/demo-analytics';
 import { getDemoAnalytics, type DemoAnalytics as DemoAnalyticsType } from '@/lib/supabase/api/get-demo-analytics';
 import { getInterviewAnalytics, type InterviewAnalytics as InterviewAnalyticsType } from '@/lib/supabase/api/get-interview-analytics';
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 interface JobOverviewAnalyticsProps {
   jobId: string;
@@ -121,6 +122,7 @@ const JobOverviewAnalyticsComponent = ({ jobId }: JobOverviewAnalyticsProps) => 
   const [demoError, setDemoError] = React.useState<string | null>(null);
   const [interviewError, setInterviewError] = React.useState<string | null>(null);
   const [selectedMetric, setSelectedMetric] = React.useState<string>('total'); // Default to 'total'
+  useWarmRoute("warm_job_analytics", !loading, 60);
 
   React.useEffect(() => {
     const fetchData = async () => {

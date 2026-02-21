@@ -99,3 +99,70 @@ The function accepts a period parameter with values: 'day', 'week', 'month', or 
   - Query parameters:
     - `schoolId` (required) - UUID of the school
     - `period` (optional) - Filter period: 'day', 'week', 'month', or 'all' (default)
+
+## Data Layer Architecture (TanStack Query + SWR)
+
+This project uses a **server-first** data flow:
+
+1. **Server Components** resolve auth and prefetch data.
+2. **TanStack Query** hydrates and owns client cache/state.
+3. **SWR** is used only for manual refresh/polling triggers (`router.refresh()` + query invalidation).
+
+### Core Files
+
+- Query client (request-scoped + browser singleton):  
+  `src/lib/query/query-client.ts`
+- Top-level query provider + hydration boundary:  
+  `src/components/providers/query-provider.tsx`
+- Typed query keys:  
+  `src/lib/query/query-keys.ts`
+- Typed contracts/fetchers (dashboard/jobs/candidates/interviews + candidate funnel):  
+  `src/lib/query/contracts/dashboard.ts`  
+  `src/lib/query/contracts/jobs.ts`  
+  `src/lib/query/contracts/candidates.ts`  
+  `src/lib/query/contracts/interviews.ts`  
+  `src/lib/query/fetchers/dashboard.ts`  
+  `src/lib/query/fetchers/jobs.ts`  
+  `src/lib/query/fetchers/candidates.ts`  
+  `src/lib/query/fetchers/interviews.ts`  
+  `src/lib/query/contracts/candidate-funnel.ts`  
+  `src/lib/query/fetchers/candidate-funnel.ts`
+- SWR refresh/polling utilities:  
+  `src/hooks/use-swr-refresh.ts`  
+  `src/components/data/swr-refresh-polling-controls.tsx`
+
+### Full Hydrated Page Example
+
+- Server prefetch + dehydrate:
+  `src/app/(dashboard)/page.tsx`
+  `src/app/(dashboard)/jobs/page.tsx`
+  `src/app/(dashboard)/jobs/[jobId]/candidates/page.tsx`
+  `src/app/(dashboard)/candidates/page.tsx`
+  `src/app/(dashboard)/interviews/page.tsx`
+  `src/app/(dashboard)/analytics/candidate-funnel/page.tsx`
+- Client queries from hydrated cache:
+  `src/components/pages/jobs-page-client.tsx`
+  `src/components/pages/candidates-page-client.tsx`
+  `src/components/pages/interviews-page-client.tsx`
+  `src/components/analytics/candidate-funnel/candidate-funnel-page-client.tsx`
+
+### Do / Don't
+
+- **Do** prefetch protected data on the server whenever possible.
+- **Do** use typed query key factories (`queryKeys.*`) for consistency.
+- **Do** keep `useQuery` as the source of truth for UI data.
+- **Do** use SWR only to trigger refresh loops, not to store domain data.
+- **Don't** fetch auth/session in client components for protected APIs.
+- **Don't** run parallel client fetches for data already prefetched server-side.
+- **Don't** mix ad-hoc string query keys across features.
+
+### Extension Guide
+
+To add a new feature module:
+
+1. Add typed request/response contracts in `src/lib/query/contracts/*`.
+2. Add typed key factory entries in `src/lib/query/query-keys.ts`.
+3. Add fetcher + query options in `src/lib/query/fetchers/*`.
+4. Server page: prefetch with request-scoped QueryClient and `dehydrate`.
+5. Client component: call `useQuery` with the same query options/key.
+6. Add SWR refresh controls only if manual refresh or polling is needed.

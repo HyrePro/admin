@@ -15,7 +15,6 @@ import {
 import { User } from '@supabase/supabase-js';
 import HeaderIcon from '@/components/header-icon';
 import { NavUser } from '@/components/nav-user';
-import { useAuth } from '@/context/auth-context';
 
 interface InvitationClientProps {
   invitation: {
@@ -44,20 +43,33 @@ export default function InvitationClient({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
-  // Get auth context for NavUser component
-  const { user: authUser } = useAuth();
-  
-  // Get user data for NavUser component
-  const getUserData = () => {
-    if (!authUser) return { name: 'Loading...', email: '', avatar: '' };
-    
-    return {
-      name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || authUser.id || 'User',
-      email: authUser.user_metadata?.email || authUser.email || '',
-      avatar: authUser.user_metadata?.avatar_url || ''
+
+  const extractApiError = (payload: unknown): string => {
+    if (!payload || typeof payload !== 'object') {
+      return 'Request failed';
+    }
+
+    const response = payload as {
+      error?: string;
+      error_message?: string;
+      message?: string;
     };
+
+    return (
+      response.error ||
+      response.error_message ||
+      response.message ||
+      'Request failed'
+    );
   };
+
+  const navUser = user
+    ? {
+        name: user.user_metadata?.name || user.email?.split('@')[0] || user.id || 'User',
+        email: user.user_metadata?.email || user.email || '',
+        avatar: user.user_metadata?.avatar_url || '',
+      }
+    : null;
 
   useEffect(() => {
     if (showEmailMismatchNotification) {
@@ -88,12 +100,14 @@ export default function InvitationClient({
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
-
       if (data.requiresConfirmation && !confirmed) {
         setShowConfirmModal(true);
         setLoading(false);
         return;
+      }
+
+      if (!res.ok) {
+        throw new Error(extractApiError(data));
       }
 
       toast.success('Invitation accepted');
@@ -117,7 +131,7 @@ export default function InvitationClient({
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(extractApiError(data));
 
       toast.info('Invitation declined');
       router.push('/');
@@ -138,8 +152,8 @@ export default function InvitationClient({
     <div className="top-0 z-50 bg-white border-b border-slate-200 px-4 absolute w-full">
       <div className="mx-auto py-2 flex items-center justify-between">
         <HeaderIcon />
-        {authUser && (
-          <NavUser user={getUserData()} />
+        {navUser && (
+          <NavUser user={navUser} />
         )}
       </div>
     </div>

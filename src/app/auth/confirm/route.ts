@@ -1,36 +1,67 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/api/server'
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
+  const requestUrl = new URL(request.url)
+  const { searchParams } = requestUrl
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/select-organization'
+  const next = searchParams.get('next')
+  const isPkceToken = token_hash?.startsWith('pkce_') ?? false
 
-  console.log('token_hash:', token_hash)
-  console.log('type:', type)
-  console.log('next:', next)
+  const getDefaultNextPath = () => {
+    if (type === 'recovery') {
+      return '/auth/reset-password'
+    }
+    return '/select-organization'
+  }
+
+  const normalizeNextPath = () => {
+    const defaultNextPath = getDefaultNextPath()
+
+    if (!next) {
+      return defaultNextPath
+    }
+
+    try {
+      const nextUrl = new URL(next, requestUrl.origin)
+      if (nextUrl.origin !== requestUrl.origin) {
+        return defaultNextPath
+      }
+
+      const normalizedPath = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+      return normalizedPath || defaultNextPath
+    } catch {
+      return defaultNextPath
+    }
+  }
+
+  const safeNextPath = normalizeNextPath()
+  const isResetTarget = safeNextPath.startsWith('/auth/reset-password')
 
   if (token_hash && type) {
     const supabase = await createClient()
-    
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    })
+    const verificationTypes: EmailOtpType[] = [type]
 
-    if (!error) {
-      // Redirect user to specified redirect URL
-      redirect(next)
+    // Some Supabase email templates send PKCE recovery links as type=email.
+    if (type === 'email' && isPkceToken && isResetTarget) {
+      verificationTypes.push('recovery')
     }
 
-    console.error('Error verifying OTP:', error)
+    for (const verificationType of verificationTypes) {
+      const { error } = await supabase.auth.verifyOtp({
+        type: verificationType,
+        token_hash,
+      })
+
+      if (!error) {
+        return NextResponse.redirect(new URL(safeNextPath, requestUrl.origin))
+      }
+    }
   } else {
     console.error('Invalid OTP verification parameters', token_hash, type)
   }
 
-  // Redirect the user to an error page with instructions
-  redirect('/auth/auth-code-error')
+  return NextResponse.redirect(new URL('/auth/auth-code-error', requestUrl.origin))
 }

@@ -1,4 +1,10 @@
-export default function JobDetailLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function JobDetailLoading() {
+  if (await isWarm("warm_job_detail")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Header skeleton */}

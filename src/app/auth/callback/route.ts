@@ -1,6 +1,5 @@
 // Create service client for admin operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/api/server'
@@ -15,7 +14,8 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') ?? '/'
-  const cookieStore = await cookies()
+  const safeNextPath = next.startsWith('/') && !next.startsWith('//') ? next : null
+  const isInvitationPath = safeNextPath?.startsWith('/invite/') ?? false
 
   if (code) {
     const supabase = await createClient()
@@ -44,6 +44,11 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Invitation accepts should take precedence over school checks.
+        if (isInvitationPath && safeNextPath) {
+          return NextResponse.redirect(`${requestUrl.origin}${safeNextPath}`)
+        }
+
         // Check user's school_id status to determine where to redirect
         try {
           const { data: userInfo, error: userInfoError } = await supabase
@@ -56,8 +61,8 @@ export async function GET(request: NextRequest) {
             console.error('Error fetching user info:', userInfoError)
             // If we can't determine user info, redirect to select organization
             // But respect the 'next' parameter if it's a valid path
-            if (next && next.startsWith('/') && !next.startsWith('//')) {
-              return NextResponse.redirect(`${requestUrl.origin}${next}`)
+            if (safeNextPath) {
+              return NextResponse.redirect(`${requestUrl.origin}${safeNextPath}`)
             }
             return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
           }
@@ -65,8 +70,8 @@ export async function GET(request: NextRequest) {
           // If user has a school_id, redirect to the next path or dashboard
           if (userInfo && userInfo.school_id) {
             // Security: Validate the redirect path is relative to prevent open redirect vulnerabilities
-            if (next && next.startsWith('/') && !next.startsWith('//')) {
-              return NextResponse.redirect(`${requestUrl.origin}${next}`)
+            if (safeNextPath) {
+              return NextResponse.redirect(`${requestUrl.origin}${safeNextPath}`)
             }
             return NextResponse.redirect(`${requestUrl.origin}/`)
           } 
@@ -78,8 +83,8 @@ export async function GET(request: NextRequest) {
           console.error('Error checking user organization status:', error)
           // If there's an error checking user info, redirect to select organization
           // But respect the 'next' parameter if it's a valid path
-          if (next && next.startsWith('/') && !next.startsWith('//')) {
-            return NextResponse.redirect(`${requestUrl.origin}${next}`)
+          if (safeNextPath) {
+            return NextResponse.redirect(`${requestUrl.origin}${safeNextPath}`)
           }
           return NextResponse.redirect(`${requestUrl.origin}/select-organization`)
         }

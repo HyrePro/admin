@@ -2,7 +2,6 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useJob } from "@/app/(dashboard)/jobs/[jobId]/layout";
 
 // Dynamically import heavy components to reduce initial bundle size
 const JobOverviewAnalytics = dynamic(() => import("@/components/job-overview-analytics").then(mod => mod.JobOverviewAnalytics), {
@@ -26,7 +25,6 @@ interface JobAnalyticsPageProps {
 }
 
 export default function JobAnalyticsPage({ params }: JobAnalyticsPageProps) {
-  const { job } = useJob();
   const { jobId } = React.use(params);
   
   return (

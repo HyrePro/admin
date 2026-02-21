@@ -11,8 +11,8 @@ import Image from "next/image"
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
 import { useAuthWithFallback } from "@/hooks/use-auth-with-fallback"
+import { getClientAuthOrigin } from "@/lib/auth/get-client-auth-origin"
 
 // Dynamically import the forgot password dialog to reduce initial bundle size
 const ForgotPasswordDialog = dynamic(() => import("@/components/forgot-password-dialog").then(mod => mod.ForgotPasswordDialog), {
@@ -39,7 +39,7 @@ export function LoginForm({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [error, setError] = useState("")
   const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false)
-  const [invitation, setInvitation] = useState<string | null>(initialInvitation || null)
+  const invitation = initialInvitation || null
   const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
   const { user, loading } = useAuthWithFallback()
@@ -61,11 +61,15 @@ export function LoginForm({
   // Redirect user if they're already logged in
   useEffect(() => {
     if (!loading && user) {
+      if (invitation) {
+        router.replace(`/invite/${invitation}`)
+        return
+      }
       console.log('User already logged in, checking school info')
       // Check if user has school info and redirect accordingly
       checkUserSchoolInfo()
     }
-  }, [user, loading])
+  }, [user, loading, invitation, router])
 
   const checkUserSchoolInfo = async () => {
     if (!user) return
@@ -132,6 +136,10 @@ export function LoginForm({
     return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
   }
 
+  const hasUsableRedirect = (path: string | null | undefined): path is string => {
+    return typeof path === 'string' && path.trim() !== '' && path !== '/' && isValidRedirectPath(path)
+  }
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -167,7 +175,7 @@ export function LoginForm({
           redirectPath = `/invite/${invitation}`
         }
         // Otherwise, use the initial redirect parameter passed to the component
-        else if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+        else if (hasUsableRedirect(initialRedirect)) {
           redirectPath = initialRedirect
         }
         
@@ -191,10 +199,11 @@ export function LoginForm({
     
     try {
       // Prepare redirect URL with parameters if they exist
-      let redirectTo = `${window.location.origin}/auth/callback`
+      const authOrigin = getClientAuthOrigin()
+      let redirectTo = `${authOrigin}/auth/callback`
       
       // Add redirect parameter to the callback URL if it exists
-      if (initialRedirect && isValidRedirectPath(initialRedirect)) {
+      if (hasUsableRedirect(initialRedirect)) {
         const url = new URL(redirectTo)
         url.searchParams.set('next', initialRedirect)
         redirectTo = url.toString()

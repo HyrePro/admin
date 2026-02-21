@@ -1,47 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { resolveUserAndSchoolId } from '@/lib/supabase/api/route-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Validate required environment variables
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Supabase URL or anon key is not configured');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-
-    if (!supabaseServiceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY is not configured');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    // Service client for database operations
-    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get Authorization header
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Missing Authorization header' },
-        { status: 401 }
-      );
-    }
-    
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabaseService.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const auth = await resolveUserAndSchoolId(request);
+    if (auth.error || !auth.schoolId || !auth.supabaseService) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status || 401 });
     }
 
     // Get schoolId from query parameters
@@ -54,9 +18,16 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    if (schoolId !== auth.schoolId) {
+      return NextResponse.json(
+        { error: 'Invalid school context' },
+        { status: 403 }
+      );
+    }
 
     // Call the database function to get invite data
-    const { data, error } = await supabaseService
+    const { data, error } = await auth.supabaseService
       .rpc('get_invite_data', { p_school_id: schoolId });
 
     if (error) {

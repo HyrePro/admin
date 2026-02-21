@@ -1,4 +1,10 @@
-export default function JobAnalyticsLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function JobAnalyticsLoading() {
+  if (await isWarm("warm_job_analytics")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Stats cards skeleton */}

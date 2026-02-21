@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useJob } from "@/app/(dashboard)/jobs/[jobId]/layout";
+import { useJob } from "@/components/job-layout-client";
 
 // Dynamically import heavy components to reduce initial bundle size
 const JobOverview = dynamic(() => import("@/components/job-overview").then(mod => mod.JobOverview), {

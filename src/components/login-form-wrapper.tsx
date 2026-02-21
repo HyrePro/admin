@@ -2,21 +2,17 @@
 
 import { LoginForm } from "@/app/login/LoginForm"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
 
 export function LoginFormWrapper() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState<string | null>(null)
-  const [redirect, setRedirect] = useState<string | null>(null)
-  const [invitation, setInvitation] = useState<string | null>(null)
-
-  useEffect(() => {
-    setEmail(searchParams.get('email'))
-    const redirectParam = searchParams.get('redirect')
-    // Only set redirect if it's not an empty string
-    setRedirect(redirectParam && redirectParam.trim() !== '' ? redirectParam : null)
-    setInvitation(searchParams.get('invitation'))
-  }, [searchParams])
+  const email = searchParams.get('email')
+  const redirectParam = searchParams.get('redirect')
+  const isMeaningfulRedirect =
+    redirectParam &&
+    redirectParam.trim() !== '' &&
+    redirectParam.trim() !== '/'
+  const redirect = isMeaningfulRedirect ? redirectParam : null
+  const invitation = searchParams.get('invitation')
 
   return <LoginForm email={email} redirect={redirect} invitation={invitation} />
 }

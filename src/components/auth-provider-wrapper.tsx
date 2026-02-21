@@ -1,9 +1,12 @@
 'use client';
 
 import { AuthProvider } from '@/context/auth-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { useSchoolIdInitializer } from '@/hooks/use-school-id-initializer';
+import { useAuthStore } from '@/store/auth-store';
+import React, { useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { QueryProvider } from '@/components/providers/query-provider';
 
 // Component wrapper for the school ID initializer hook
 function SchoolIdInitializerComponent() {
@@ -11,31 +14,44 @@ function SchoolIdInitializerComponent() {
   return null;
 }
 
-export function AuthProviderWrapper({ children }: { children: React.ReactNode }) {
-  // Create a single instance of QueryClient for the entire app
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 15 * 60 * 1000, // 15 minutes
-        refetchOnWindowFocus: true, // Refetch on window focus
-        refetchOnReconnect: true, // Refetch on network reconnect
-        retry: 2, // Retry failed queries twice
-        retryDelay: (attemptIndex) => {
-          // Exponential backoff: 1s, 2s, 4s, etc.
-          return Math.min(1000 * 2 ** attemptIndex, 30000);
-        },
-      },
-    },
-  });
+function InitialAuthHydrator({
+  initialUser,
+  initialSchoolId,
+}: {
+  initialUser: User | null;
+  initialSchoolId: string | null;
+}) {
+  const { setUser, setSchoolId } = useAuthStore();
 
+  useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+    }
+    if (initialSchoolId) {
+      setSchoolId(initialSchoolId);
+    }
+  }, [initialUser, initialSchoolId, setUser, setSchoolId]);
+
+  return null;
+}
+
+export function AuthProviderWrapper({
+  children,
+  initialUser = null,
+  initialSchoolId = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: User | null;
+  initialSchoolId?: string | null;
+}) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+    <QueryProvider>
+      <AuthProvider initialUser={initialUser}>
+        <InitialAuthHydrator initialUser={initialUser} initialSchoolId={initialSchoolId} />
         <SchoolIdInitializerComponent />
         {children}
         <Toaster position="top-center" />
       </AuthProvider>
-    </QueryClientProvider>
+    </QueryProvider>
   );
 }

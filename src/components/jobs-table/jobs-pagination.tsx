@@ -51,17 +51,6 @@ const JobsPagination: React.FC<JobsPaginationProps> = ({
   translations,
   jobSearchInputRef
 }) => {
-  console.log('JobsPagination:', { 
-    currentPage, 
-    totalPages, 
-    startIndex, 
-    endIndex, 
-    totalDisplayCount, 
-    hasNextPage, 
-    hasPreviousPage,
-    isFetchingNextPage 
-  });
-
   return (
     <div 
       className="pagination-container flex-shrink-0 w-full flex items-center justify-between gap-4 py-2" 

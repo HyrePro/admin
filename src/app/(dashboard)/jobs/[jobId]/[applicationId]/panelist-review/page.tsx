@@ -2,7 +2,8 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useApplication } from "../layout";
+import { useApplication } from "@/components/application-layout-client";
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 // Dynamically import the PanelistReview component to reduce initial bundle size
 const PanelistReviewComponent = dynamic(() => import("@/components/panelist-review").then(mod => mod.PanelistReview), {
@@ -16,6 +17,7 @@ const PanelistReviewComponent = dynamic(() => import("@/components/panelist-revi
 
 export default function PanelistReviewPage() {
   const { applicationId, loading } = useApplication();
+  useWarmRoute("warm_app_panelist", !loading, 60);
 
   if (loading) {
     return (

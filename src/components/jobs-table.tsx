@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useJobsTable } from '@/hooks/useJobsTable';
 import {
   Table,
@@ -63,14 +64,8 @@ function JobsTableComponent({
   onPageSizeChange,
   onSortChange
 }: JobsTableProps) {
-  console.log('JobsTableComponent rendered with:', { 
-    totalJobsCount, 
-    jobsLength: jobs?.length, 
-    originalJobsLength: originalJobs?.length,
-    serverSidePagination 
-  });
-  
   const router = useRouter();
+  const tableScrollRef = React.useRef<HTMLDivElement>(null);
   
   const {
     // State
@@ -271,6 +266,24 @@ function JobsTableComponent({
     );
   }
 
+  const rowVirtualizer = useVirtualizer({
+    count: paginatedJobs.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  });
+
+  const shouldVirtualize = paginatedJobs.length > 50;
+  const virtualRows = shouldVirtualize
+    ? rowVirtualizer.getVirtualItems()
+    : paginatedJobs.map((_, index) => ({ index, start: 0, end: 0 }));
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = shouldVirtualize && virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    shouldVirtualize && virtualRows.length > 0
+      ? totalSize - virtualRows[virtualRows.length - 1].end
+      : 0;
+
   return (
    <div className="flex flex-col h-full min-h-0">
       {/* Search and filters */}
@@ -357,7 +370,7 @@ function JobsTableComponent({
     
       {/* Table Container - fills remaining space */}
       <div className="table-container h-full overflow-hidden">
-        <div className="h-full overflow-auto">
+        <div className="h-full overflow-auto relative" ref={tableScrollRef}>
           <table role="table" aria-label="Jobs table" aria-describedby="table-description">
             <caption id="table-description" className="sr-only">Job listings with title, applications, status, creation date, grade levels, hiring manager, and actions</caption>
             <TableHeader className="table-header sticky top-0 z-20 bg-white border-b">
@@ -508,19 +521,32 @@ function JobsTableComponent({
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedJobs.map((job) => {
-                  return (
-                    <JobRow
-                      key={job.id}
-                      job={job}
-                      statusColors={jobStatusColors}
-                      handleCopyLink={handleCopyLink}
-                      handleViewJob={handleViewJob}
-                      updateJobStatusOptimistically={updateJobStatusOptimistically}
-                      translations={{ actions }}
-                    />
-                  );
-                })
+                <>
+                  {paddingTop > 0 && (
+                    <TableRow aria-hidden="true">
+                      <TableCell colSpan={7} style={{ height: `${paddingTop}px` }} className="p-0 border-none" />
+                    </TableRow>
+                  )}
+                  {virtualRows.map((virtualRow) => {
+                    const job = paginatedJobs[virtualRow.index];
+                    return (
+                      <JobRow
+                        key={job.id}
+                        job={job}
+                        statusColors={jobStatusColors}
+                        handleCopyLink={handleCopyLink}
+                        handleViewJob={handleViewJob}
+                        updateJobStatusOptimistically={updateJobStatusOptimistically}
+                        translations={{ actions }}
+                      />
+                    );
+                  })}
+                  {paddingBottom > 0 && (
+                    <TableRow aria-hidden="true">
+                      <TableCell colSpan={7} style={{ height: `${paddingBottom}px` }} className="p-0 border-none" />
+                    </TableRow>
+                  )}
+                </>
               )}
             </TableBody>
           </table>

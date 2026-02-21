@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching weekly activity data:', error);
       // Return fallback data on error
-      return NextResponse.json([
+      const response = NextResponse.json([
         { period: 'Mon', total_applications: 10 },
         { period: 'Tue', total_applications: 12 },
         { period: 'Wed', total_applications: 8 },
@@ -44,13 +44,17 @@ export async function GET(request: NextRequest) {
         { period: 'Sat', total_applications: 5 },
         { period: 'Sun', total_applications: 5 },
       ]);
+      response.headers.set('Cache-Control', 'private, max-age=60');
+      return response;
     }
 
-    return NextResponse.json(data || []);
+    const response = NextResponse.json(data || []);
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
   } catch (error) {
     console.error('Unexpected error in weekly-activity API route:', error);
     // Return fallback data on unexpected error
-    return NextResponse.json([
+    const response = NextResponse.json([
       { period: 'Mon', total_applications: 10 },
       { period: 'Tue', total_applications: 12 },
       { period: 'Wed', total_applications: 8 },
@@ -59,5 +63,7 @@ export async function GET(request: NextRequest) {
       { period: 'Sat', total_applications: 5 },
       { period: 'Sun', total_applications: 5 },
     ]);
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
   }
 }

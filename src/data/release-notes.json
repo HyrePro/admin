@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.0.2",
+      "date": "2026-02-06",
+      "type": "ui",
+      "summary": "Fix other subject selection",
+      "changes": [
+        "Fix other subject selection"
+      ]
+    },
+    {
       "version": "0.0.1",
       "date": "2026-02-04",
       "type": "ui",

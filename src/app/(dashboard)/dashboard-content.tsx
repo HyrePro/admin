@@ -1,7 +1,6 @@
 'use client'
 import { Button } from "@/components/ui/button"
 import { Plus, Users, Briefcase, TvMinimalIcon, BookText } from "@/components/icons"
-import { useAuth } from "@/context/auth-context"
 import {
   Empty,
   EmptyContent,
@@ -15,6 +14,7 @@ import { DashboardCard } from "@/components/dashboard-card"
 import dynamic from "next/dynamic"
 import { CardAction, CardTitle } from "@/components/ui/card"
 import { SchoolJobsContainer } from "@/components/school-job-campaign"
+import { useWarmRoute } from "@/hooks/use-warm-route"
 
 const HiringProgressChart = dynamic(() => import("@/components/hiring-progress-chart").then(mod => mod.default), {
   ssr: false,
@@ -62,8 +62,8 @@ export function DashboardContent({
   dashboardStats = null, 
   error = false 
 }: DashboardContentProps) {
-  const { user } = useAuth()
   const router = useRouter()
+  useWarmRoute("warm_dashboard", true, 1800)
 
   // Loading state would be handled by the server component before this renders
   // Error state

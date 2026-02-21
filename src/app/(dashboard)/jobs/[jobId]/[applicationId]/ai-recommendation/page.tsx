@@ -2,7 +2,8 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useApplication } from "../layout";
+import { useApplication } from "@/components/application-layout-client";
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 // Dynamically import the AIRecommendation component to reduce initial bundle size
 const AIRecommendationComponent = dynamic(() => import("@/components/ai-recommendation").then(mod => mod.AIRecommendation), {
@@ -16,6 +17,7 @@ const AIRecommendationComponent = dynamic(() => import("@/components/ai-recommen
 
 export default function AIRecommendationPage() {
   const { applicationId, loading } = useApplication();
+  useWarmRoute("warm_app_ai", !loading, 60);
 
   if (loading) {
     return (

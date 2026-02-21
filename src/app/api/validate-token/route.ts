@@ -102,7 +102,6 @@ export async function POST(req: NextRequest) {
     // Determine school_id from multiple sources
     const schoolId = tokenData.school_id || jobData?.school_id;
 
-    console.log('School ID determined:', schoolId);
 
     // Fetch rubrics if we have a school_id
     let rubrics = null;
@@ -142,9 +141,6 @@ export async function POST(req: NextRequest) {
       jobs: jobData
     };
 
-    console.log('Complete application data:', completeApplication);
-    console.log('Selected rubric:', rubrics);
-    console.log('School data:', schoolData);
 
     // Return token data and application info
     return NextResponse.json({

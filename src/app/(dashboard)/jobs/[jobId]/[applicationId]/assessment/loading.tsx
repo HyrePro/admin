@@ -1,4 +1,10 @@
-export default function AssessmentLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function AssessmentLoading() {
+  if (await isWarm("warm_app_assessment")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header skeleton */}

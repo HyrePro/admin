@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data?.[0] || {});
+    const response = NextResponse.json(data?.[0] || {});
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
   } catch (error) {
     console.error('Unexpected error in hiring-progress API route:', error);
     return NextResponse.json(

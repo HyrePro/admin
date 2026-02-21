@@ -38,7 +38,7 @@ interface DemoAnalyticsProps {
 
 // Prepare category metrics data for demo visualization
 export const prepareCategoryMetricsData = (demoAnalyticsData: DemoAnalytics | null) => {
-  if (!demoAnalyticsData) return [];
+  if (!demoAnalyticsData?.category_scores) return [];
 
   return Object.entries(demoAnalyticsData.category_scores).map(([category, metrics]) => ({
     name: category,
@@ -89,6 +89,18 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
 export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDemo, setLoadingDemo, errorDemo = null }: DemoAnalyticsProps) {
 
   const categoryMetricsData = React.useMemo(() => prepareCategoryMetricsData(demoAnalyticsData), [demoAnalyticsData]);
+  const categoryScores = demoAnalyticsData?.category_scores ?? {};
+  const overallScores = demoAnalyticsData?.overall_scores ?? {
+    avg_score: 0,
+    max_score: 0,
+    evaluated_count: 0,
+  };
+  const demoFunnel = demoAnalyticsData?.demo_funnel ?? {
+    started: 0,
+    submitted: 0,
+    passed: 0,
+    failed: 0,
+  };
 
   if (loadingDemo) {
     return (
@@ -118,7 +130,7 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
   }
 
   // Get sorted categories by performance
-  const sortedCategories = Object.entries(demoAnalyticsData.category_scores)
+  const sortedCategories = Object.entries(categoryScores)
     .sort(([, a], [, b]) => b.avg_score - a.avg_score);
 
   const bestCategory = sortedCategories.length > 0 ? sortedCategories[0] : null;
@@ -130,10 +142,10 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
 
   // Prepare data for the pie chart
   const funnelData = [
-    { name: 'Passed', value: demoAnalyticsData.demo_funnel.passed, fill: '#10b981' },
-    { name: 'Failed', value: demoAnalyticsData.demo_funnel.failed, fill: '#ef4444' },
-    { name: 'Eligible', value: demoAnalyticsData.demo_funnel.started, fill: '#3b82f6' },
-    { name: 'Submitted', value: demoAnalyticsData.demo_funnel.submitted, fill: '#f59e0b' },
+    { name: 'Passed', value: demoFunnel.passed, fill: '#10b981' },
+    { name: 'Failed', value: demoFunnel.failed, fill: '#ef4444' },
+    { name: 'Eligible', value: demoFunnel.started, fill: '#3b82f6' },
+    { name: 'Submitted', value: demoFunnel.submitted, fill: '#f59e0b' },
   ];
 
   return (
@@ -146,21 +158,21 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Average Score</h3>
                 <p className="text-2xl font-bold text-indigo-600">
-                  {demoAnalyticsData!.overall_scores.avg_score.toFixed(2)}
+                  {overallScores.avg_score.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500">out of max score</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Max Score</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {demoAnalyticsData!.overall_scores.max_score.toFixed(2)}
+                  {overallScores.max_score.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-500">highest achieved</p>
               </div>
               <div className="border rounded-lg p-4">
                 <h3 className="font-medium">Evaluated Count</h3>
                 <p className="text-2xl font-bold text-amber-600">
-                  {demoAnalyticsData!.overall_scores.evaluated_count}
+                  {overallScores.evaluated_count}
                 </p>
                 <p className="text-sm text-gray-500">candidates</p>
               </div>
@@ -191,10 +203,10 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
                 <BarChart
                   data={[{
                     name: 'Metrics',
-                    eligible: demoAnalyticsData!.demo_funnel.started,
-                    submitted: demoAnalyticsData!.demo_funnel.submitted,
-                    passed: demoAnalyticsData!.demo_funnel.passed,
-                    failed: demoAnalyticsData!.demo_funnel.failed,
+                    eligible: demoFunnel.started,
+                    submitted: demoFunnel.submitted,
+                    passed: demoFunnel.passed,
+                    failed: demoFunnel.failed,
                   }]}
                   margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
                 >
@@ -265,12 +277,12 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Category Count */}
             <div className="border rounded-lg p-4 min-h-[120px]">
-              <h3 className="font-medium text-gray-600">Categories</h3>
-              <p className="text-2xl font-bold text-sky-600">
-                {Object.keys(demoAnalyticsData!.category_scores).length}
-              </p>
-              <p className="text-sm text-gray-500">Total assessment areas</p>
-            </div>
+                <h3 className="font-medium text-gray-600">Categories</h3>
+                <p className="text-2xl font-bold text-sky-600">
+                  {Object.keys(categoryScores).length}
+                </p>
+                <p className="text-sm text-gray-500">Total assessment areas</p>
+              </div>
 
             {/* Performance Range */}
             <div className="border rounded-lg p-4 min-h-[120px]">
@@ -282,7 +294,7 @@ export function DemoAnalytics({ jobId, chartConfig, demoAnalyticsData, loadingDe
             </div>
             
             {/* Map through all categories */}
-            {Object.entries(demoAnalyticsData!.category_scores).map(([categoryName, metrics]) => (
+            {Object.entries(categoryScores).map(([categoryName, metrics]) => (
               <div key={categoryName} className="border rounded-lg p-4 min-h-[120px]">
                 <h3 className="font-medium text-gray-600 text-sm">{categoryName}</h3>
                 <p className="text-2xl font-bold text-blue-600 mt-1">

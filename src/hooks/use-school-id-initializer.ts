@@ -11,16 +11,19 @@ import { createClient } from '@/lib/supabase/api/client';
  */
 export function useSchoolIdInitializer() {
   const { user, loading } = useAuth();
-  const { setSchoolId } = useAuthStore();
+  const { schoolId, setSchoolId } = useAuthStore();
 
   useEffect(() => {
     if (!loading && user) {
+      if (schoolId) {
+        return;
+      }
       fetchAndSetSchoolId();
     } else if (!user) {
       // Clear schoolId if user logs out
       setSchoolId(null);
     }
-  }, [user, loading, setSchoolId]);
+  }, [user, loading, schoolId, setSchoolId]);
 
   const fetchAndSetSchoolId = async () => {
     if (!user) return;

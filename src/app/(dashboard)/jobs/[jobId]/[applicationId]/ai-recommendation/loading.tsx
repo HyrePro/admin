@@ -1,4 +1,10 @@
-export default function AIRecommendationLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function AIRecommendationLoading() {
+  if (await isWarm("warm_app_ai")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header skeleton */}

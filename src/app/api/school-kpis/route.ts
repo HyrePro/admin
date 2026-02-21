@@ -24,7 +24,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch KPIs' }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    const response = NextResponse.json(data);
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

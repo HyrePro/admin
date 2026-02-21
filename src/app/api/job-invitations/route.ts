@@ -1,78 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+import { resolveUserAndSchoolId } from '@/lib/supabase/api/route-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate required env
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Supabase URL or anon key is not configured')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
-    
-    // Validate service role key is available
-    if (!supabaseServiceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY is not configured')
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      )
-    }
-
-    // Service client for database operations
-    const supabaseService = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Get user from request cookies
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          },
-        },
-      }
-    )
-
-    // Get user from cookies
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please log in.' },
-        { status: 401 }
-      )
-    }
-
-    // Get user's admin info to retrieve school_id
-    const { data: adminInfo, error: adminError } = await supabaseService
-      .from('admin_user_info')
-      .select('school_id')
-      .eq('id', user.id)
-      .single()
-
-    if (adminError || !adminInfo?.school_id) {
-      return NextResponse.json(
-        { error: 'User school information not found. Please complete your profile.' },
-        { status: 404 }
-      )
+    const auth = await resolveUserAndSchoolId(request)
+    if (auth.error || !auth.userId || !auth.supabaseService) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized. Please log in.' }, { status: auth.status || 401 })
     }
 
     // Parse request body
@@ -109,11 +42,11 @@ export async function POST(request: NextRequest) {
     const invitations = emails.map(email => ({
       job_id: jobId,
       candidate_email: email,
-      invited_by: user.id
+      invited_by: auth.userId
     }))
 
     // Insert into job_invitations table
-    const { data, error } = await supabaseService
+    const { data, error } = await auth.supabaseService
       .from('job_invitations')
       .insert(invitations)
       .select()

@@ -24,7 +24,6 @@ export async function GET(request: Request) {
         p_type: type
       });
 
-    console.log('API - Raw RPC response:', { data: analyticsData, error: analyticsError });
 
     if (analyticsError) {
       console.error(`Error fetching job analytics:`, analyticsError);
@@ -32,14 +31,11 @@ export async function GET(request: Request) {
     }
 
     if (!analyticsData || (Array.isArray(analyticsData) && analyticsData.length === 0) || (!Array.isArray(analyticsData) && !analyticsData)) {
-      console.log('API - No analytics data found for job:', jobId);
       return NextResponse.json({ error: 'Job analytics not found' }, { status: 404 });
     }
 
     // Handle both array and single object responses from RPC
     const analytics = Array.isArray(analyticsData) ? analyticsData[0] : analyticsData;
-    console.log('API - Raw analytics data from RPC:', analyticsData);
-    console.log('API - Selected analytics object:', analytics);
 
     // Format the response based on the requested type
     if (type === 'overview') {
@@ -54,7 +50,6 @@ export async function GET(request: Request) {
         interviews_completed: analytics?.interviews_completed || 0
       };
       
-      console.log('API - Overview response being returned:', overviewResponse);
       return NextResponse.json(overviewResponse);
     } else { // funnel
       // Use the analytics object directly as it contains the correct funnel structure
@@ -90,7 +85,6 @@ export async function GET(request: Request) {
         total_applicants: analytics?.total_applicants || 0
       };
       
-      console.log('API - Funnel response being returned:', funnelResponse);
       return NextResponse.json(funnelResponse);
     }
   } catch (error) {

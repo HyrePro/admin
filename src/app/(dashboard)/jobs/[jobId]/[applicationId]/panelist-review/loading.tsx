@@ -1,4 +1,10 @@
-export default function PanelistReviewLoading() {
+import { isWarm } from "@/lib/loading-gate";
+
+export default async function PanelistReviewLoading() {
+  if (await isWarm("warm_app_panelist")) {
+    return <div className="h-full" />;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header skeleton */}

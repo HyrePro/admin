@@ -11,6 +11,7 @@ import { Separator } from "./ui/separator"
 import Image from "next/image"
 import { SignupProgressDialog } from "./signup-progress-dialog"
 import { Eye, EyeOff, AlertCircle } from "lucide-react"
+import { getClientAuthOrigin } from "@/lib/auth/get-client-auth-origin"
 
 interface SignupFormProps extends React.ComponentProps<"div"> {
   email?: string | null
@@ -34,7 +35,7 @@ export function SignupForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [email, setEmail] = useState(initialEmail || "")
-  const [invitation, setInvitation] = useState<string | null>(initialInvitation || null)
+  const invitation = initialInvitation || null
   const [showSignUpMessage, setShowSignUpMessage] = useState(!!initialEmail)
   const router = useRouter()
   const supabase = createClient()
@@ -53,6 +54,10 @@ export function SignupForm({
   const isValidRedirectPath = (path: string): boolean => {
     // Security: Validate the redirect path is relative (starts with /) to prevent open redirect vulnerabilities
     return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')
+  }
+
+  const hasUsableRedirect = (path: string | null | undefined): path is string => {
+    return typeof path === 'string' && path.trim() !== '' && path !== '/' && isValidRedirectPath(path)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,16 +97,16 @@ export function SignupForm({
     }
 
     try {
-      const baseUrl = window.location.origin
-      let redirectUrl = `${baseUrl}`
+      const authOrigin = getClientAuthOrigin()
+      let redirectUrl = `${authOrigin}`
       
       // If there's an invitation token, redirect to the invitation page after email confirmation
       if (invitation) {
-        redirectUrl = `${baseUrl}/invite/${invitation}`
+        redirectUrl = `${authOrigin}/invite/${invitation}`
       }
       // Otherwise, if there's a redirect parameter, use that
-      else if (initialRedirect && initialRedirect.trim() !== '' && isValidRedirectPath(initialRedirect)) {
-        redirectUrl = `${baseUrl}${initialRedirect}`
+      else if (hasUsableRedirect(initialRedirect)) {
+        redirectUrl = `${authOrigin}${initialRedirect}`
       }
 
       console.log('=== SIGNUP ATTEMPT START ===')
@@ -169,11 +174,16 @@ export function SignupForm({
           action: {
             label: "Go to Login",
             onClick: () => {
-              // Include redirect parameter in login URL if it exists and is not empty
-              let loginUrl = "/login"
-              if (initialRedirect && initialRedirect.trim() !== '' && isValidRedirectPath(initialRedirect)) {
-                loginUrl += `?redirect=${encodeURIComponent(initialRedirect)}`
+              const loginParams = new URLSearchParams()
+              if (hasUsableRedirect(initialRedirect)) {
+                loginParams.set("redirect", initialRedirect)
               }
+              if (invitation) {
+                loginParams.set("invitation", invitation)
+              }
+              const loginUrl = loginParams.toString()
+                ? `/login?${loginParams.toString()}`
+                : "/login"
               router.push(loginUrl)
             },
           },
@@ -364,10 +374,11 @@ export function SignupForm({
       console.log('=== GOOGLE LOGIN ATTEMPT START ===')
       
       // Prepare redirect URL with parameters if they exist
-      let redirectTo = `${window.location.origin}/auth/callback`
+      const authOrigin = getClientAuthOrigin()
+      let redirectTo = `${authOrigin}/auth/callback`
       
       // Add redirect parameter to the callback URL if it exists and is not empty
-      if (initialRedirect && initialRedirect.trim() !== '' && isValidRedirectPath(initialRedirect)) {
+      if (hasUsableRedirect(initialRedirect)) {
         const url = new URL(redirectTo)
         url.searchParams.set('next', initialRedirect)
         redirectTo = url.toString()
@@ -496,7 +507,7 @@ export function SignupForm({
         redirectPath = `/invite/${invitation}`
       } 
       // Otherwise, use the initial redirect parameter passed to the component
-      else if (initialRedirect && initialRedirect.trim() !== '' && isValidRedirectPath(initialRedirect)) {
+      else if (hasUsableRedirect(initialRedirect)) {
         redirectPath = initialRedirect
       }
       
@@ -525,7 +536,7 @@ export function SignupForm({
           redirectPath = `/invite/${invitation}`
         }
         // Otherwise, use the initial redirect parameter passed to the component
-        else if (initialRedirect && initialRedirect.trim() !== '' && isValidRedirectPath(initialRedirect)) {
+        else if (hasUsableRedirect(initialRedirect)) {
           redirectPath = initialRedirect
         }
         

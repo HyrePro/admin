@@ -12,6 +12,7 @@ export interface ApplicationInfo {
   status: string;
   resume_url?: string;
   resume_file_name?: string;
+  cover_letter?: string;
   teaching_experience: Array<{
     city: string;
     school: string;
@@ -55,6 +56,7 @@ export interface CandidateInfo {
   state: string;
   resume_url?: string;
   resume_file_name?: string;
+  cover_letter?: string;
   teaching_experience: Array<{
     city: string;
     school: string;
@@ -71,6 +73,7 @@ export interface CandidateInfo {
   }>;
   subjects: string[];
   grade_levels?: string[];
+  created_at?: string;
 }
 
 export interface ApplicationStage {
@@ -134,10 +137,12 @@ export async function getJobApplication(applicationId: string) {
       state: applicationData.state,
       resume_url: applicationData.resume_url,
       resume_file_name: applicationData.resume_file_name,
+      cover_letter: applicationData.cover_letter,
       teaching_experience: applicationData.teaching_experience,
       education_qualifications: applicationData.education_qualifications,
       subjects: applicationData.subjects,
       grade_levels: applicationData.grade_levels,
+      created_at: applicationData.created_at,
     };
 
     const applicationStage: ApplicationStage = {

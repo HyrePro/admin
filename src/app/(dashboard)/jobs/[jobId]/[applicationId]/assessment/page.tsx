@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useApplication } from "../layout";
+import { useApplication } from "@/components/application-layout-client";
+import { useWarmRoute } from "@/hooks/use-warm-route";
 
 // Dynamically import the MCQAssessment component to reduce initial bundle size
 const MCQAssessmentComponent = dynamic(() => import("@/components/mcq-assessment").then(mod => mod.MCQAssessment), {
@@ -21,6 +22,7 @@ const MCQAssessmentComponent = dynamic(() => import("@/components/mcq-assessment
 
 export default function AssessmentPage() {
   const { applicationStage, loading } = useApplication();
+  useWarmRoute("warm_app_assessment", !loading, 60);
 
   if (loading) {
     return (
