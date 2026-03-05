@@ -12,12 +12,14 @@ import { toast } from "sonner";
 import { useWarmRoute } from "@/hooks/use-warm-route";
 import {
   CandidateApplication,
+  CandidatesListResponse,
   CandidatesListRequest,
 } from "@/lib/query/contracts/candidates";
 import { candidatesListQueryOptions } from "@/lib/query/fetchers/candidates";
 
 interface CandidatesPageClientProps {
   initialFilters: CandidatesListRequest;
+  initialPayload?: CandidatesListResponse;
 }
 
 const DEFAULT_FILTERS: CandidatesListRequest = {
@@ -29,7 +31,10 @@ const DEFAULT_FILTERS: CandidatesListRequest = {
   sortDirection: "desc",
 };
 
-export default function CandidatesPageClient({ initialFilters }: CandidatesPageClientProps) {
+export default function CandidatesPageClient({
+  initialFilters,
+  initialPayload,
+}: CandidatesPageClientProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -56,6 +61,17 @@ export default function CandidatesPageClient({ initialFilters }: CandidatesPageC
     [currentPage, debouncedSearchQuery, pageSize, sortColumn, sortDirection, statusFilter],
   );
 
+  const isInitialQuery = useMemo(
+    () =>
+      queryFilters.searchQuery === initialFilters.searchQuery &&
+      queryFilters.statusFilter === initialFilters.statusFilter &&
+      queryFilters.currentPage === initialFilters.currentPage &&
+      queryFilters.pageSize === initialFilters.pageSize &&
+      queryFilters.sortColumn === initialFilters.sortColumn &&
+      queryFilters.sortDirection === initialFilters.sortDirection,
+    [initialFilters, queryFilters],
+  );
+
   const {
     data: applicationsResponse,
     isLoading,
@@ -63,6 +79,7 @@ export default function CandidatesPageClient({ initialFilters }: CandidatesPageC
     isError,
   } = useQuery({
     ...candidatesListQueryOptions(queryFilters),
+    initialData: isInitialQuery && initialPayload ? initialPayload : undefined,
     placeholderData: (previousData) => previousData,
   });
 

@@ -5,10 +5,6 @@ import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   ChartContainer,
@@ -198,11 +194,7 @@ export default function HiringFunnelChart({ funnelData, conversionRate, conversi
   };
 
   return (
-    <Card className="shadow-none">
-      <CardHeader>
-        <CardTitle>Hiring Funnel Analysis</CardTitle>
-        <CardDescription>Linear Step-Based Job Assessment Pipeline</CardDescription>
-      </CardHeader>
+    <Card className="shadow-none border-0">
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Chart Section */}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from '@tanstack/react-query';
 import { useJob } from "@/components/job-layout-client";
 import { useWarmRoute } from "@/hooks/use-warm-route";
+import { JobMcqQuestionsDialog } from "@/components/job-mcq-questions-dialog";
 
 export default function JobAssessmentPage() {
   const { job } = useJob();
@@ -16,6 +17,7 @@ export default function JobAssessmentPage() {
   const [isMcqExpanded, setIsMcqExpanded] = useState(true);
   const [isDemoExpanded, setIsDemoExpanded] = useState(false);
   const [isInterviewExpanded, setIsInterviewExpanded] = useState(false);
+  const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   
   // Fetch assessment config using TanStack Query
   const {
@@ -170,6 +172,16 @@ export default function JobAssessmentPage() {
             {isMcqExpanded && (
               <div className="px-4 pb-4 border-t border-gray-100">
                 <div className="space-y-4 mt-4">
+                  <div className="flex items-center justify-end">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-sm text-blue-600"
+                      onClick={() => setIsQuestionDialogOpen(true)}
+                    >
+                      View questions
+                    </Button>
+                  </div>
                   {/* Number of Questions Slider */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -397,6 +409,12 @@ export default function JobAssessmentPage() {
             )}
           </div>
         </div>
+
+        <JobMcqQuestionsDialog
+          jobId={jobId}
+          open={isQuestionDialogOpen}
+          onOpenChange={setIsQuestionDialogOpen}
+        />
       </div>
     </div>
   );

@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { JobsTable } from "@/components/jobs-table";
 import ErrorBoundary from "@/components/error-boundary";
 import { useWarmRoute } from "@/hooks/use-warm-route";
-import { JobsListRequest } from "@/lib/query/contracts/jobs";
+import { JobsListRequest, JobsListResponse } from "@/lib/query/contracts/jobs";
 import { jobsListQueryOptions } from "@/lib/query/fetchers/jobs";
 
 interface JobsPageClientProps {
   initialFilters: JobsListRequest;
+  initialPayload?: JobsListResponse;
 }
 
 const DEFAULT_FILTERS: JobsListRequest = {
@@ -24,7 +25,7 @@ const DEFAULT_FILTERS: JobsListRequest = {
   sortDirection: "desc",
 };
 
-export default function JobsPageClient({ initialFilters }: JobsPageClientProps) {
+export default function JobsPageClient({ initialFilters, initialPayload }: JobsPageClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -50,8 +51,20 @@ export default function JobsPageClient({ initialFilters }: JobsPageClientProps) 
     [currentPage, debouncedSearchQuery, pageSize, sortColumn, sortDirection, statusFilter],
   );
 
+  const isInitialQuery = useMemo(
+    () =>
+      queryFilters.searchQuery === initialFilters.searchQuery &&
+      queryFilters.statusFilter === initialFilters.statusFilter &&
+      queryFilters.currentPage === initialFilters.currentPage &&
+      queryFilters.pageSize === initialFilters.pageSize &&
+      queryFilters.sortColumn === initialFilters.sortColumn &&
+      queryFilters.sortDirection === initialFilters.sortDirection,
+    [initialFilters, queryFilters],
+  );
+
   const { data: jobsResponse, isLoading, isFetching, isError } = useQuery({
     ...jobsListQueryOptions(queryFilters),
+    initialData: isInitialQuery && initialPayload ? initialPayload : undefined,
     placeholderData: (previousData) => previousData,
   });
 

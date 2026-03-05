@@ -8,10 +8,9 @@ function createQueryClientConfig() {
         staleTime: 5 * 60_000,
         gcTime: 15 * 60_000,
         refetchOnMount: false,
-        refetchOnWindowFocus: true,
-        refetchOnReconnect: true,
-        retry: 2,
-        retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30_000),
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        retry: 0,
       },
     },
   };

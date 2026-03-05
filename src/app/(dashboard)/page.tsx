@@ -11,6 +11,7 @@ import {
   weeklyActivityQueryOptions,
 } from "@/lib/query/fetchers/dashboard";
 import { DashboardStats } from "@/lib/query/contracts/dashboard";
+import { isWarm } from "@/lib/loading-gate";
 
 export default async function Page() {
   const supabase = await createClient();
@@ -34,15 +35,23 @@ export default async function Page() {
 
   const schoolId = adminInfo.school_id;
   const queryClient = getRequestScopedQueryClient();
-  const fetchContext = await getServerFetchContext();
+  const warm = await isWarm("warm_dashboard");
+  const jobsPromise = supabase.from("jobs").select("id").eq("school_id", schoolId);
+  const statsPromise = supabase.rpc("get_school_dashboard_stats", { p_school_id: schoolId }).single();
+  let prefetchPromise: Promise<void> = Promise.resolve();
 
-  const [jobsResult, statsResult] = await Promise.all([
-    supabase.from("jobs").select("id").eq("school_id", schoolId),
-    supabase.rpc("get_school_dashboard_stats", { p_school_id: schoolId }).single(),
-    queryClient.prefetchQuery(schoolJobsQueryOptions(schoolId, fetchContext)).catch(() => undefined),
-    queryClient.prefetchQuery(hiringProgressQueryOptions(schoolId, fetchContext)).catch(() => undefined),
-    queryClient.prefetchQuery(weeklyActivityQueryOptions(schoolId, fetchContext)).catch(() => undefined),
-  ]);
+  if (!warm) {
+    const fetchContext = await getServerFetchContext();
+    prefetchPromise = Promise.all([
+      queryClient.prefetchQuery(schoolJobsQueryOptions(schoolId, fetchContext)).catch(() => undefined),
+      queryClient.prefetchQuery(hiringProgressQueryOptions(schoolId, fetchContext)).catch(() => undefined),
+      queryClient.prefetchQuery(weeklyActivityQueryOptions(schoolId, fetchContext)).catch(() => undefined),
+    ]).then(() => undefined);
+  }
+
+  const [jobsResult, statsResult] = await Promise.all([jobsPromise, statsPromise, prefetchPromise]).then(
+    ([jobs, stats]) => [jobs, stats] as const,
+  );
 
   const jobs = jobsResult.data || [];
   const dashboardStats = (statsResult.data as DashboardStats) || null;

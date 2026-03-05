@@ -66,7 +66,7 @@ export function schoolJobsQueryOptions(schoolId: string, context?: FetchContext)
     queryKey: queryKeys.dashboard.schoolJobs(schoolId),
     queryFn: () => fetchSchoolJobs(schoolId, context),
     enabled: Boolean(schoolId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
@@ -77,7 +77,7 @@ export function hiringProgressQueryOptions(schoolId: string, context?: FetchCont
     queryKey: queryKeys.dashboard.hiringProgress(schoolId),
     queryFn: () => fetchHiringProgress(schoolId, context),
     enabled: Boolean(schoolId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
@@ -88,9 +88,8 @@ export function weeklyActivityQueryOptions(schoolId: string, context?: FetchCont
     queryKey: queryKeys.dashboard.weeklyActivity(schoolId),
     queryFn: () => fetchWeeklyActivity(schoolId, context),
     enabled: Boolean(schoolId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
 }
-

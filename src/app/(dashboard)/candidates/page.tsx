@@ -3,7 +3,8 @@ import CandidatesPageClient from "@/components/pages/candidates-page-client";
 import { getRequestScopedQueryClient } from "@/lib/query/query-client";
 import { getServerFetchContext } from "@/lib/query/server-fetch-context";
 import { candidatesListQueryOptions } from "@/lib/query/fetchers/candidates";
-import { CandidatesListRequest } from "@/lib/query/contracts/candidates";
+import { CandidatesListRequest, CandidatesListResponse } from "@/lib/query/contracts/candidates";
+import { isWarm } from "@/lib/loading-gate";
 
 interface CandidatesPageProps {
   searchParams?: {
@@ -32,17 +33,25 @@ export default async function CandidatesPage({ searchParams }: CandidatesPagePro
   };
 
   const queryClient = getRequestScopedQueryClient();
-  const fetchContext = await getServerFetchContext();
+  const warm = await isWarm("warm_candidates");
+  let initialPayload: CandidatesListResponse | undefined;
 
-  await queryClient
-    .prefetchQuery(candidatesListQueryOptions(initialFilters, fetchContext))
-    .catch(() => undefined);
+  if (!warm) {
+    const fetchContext = await getServerFetchContext();
+    const initialQuery = candidatesListQueryOptions(initialFilters, fetchContext);
+    await queryClient.prefetchQuery(initialQuery).catch(() => undefined);
+    initialPayload =
+      (queryClient.getQueryData(initialQuery.queryKey) as CandidatesListResponse | undefined) ?? {
+        applications: [],
+        totalCount: 0,
+      };
+  }
 
   const dehydratedState = dehydrate(queryClient);
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <CandidatesPageClient initialFilters={initialFilters} />
+      <CandidatesPageClient initialFilters={initialFilters} initialPayload={initialPayload} />
     </HydrationBoundary>
   );
 }

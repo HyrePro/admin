@@ -29,9 +29,8 @@ export function jobsListQueryOptions(request: JobsListRequest, context?: FetchCo
   return queryOptions({
     queryKey: queryKeys.jobs.list(request),
     queryFn: () => fetchJobsList(request, context),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
 }
-

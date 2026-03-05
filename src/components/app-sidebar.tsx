@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   FileText,
@@ -56,7 +56,36 @@ const mainLinks = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const { setOpenMobile, state } = useSidebar(); // Add state to detect sidebar state
+  const prefetchedRoutesRef = React.useRef<Set<string>>(new Set());
+
+  const prefetchRoute = React.useCallback(
+    (href: string) => {
+      if (!href || prefetchedRoutesRef.current.has(href)) return;
+      prefetchedRoutesRef.current.add(href);
+      router.prefetch(href);
+    },
+    [router]
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const warmTopTabs = () => {
+      for (const link of mainLinks) {
+        prefetchRoute(link.href);
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(warmTopTabs, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timer = globalThis.setTimeout(warmTopTabs, 300);
+    return () => globalThis.clearTimeout(timer);
+  }, [prefetchRoute]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"; // only exact match for home
@@ -103,6 +132,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <Link 
                       href={href} 
                       scroll={false}
+                      onMouseEnter={() => prefetchRoute(href)}
+                      onFocus={() => prefetchRoute(href)}
                       onClick={() => {
                         // Close mobile sidebar when a link is clicked
                         setOpenMobile(false);

@@ -61,7 +61,7 @@ export function interviewStatsQueryOptions(schoolId: string, context?: FetchCont
     queryKey: queryKeys.interviews.stats(schoolId),
     queryFn: () => fetchInterviewStats(schoolId, context),
     enabled: Boolean(schoolId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
@@ -75,9 +75,8 @@ export function interviewScheduleQueryOptions(
     queryKey: queryKeys.interviews.schedule(request),
     queryFn: () => fetchInterviewSchedule(request, context),
     enabled: Boolean(request.schoolId && request.userId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
 }
-

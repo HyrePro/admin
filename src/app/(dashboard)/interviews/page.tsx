@@ -8,6 +8,7 @@ import {
   interviewScheduleQueryOptions,
   interviewStatsQueryOptions,
 } from "@/lib/query/fetchers/interviews";
+import { isWarm } from "@/lib/loading-gate";
 import {
   InterviewCalendarView,
   InterviewStatusFilter,
@@ -81,16 +82,20 @@ export default async function InterviewsPage({ searchParams }: InterviewsPagePro
   }
 
   const queryClient = getRequestScopedQueryClient();
-  const fetchContext = await getServerFetchContext();
+  const warm = await isWarm("warm_interviews");
 
-  await Promise.all([
-    queryClient
-      .prefetchQuery(interviewStatsQueryOptions(initialFilters.schoolId, fetchContext))
-      .catch(() => undefined),
-    queryClient
-      .prefetchQuery(interviewScheduleQueryOptions(initialFilters, fetchContext))
-      .catch(() => undefined),
-  ]);
+  if (!warm) {
+    const fetchContext = await getServerFetchContext();
+
+    await Promise.all([
+      queryClient
+        .prefetchQuery(interviewStatsQueryOptions(initialFilters.schoolId, fetchContext))
+        .catch(() => undefined),
+      queryClient
+        .prefetchQuery(interviewScheduleQueryOptions(initialFilters, fetchContext))
+        .catch(() => undefined),
+    ]);
+  }
 
   const dehydratedState = dehydrate(queryClient);
 

@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/auth-store';
 import React, { useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { SWRProvider } from '@/components/providers/swr-provider';
+import { PostHogProviderWrapper } from '@/components/providers/posthog-provider';
 
 // Component wrapper for the school ID initializer hook
 function SchoolIdInitializerComponent() {
@@ -45,13 +47,17 @@ export function AuthProviderWrapper({
   initialSchoolId?: string | null;
 }) {
   return (
-    <QueryProvider>
-      <AuthProvider initialUser={initialUser}>
-        <InitialAuthHydrator initialUser={initialUser} initialSchoolId={initialSchoolId} />
-        <SchoolIdInitializerComponent />
-        {children}
-        <Toaster position="top-center" />
-      </AuthProvider>
-    </QueryProvider>
+    <SWRProvider>
+      <QueryProvider>
+        <PostHogProviderWrapper>
+          <AuthProvider initialUser={initialUser}>
+            <InitialAuthHydrator initialUser={initialUser} initialSchoolId={initialSchoolId} />
+            <SchoolIdInitializerComponent />
+            {children}
+            <Toaster position="top-center" />
+          </AuthProvider>
+        </PostHogProviderWrapper>
+      </QueryProvider>
+    </SWRProvider>
   );
 }

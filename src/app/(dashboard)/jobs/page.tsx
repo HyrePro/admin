@@ -3,7 +3,8 @@ import JobsPageClient from "@/components/pages/jobs-page-client";
 import { getRequestScopedQueryClient } from "@/lib/query/query-client";
 import { getServerFetchContext } from "@/lib/query/server-fetch-context";
 import { jobsListQueryOptions } from "@/lib/query/fetchers/jobs";
-import { JobsListRequest } from "@/lib/query/contracts/jobs";
+import { JobsListRequest, JobsListResponse } from "@/lib/query/contracts/jobs";
+import { isWarm } from "@/lib/loading-gate";
 
 interface JobsPageProps {
   searchParams?: {
@@ -32,14 +33,24 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   };
 
   const queryClient = getRequestScopedQueryClient();
-  const fetchContext = await getServerFetchContext();
+  const warm = await isWarm("warm_jobs");
+  let initialPayload: JobsListResponse | undefined;
 
-  await queryClient.prefetchQuery(jobsListQueryOptions(initialFilters, fetchContext)).catch(() => undefined);
+  if (!warm) {
+    const fetchContext = await getServerFetchContext();
+    const initialQuery = jobsListQueryOptions(initialFilters, fetchContext);
+    await queryClient.prefetchQuery(initialQuery).catch(() => undefined);
+    initialPayload =
+      (queryClient.getQueryData(initialQuery.queryKey) as JobsListResponse | undefined) ?? {
+        jobs: [],
+        totalCount: 0,
+      };
+  }
   const dehydratedState = dehydrate(queryClient);
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <JobsPageClient initialFilters={initialFilters} />
+      <JobsPageClient initialFilters={initialFilters} initialPayload={initialPayload} />
     </HydrationBoundary>
   );
 }

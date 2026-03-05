@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.0.4",
+      "date": "2026-03-05",
+      "type": "ui",
+      "summary": "fix(data): fix CandidateInfo type mismatch in release notes",
+      "changes": [
+        "fix(data): fix CandidateInfo type mismatch in release notes"
+      ]
+    },
+    {
       "version": "0.0.3",
       "date": "2026-02-21",
       "type": "ui",

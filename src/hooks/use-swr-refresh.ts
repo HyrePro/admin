@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import useSWR from "swr";
-import { QueryKey, useQueryClient } from "@tanstack/react-query";
+import { QueryKey } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 type UseSWRRefreshOptions = {
@@ -18,12 +18,11 @@ type UseSWRRefreshOptions = {
  */
 export function useSWRRefresh({
   id,
-  queryKeys,
+  queryKeys: _queryKeys,
   pollingEnabled = false,
   pollingIntervalMs = 0,
 }: UseSWRRefreshOptions) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const inFlightRefresh = useRef<Promise<void> | null>(null);
 
   const runRefresh = useCallback(async () => {
@@ -32,25 +31,18 @@ export function useSWRRefresh({
     }
 
     inFlightRefresh.current = (async () => {
-      await Promise.all(
-        queryKeys.map((queryKey) =>
-          queryClient.invalidateQueries({
-            queryKey,
-          }),
-        ),
-      );
-
       router.refresh();
+      return undefined;
     })().finally(() => {
       inFlightRefresh.current = null;
     });
 
     return inFlightRefresh.current;
-  }, [queryClient, queryKeys, router]);
+  }, [router]);
 
   const swr = useSWR(
     pollingEnabled && pollingIntervalMs > 0
-      ? ["swr-refresh-loop", id, pollingIntervalMs, queryKeys]
+      ? ["swr-refresh-loop", id, pollingIntervalMs]
       : null,
     async () => {
       await runRefresh();
@@ -61,6 +53,7 @@ export function useSWRRefresh({
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       revalidateOnMount: false,
+      revalidateIfStale: false,
       dedupingInterval: pollingIntervalMs,
     },
   );

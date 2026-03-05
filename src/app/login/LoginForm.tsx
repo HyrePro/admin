@@ -42,7 +42,7 @@ export function LoginForm({
   const invitation = initialInvitation || null
   const [showSignInMessage, setShowSignInMessage] = useState(!!initialEmail)
   const router = useRouter()
-  const { user, loading } = useAuthWithFallback()
+  const { user, loading, error: authBootstrapError } = useAuthWithFallback()
   
   // Create the supabase client instance
   const supabase = createClient()
@@ -179,15 +179,15 @@ export function LoginForm({
           redirectPath = initialRedirect
         }
         
-        // Redirect to the appropriate path
+        // Force a full reload so the server sees the new auth cookies immediately.
         console.log('Redirecting to:', redirectPath)
-        router.push(redirectPath)
+        window.location.replace(redirectPath)
       } else {
         setError('Login failed: No user data received')
       }
     } catch (err) {
       console.error('Unexpected login error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      setError(getReadableLoginError(err))
     } finally {
       setIsLoading(false)
     }
@@ -227,10 +227,10 @@ export function LoginForm({
       })
 
       if (error) {
-        setError(error.message)
+        setError(getReadableLoginError(error))
       }
     } catch (err) {
-      setError("Failed to sign in with Google. Please try again.")
+      setError(getReadableLoginError(err))
     } finally {
       setIsGoogleLoading(false)
     }
@@ -257,9 +257,9 @@ export function LoginForm({
           )}
         </div>
 
-        {error && (
+        {(authBootstrapError || error) && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{authBootstrapError || error}</AlertDescription>
           </Alert>
         )}
 
@@ -388,4 +388,23 @@ export function LoginForm({
       />
     </>
   )
+}
+
+function getReadableLoginError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+
+  if (
+    message.includes("UND_ERR_CONNECT_TIMEOUT") ||
+    message.includes("Connect Timeout") ||
+    message.includes("fetch failed") ||
+    message.includes("Failed to fetch")
+  ) {
+    return "Unable to reach Supabase right now. Login is temporarily unavailable. Please try again in a few minutes.";
+  }
+
+  if (message.includes("AUTH_BOOTSTRAP_TIMEOUT")) {
+    return "Unable to verify session because Supabase is not responding. Please try again in a few minutes.";
+  }
+
+  return "An unexpected error occurred. Please try again.";
 }

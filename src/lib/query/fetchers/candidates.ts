@@ -38,9 +38,8 @@ export function candidatesListQueryOptions(
   return queryOptions({
     queryKey: queryKeys.candidates.list(request),
     queryFn: () => fetchCandidatesList(request, context),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnMount: false,
   });
 }
-
