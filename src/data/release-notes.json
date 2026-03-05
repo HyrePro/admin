@@ -1,6 +1,27 @@
 {
   "releases": [
     {
+      "version": "0.1.2",
+      "date": "2026-03-05",
+      "type": "ui",
+      "summary": "feat(deps): add posthog-js and related opentelemetry dependencies",
+      "changes": [
+        "feat(deps): add posthog-js and related opentelemetry dependencies"
+      ]
+    },
+    {
+      "version": "0.1.1",
+      "date": "2026-03-05",
+      "type": "functional",
+      "summary": "Analytics added, smoother loading on key pages, and an MCQ question viewer.",
+      "changes": [
+        "Added PostHog analytics so we can understand how the admin app is used.",
+        "Candidates page now reuses cached data after the first load to avoid repeat loading.",
+        "Interviews page now reuses cached data after the first load for smoother navigation.",
+        "Added a “View questions” dialog on MCQ assessments so hiring teams can review questions and reports."
+      ]
+    },
+    {
       "version": "0.0.4",
       "date": "2026-03-05",
       "type": "ui",
