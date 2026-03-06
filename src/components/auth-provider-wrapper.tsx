@@ -4,7 +4,7 @@ import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/sonner';
 import { useSchoolIdInitializer } from '@/hooks/use-school-id-initializer';
 import { useAuthStore } from '@/store/auth-store';
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { SWRProvider } from '@/components/providers/swr-provider';
@@ -49,14 +49,16 @@ export function AuthProviderWrapper({
   return (
     <SWRProvider>
       <QueryProvider>
-        <PostHogProviderWrapper>
-          <AuthProvider initialUser={initialUser}>
-            <InitialAuthHydrator initialUser={initialUser} initialSchoolId={initialSchoolId} />
-            <SchoolIdInitializerComponent />
-            {children}
-            <Toaster position="top-center" />
-          </AuthProvider>
-        </PostHogProviderWrapper>
+        <Suspense fallback={null}>
+          <PostHogProviderWrapper>
+            <AuthProvider initialUser={initialUser}>
+              <InitialAuthHydrator initialUser={initialUser} initialSchoolId={initialSchoolId} />
+              <SchoolIdInitializerComponent />
+              {children}
+              <Toaster position="top-center" />
+            </AuthProvider>
+          </PostHogProviderWrapper>
+        </Suspense>
       </QueryProvider>
     </SWRProvider>
   );
