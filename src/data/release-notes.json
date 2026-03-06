@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.1.5",
+      "date": "2026-03-06",
+      "type": "ui",
+      "summary": "refactor(auth): wrap PostHogProviderWrapper with Suspense in AuthProviderWrapper",
+      "changes": [
+        "refactor(auth): wrap PostHogProviderWrapper with Suspense in AuthProviderWrapper"
+      ]
+    },
+    {
       "version": "0.1.4",
       "date": "2026-03-06",
       "type": "ui",
