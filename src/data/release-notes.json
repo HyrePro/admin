@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.1.7",
+      "date": "2026-03-06",
+      "type": "ui",
+      "summary": "refactor(jobs-table): move row virtualization logic to top of component",
+      "changes": [
+        "refactor(jobs-table): move row virtualization logic to top of component"
+      ]
+    },
+    {
       "version": "0.1.6",
       "date": "2026-03-06",
       "type": "ui",
