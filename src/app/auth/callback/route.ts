@@ -1,14 +1,8 @@
-// Create service client for admin operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/api/server'
+import { ensureAdminUserInfo } from '@/lib/supabase/api/ensure-admin-user-info'
 
-// Ensure service role key is available for admin operations
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations')
-}
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -43,6 +37,12 @@ export async function GET(request: NextRequest) {
             )
           }
         }
+
+        await ensureAdminUserInfo({
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: data.user.user_metadata ?? undefined,
+        })
 
         // Invitation accepts should take precedence over school checks.
         if (isInvitationPath && safeNextPath) {

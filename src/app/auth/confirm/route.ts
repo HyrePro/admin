@@ -1,6 +1,7 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/api/server'
+import { ensureAdminUserInfo } from '@/lib/supabase/api/ensure-admin-user-info'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -50,12 +51,19 @@ export async function GET(request: NextRequest) {
     }
 
     for (const verificationType of verificationTypes) {
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         type: verificationType,
         token_hash,
       })
 
       if (!error) {
+        if (data?.user) {
+          await ensureAdminUserInfo({
+            id: data.user.id,
+            email: data.user.email,
+            user_metadata: data.user.user_metadata ?? undefined,
+          })
+        }
         return NextResponse.redirect(new URL(safeNextPath, requestUrl.origin))
       }
     }

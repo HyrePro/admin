@@ -222,7 +222,11 @@ export default function CreateSchoolPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('School creation error:', errorData)
+        console.error('School creation error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        })
         const errorMsg = errorData.error || 'Failed to create school. Please try again.'
         setProgressStep('error')
         setProgressError(errorMsg)

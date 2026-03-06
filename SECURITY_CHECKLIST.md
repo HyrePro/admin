@@ -108,6 +108,7 @@ const supabase = createServerClient(
 - [ ] Test session persistence across browser refresh
 - [ ] Test logout functionality
 - [ ] Test concurrent sessions (multiple tabs/browsers)
+- [ ] Run `node scripts/validate_create_school_auth.js` using a test user without a school (expects 400 missing fields, not 404 school_id error)
 
 ### Automated Security Tests
 - [ ] SQL injection attempts on login fields

@@ -33,6 +33,17 @@ This guide helps resolve common issues with email confirmation in the Hyriki Adm
 3. Clear browser cookies and cache
 4. Try a different browser
 
+### 4. Verification Link Opens the Wrong Domain (e.g., `hyriki.com` instead of `admin.hyriki.com`)
+
+**Cause**: Supabase uses its **Auth Site URL** and **Redirect URLs** allowlist to build confirmation links.  
+If `admin.hyriki.com` is not configured, Supabase will fall back to the site URL (often `hyriki.com`).
+
+**Fix**:
+1. Go to **Supabase Dashboard → Authentication → URL Configuration**
+2. Set **Site URL** to `https://admin.hyriki.com`
+3. Add `https://admin.hyriki.com` (and any local dev URLs) to **Redirect URLs**
+4. Save, then try signup again
+
 ## Supabase Email Configuration
 
 ### Default Email Service Limitations

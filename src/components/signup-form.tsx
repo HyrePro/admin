@@ -303,32 +303,39 @@ export function SignupForm({
         setSignupEmail(email)
         setIsSignupDialogOpen(true)
 
-        // Create admin user record
-        try {
-          console.log('Creating admin user record...')
-          const adminResponse = await fetch("/api/admin-user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              first_name: firstName,
-              last_name: lastName,
-              email,
-              phone_no: contactNumber,
-              user_id: data.user.id,
-            }),
-          })
-          
-          if (!adminResponse.ok) {
-            const errorText = await adminResponse.text()
-            console.error("❌ Failed to create admin user record")
-            console.error("Status:", adminResponse.status)
-            console.error("Response:", errorText)
-          } else {
-            console.log('✅ Admin user record created successfully')
+        // Create admin user record only when a session exists (email-confirm flows do not create a session yet).
+        if (data.session?.access_token) {
+          try {
+            console.log('Creating admin user record...')
+            const adminResponse = await fetch("/api/admin-user", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+              body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                phone_no: contactNumber,
+                user_id: data.user.id,
+              }),
+            })
+            
+            if (!adminResponse.ok) {
+              const errorText = await adminResponse.text()
+              console.error("❌ Failed to create admin user record")
+              console.error("Status:", adminResponse.status)
+              console.error("Response:", errorText)
+            } else {
+              console.log('✅ Admin user record created successfully')
+            }
+          } catch (adminError) {
+            console.error("❌ Error creating admin user record:", adminError)
+            console.error("Stack:", adminError instanceof Error ? adminError.stack : "No stack")
           }
-        } catch (adminError) {
-          console.error("❌ Error creating admin user record:", adminError)
-          console.error("Stack:", adminError instanceof Error ? adminError.stack : "No stack")
+        } else {
+          console.log('ℹ️ Admin user record creation deferred until email confirmation/login.')
         }
 
         // Show success message with appropriate instructions

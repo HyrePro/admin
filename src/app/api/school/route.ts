@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveUserAndSchoolId } from '@/lib/supabase/api/route-auth'
+import { resolveUser, resolveUserAndSchoolId } from '@/lib/supabase/api/route-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await resolveUserAndSchoolId(request)
+    // For initial school creation, we only need an authenticated user.
+    const auth = await resolveUser(request)
     if (auth.error || !auth.userId || !auth.supabaseService || !auth.supabaseUser) {
       return NextResponse.json({ error: auth.error || 'Unauthorized. Please log in.' }, { status: auth.status || 401 })
     }
