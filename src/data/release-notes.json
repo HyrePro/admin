@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "0.1.9",
+      "date": "2026-03-06",
+      "type": "ui",
+      "summary": "docs(auth): add troubleshooting for wrong domain in verification links",
+      "changes": [
+        "docs(auth): add troubleshooting for wrong domain in verification links"
+      ]
+    },
+    {
       "version": "0.1.8",
       "date": "2026-03-06",
       "type": "ui",
