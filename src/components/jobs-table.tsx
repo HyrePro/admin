@@ -136,6 +136,24 @@ function JobsTableComponent({
     onSortChange
   });
 
+  const rowVirtualizer = useVirtualizer({
+    count: paginatedJobs.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  });
+
+  const shouldVirtualize = paginatedJobs.length > 50;
+  const virtualRows = shouldVirtualize
+    ? rowVirtualizer.getVirtualItems()
+    : paginatedJobs.map((_, index) => ({ index, start: 0, end: 0 }));
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = shouldVirtualize && virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    shouldVirtualize && virtualRows.length > 0
+      ? totalSize - virtualRows[virtualRows.length - 1].end
+      : 0;
+
   // Check for error states first
   if (hasError) {
     if (isNetworkError) {
@@ -265,24 +283,6 @@ function JobsTableComponent({
       </div>
     );
   }
-
-  const rowVirtualizer = useVirtualizer({
-    count: paginatedJobs.length,
-    getScrollElement: () => tableScrollRef.current,
-    estimateSize: () => 56,
-    overscan: 8,
-  });
-
-  const shouldVirtualize = paginatedJobs.length > 50;
-  const virtualRows = shouldVirtualize
-    ? rowVirtualizer.getVirtualItems()
-    : paginatedJobs.map((_, index) => ({ index, start: 0, end: 0 }));
-  const totalSize = rowVirtualizer.getTotalSize();
-  const paddingTop = shouldVirtualize && virtualRows.length > 0 ? virtualRows[0].start : 0;
-  const paddingBottom =
-    shouldVirtualize && virtualRows.length > 0
-      ? totalSize - virtualRows[virtualRows.length - 1].end
-      : 0;
 
   return (
    <div className="flex flex-col h-full min-h-0">
